@@ -1,0 +1,193 @@
+VETRA Platform – MVP Product Blueprint
+
+Design a modern web application called VETRA Platform.
+
+This is not a generic ERP. It is an integrated Construction Management Platform designed for engineering companies, contractors, developers, and investment groups.
+
+The goal is to create the foundation of a future enterprise platform called VETRA Suite, while keeping the architecture modular so that ERP, Project Management, HR, CRM, DMS, and other modules can later become independent products.
+
+⸻
+
+Main Design Principles
+
+* Modular architecture
+* Workspace-based navigation
+* Multi-company
+* Multi-project
+* Multi-user role
+* Persian (Jalali) calendar support (design the architecture with full Jalali date compatibility)
+* Responsive design
+* Clean modern UI
+* Dashboard-first experience
+* AI-ready architecture
+* Permission-based access (RBAC)
+
+⸻
+
+Main Modules
+
+Create the following high-level modules only (do not implement all business logic):
+
+* Dashboard
+* Projects
+* Project Planning (Gantt / Timeline placeholder)
+* Project Control
+* Tasks
+* Documents
+* Forms
+* Contracts
+* Daily Reports
+* Meetings
+* Human Resources
+* Payroll
+* Inventory
+* Procurement
+* Equipment
+* Cost Control
+* Accounting Lite
+* CRM
+* Reports
+* AI Assistant
+* Settings
+
+⸻
+
+Core System
+
+Include a reusable core containing:
+
+* Authentication
+* Users
+* Roles & Permissions
+* Organizations
+* Companies
+* Notifications
+* Comments
+* Attachments
+* Activity Log
+* Workflow
+* Digital Signature (placeholder)
+* Search
+* Global Settings
+
+⸻
+
+Workspaces
+
+The application should support different workspaces.
+
+Examples:
+
+* CEO Workspace
+* Project Workspace
+* HR Workspace
+* Site Workspace
+* Employer Portal
+* Investor Portal
+* Supplier Portal
+
+Each workspace should display different dashboards and navigation depending on user role.
+
+⸻
+
+User Roles
+
+Support role-based access for:
+
+* CEO
+* Project Director
+* Project Manager
+* Planning Engineer
+* Site Engineer
+* Supervisor
+* HR
+* Accountant
+* Warehouse Manager
+* Procurement Officer
+* Worker
+* Employer
+* Investor
+* Consultant
+* Supplier
+* Subcontractor
+
+Users may have multiple roles simultaneously.
+
+⸻
+
+Project Workspace
+
+Inside each project include placeholder pages for:
+
+* Overview
+* WBS
+* Schedule
+* Progress
+* Daily Reports
+* Documents
+* Meetings
+* Contracts
+* Resources
+* Costs
+* Inventory
+* Equipment
+* Quality
+* Safety
+* Risks
+* Photos
+* Drawings
+
+⸻
+
+Dashboard
+
+Create a modern executive dashboard showing sample widgets:
+
+* Active Projects
+* Overall Progress
+* Project Health
+* Delayed Activities
+* Budget Status
+* Cash Flow
+* Workforce
+* Equipment Status
+* Pending Approvals
+* Notifications
+* Recent Activities
+
+⸻
+
+UI Style
+
+Use a premium enterprise SaaS design.
+
+Inspired by:
+
+* Linear
+* Notion
+* ClickUp
+* Monday.com
+* Jira
+* Microsoft Loop
+
+Avoid outdated ERP interfaces.
+
+Use a clean layout with left navigation, top command bar, cards, widgets, charts, and modern typography.
+
+⸻
+
+Deliverables
+
+Generate:
+
+1. Overall application architecture
+2. Navigation structure
+3. Dashboard layout
+4. Main pages
+5. Database entity suggestions
+6. Relationships between modules
+7. Component hierarchy
+8. Modern UI prototype
+9. Responsive web application structure
+
+Focus on architecture, user experience, scalability, and modularity rather than implementing detailed business logic.

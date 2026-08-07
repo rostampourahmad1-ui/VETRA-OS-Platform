@@ -1,0 +1,1656 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: VETRA Platform API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: dashboard
+    description: Dashboard and executive summaries
+  - name: projects
+    description: Project management
+  - name: tasks
+    description: Task management
+  - name: documents
+    description: Document management
+  - name: contracts
+    description: Contract management
+  - name: daily-reports
+    description: Daily site reports
+  - name: meetings
+    description: Meeting management
+  - name: users
+    description: User management
+  - name: equipment
+    description: Equipment tracking
+  - name: inventory
+    description: Inventory management
+  - name: procurement
+    description: Procurement orders
+  - name: notifications
+    description: Notification management
+  - name: organizations
+    description: Organization management
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  # ─── Dashboard ───────────────────────────────────────────────────────────────
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Executive dashboard summary
+      responses:
+        "200":
+          description: Dashboard KPI summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/project-health:
+    get:
+      operationId: getDashboardProjectHealth
+      tags: [dashboard]
+      summary: Project health overview
+      responses:
+        "200":
+          description: List of project health entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProjectHealth"
+
+  /dashboard/recent-activity:
+    get:
+      operationId: getDashboardRecentActivity
+      tags: [dashboard]
+      summary: Recent activity feed
+      responses:
+        "200":
+          description: List of recent activity items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+
+  /dashboard/cash-flow:
+    get:
+      operationId: getDashboardCashFlow
+      tags: [dashboard]
+      summary: Cash flow data for chart
+      responses:
+        "200":
+          description: Monthly cash flow
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CashFlowEntry"
+
+  # ─── Projects ────────────────────────────────────────────────────────────────
+  /projects:
+    get:
+      operationId: listProjects
+      tags: [projects]
+      summary: List all projects
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Project"
+    post:
+      operationId: createProject
+      tags: [projects]
+      summary: Create a project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectInput"
+      responses:
+        "201":
+          description: Created project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+
+  /projects/{id}:
+    get:
+      operationId: getProject
+      tags: [projects]
+      summary: Get project by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateProject
+      tags: [projects]
+      summary: Update a project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectUpdate"
+      responses:
+        "200":
+          description: Updated project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+    delete:
+      operationId: deleteProject
+      tags: [projects]
+      summary: Delete a project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /projects/{id}/stats:
+    get:
+      operationId: getProjectStats
+      tags: [projects]
+      summary: Get project statistics
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Project stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectStats"
+
+  # ─── Tasks ────────────────────────────────────────────────────────────────────
+  /tasks:
+    get:
+      operationId: listTasks
+      tags: [tasks]
+      summary: List tasks
+      parameters:
+        - name: projectId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: assigneeId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+    post:
+      operationId: createTask
+      tags: [tasks]
+      summary: Create a task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskInput"
+      responses:
+        "201":
+          description: Created task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+
+  /tasks/{id}:
+    get:
+      operationId: getTask
+      tags: [tasks]
+      summary: Get task by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+    patch:
+      operationId: updateTask
+      tags: [tasks]
+      summary: Update a task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskUpdate"
+      responses:
+        "200":
+          description: Updated task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+    delete:
+      operationId: deleteTask
+      tags: [tasks]
+      summary: Delete a task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /tasks/summary:
+    get:
+      operationId: getTasksSummary
+      tags: [tasks]
+      summary: Tasks summary by status
+      responses:
+        "200":
+          description: Tasks summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TasksSummary"
+
+  # ─── Documents ───────────────────────────────────────────────────────────────
+  /documents:
+    get:
+      operationId: listDocuments
+      tags: [documents]
+      summary: List documents
+      parameters:
+        - name: projectId
+          in: query
+          schema:
+            type: integer
+        - name: type
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Document"
+    post:
+      operationId: createDocument
+      tags: [documents]
+      summary: Add a document record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentInput"
+      responses:
+        "201":
+          description: Created document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+
+  /documents/{id}:
+    delete:
+      operationId: deleteDocument
+      tags: [documents]
+      summary: Delete a document
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ─── Contracts ───────────────────────────────────────────────────────────────
+  /contracts:
+    get:
+      operationId: listContracts
+      tags: [contracts]
+      summary: List contracts
+      parameters:
+        - name: projectId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of contracts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Contract"
+    post:
+      operationId: createContract
+      tags: [contracts]
+      summary: Create a contract
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContractInput"
+      responses:
+        "201":
+          description: Created contract
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contract"
+
+  /contracts/{id}:
+    get:
+      operationId: getContract
+      tags: [contracts]
+      summary: Get contract by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Contract
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contract"
+    patch:
+      operationId: updateContract
+      tags: [contracts]
+      summary: Update a contract
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContractUpdate"
+      responses:
+        "200":
+          description: Updated contract
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contract"
+
+  # ─── Daily Reports ────────────────────────────────────────────────────────────
+  /daily-reports:
+    get:
+      operationId: listDailyReports
+      tags: [daily-reports]
+      summary: List daily reports
+      parameters:
+        - name: projectId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of daily reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DailyReport"
+    post:
+      operationId: createDailyReport
+      tags: [daily-reports]
+      summary: Create a daily report
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DailyReportInput"
+      responses:
+        "201":
+          description: Created daily report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyReport"
+
+  /daily-reports/{id}:
+    get:
+      operationId: getDailyReport
+      tags: [daily-reports]
+      summary: Get daily report by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Daily report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyReport"
+
+  # ─── Meetings ────────────────────────────────────────────────────────────────
+  /meetings:
+    get:
+      operationId: listMeetings
+      tags: [meetings]
+      summary: List meetings
+      parameters:
+        - name: projectId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of meetings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Meeting"
+    post:
+      operationId: createMeeting
+      tags: [meetings]
+      summary: Create a meeting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MeetingInput"
+      responses:
+        "201":
+          description: Created meeting
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Meeting"
+
+  /meetings/{id}:
+    get:
+      operationId: getMeeting
+      tags: [meetings]
+      summary: Get meeting by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Meeting
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Meeting"
+    patch:
+      operationId: updateMeeting
+      tags: [meetings]
+      summary: Update a meeting
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MeetingUpdate"
+      responses:
+        "200":
+          description: Updated meeting
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Meeting"
+
+  # ─── Users ───────────────────────────────────────────────────────────────────
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List users
+      parameters:
+        - name: role
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+    post:
+      operationId: createUser
+      tags: [users]
+      summary: Create a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserInput"
+      responses:
+        "201":
+          description: Created user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/{id}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get user by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    patch:
+      operationId: updateUser
+      tags: [users]
+      summary: Update a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdate"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  # ─── Equipment ───────────────────────────────────────────────────────────────
+  /equipment:
+    get:
+      operationId: listEquipment
+      tags: [equipment]
+      summary: List equipment
+      parameters:
+        - name: projectId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of equipment
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Equipment"
+    post:
+      operationId: createEquipment
+      tags: [equipment]
+      summary: Add equipment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EquipmentInput"
+      responses:
+        "201":
+          description: Created equipment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Equipment"
+
+  /equipment/{id}:
+    patch:
+      operationId: updateEquipment
+      tags: [equipment]
+      summary: Update equipment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EquipmentUpdate"
+      responses:
+        "200":
+          description: Updated equipment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Equipment"
+
+  # ─── Inventory ───────────────────────────────────────────────────────────────
+  /inventory:
+    get:
+      operationId: listInventory
+      tags: [inventory]
+      summary: List inventory items
+      parameters:
+        - name: projectId
+          in: query
+          schema:
+            type: integer
+        - name: category
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of inventory items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InventoryItem"
+    post:
+      operationId: createInventoryItem
+      tags: [inventory]
+      summary: Add inventory item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InventoryItemInput"
+      responses:
+        "201":
+          description: Created inventory item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryItem"
+
+  /inventory/{id}:
+    patch:
+      operationId: updateInventoryItem
+      tags: [inventory]
+      summary: Update inventory item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InventoryItemUpdate"
+      responses:
+        "200":
+          description: Updated inventory item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryItem"
+
+  # ─── Procurement ─────────────────────────────────────────────────────────────
+  /procurement:
+    get:
+      operationId: listProcurementOrders
+      tags: [procurement]
+      summary: List procurement orders
+      parameters:
+        - name: projectId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of procurement orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProcurementOrder"
+    post:
+      operationId: createProcurementOrder
+      tags: [procurement]
+      summary: Create procurement order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProcurementOrderInput"
+      responses:
+        "201":
+          description: Created procurement order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProcurementOrder"
+
+  /procurement/{id}:
+    patch:
+      operationId: updateProcurementOrder
+      tags: [procurement]
+      summary: Update procurement order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProcurementOrderUpdate"
+      responses:
+        "200":
+          description: Updated procurement order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProcurementOrder"
+
+  # ─── Notifications ───────────────────────────────────────────────────────────
+  /notifications:
+    get:
+      operationId: listNotifications
+      tags: [notifications]
+      summary: List notifications
+      responses:
+        "200":
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Notification"
+
+  /notifications/{id}/read:
+    patch:
+      operationId: markNotificationRead
+      tags: [notifications]
+      summary: Mark notification as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated notification
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+
+  # ─── Organizations ───────────────────────────────────────────────────────────
+  /organizations:
+    get:
+      operationId: listOrganizations
+      tags: [organizations]
+      summary: List organizations
+      responses:
+        "200":
+          description: List of organizations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Organization"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    # ─── Dashboard Schemas ────────────────────────────────────────────────────
+    DashboardSummary:
+      type: object
+      required:
+        - activeProjects
+        - totalBudget
+        - spentBudget
+        - overallProgress
+        - delayedActivities
+        - totalWorkforce
+        - pendingApprovals
+        - equipmentActive
+        - equipmentTotal
+        - openTasks
+        - overdueTasksCount
+      properties:
+        activeProjects: { type: integer }
+        totalBudget: { type: number }
+        spentBudget: { type: number }
+        overallProgress: { type: number }
+        delayedActivities: { type: integer }
+        totalWorkforce: { type: integer }
+        pendingApprovals: { type: integer }
+        equipmentActive: { type: integer }
+        equipmentTotal: { type: integer }
+        openTasks: { type: integer }
+        overdueTasksCount: { type: integer }
+
+    ProjectHealth:
+      type: object
+      required:
+        - projectId
+        - projectName
+        - progress
+        - status
+        - health
+        - budgetUsed
+        - budgetTotal
+        - daysRemaining
+      properties:
+        projectId: { type: integer }
+        projectName: { type: string }
+        progress: { type: number }
+        status: { type: string }
+        health: { type: string }
+        budgetUsed: { type: number }
+        budgetTotal: { type: number }
+        daysRemaining: { type: integer }
+
+    ActivityItem:
+      type: object
+      required:
+        - id
+        - type
+        - description
+        - user
+        - createdAt
+      properties:
+        id: { type: integer }
+        type: { type: string }
+        description: { type: string }
+        user: { type: string }
+        projectName: { type: ["string", "null"] }
+        createdAt: { type: string }
+
+    CashFlowEntry:
+      type: object
+      required:
+        - month
+        - income
+        - expense
+      properties:
+        month: { type: string }
+        income: { type: number }
+        expense: { type: number }
+
+    # ─── Project Schemas ──────────────────────────────────────────────────────
+    Project:
+      type: object
+      required:
+        - id
+        - name
+        - status
+        - progress
+        - budget
+        - spent
+        - client
+        - location
+        - startDate
+        - endDate
+        - managerId
+        - managerName
+        - organizationId
+        - createdAt
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        description: { type: ["string", "null"] }
+        status: { type: string }
+        progress: { type: number }
+        budget: { type: number }
+        spent: { type: number }
+        client: { type: string }
+        location: { type: string }
+        startDate: { type: string }
+        endDate: { type: string }
+        managerId: { type: integer }
+        managerName: { type: string }
+        organizationId: { type: integer }
+        priority: { type: string }
+        phase: { type: ["string", "null"] }
+        createdAt: { type: string }
+
+    ProjectInput:
+      type: object
+      required:
+        - name
+        - client
+        - location
+        - startDate
+        - endDate
+        - budget
+        - managerId
+        - organizationId
+      properties:
+        name: { type: string }
+        description: { type: string }
+        client: { type: string }
+        location: { type: string }
+        startDate: { type: string }
+        endDate: { type: string }
+        budget: { type: number }
+        managerId: { type: integer }
+        organizationId: { type: integer }
+        priority: { type: string }
+        phase: { type: string }
+        status: { type: string }
+
+    ProjectUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        description: { type: string }
+        status: { type: string }
+        progress: { type: number }
+        budget: { type: number }
+        spent: { type: number }
+        client: { type: string }
+        location: { type: string }
+        startDate: { type: string }
+        endDate: { type: string }
+        managerId: { type: integer }
+        priority: { type: string }
+        phase: { type: string }
+
+    ProjectStats:
+      type: object
+      required:
+        - taskCount
+        - completedTasks
+        - openTasks
+        - documentCount
+        - contractCount
+        - meetingCount
+        - reportCount
+        - equipmentCount
+      properties:
+        taskCount: { type: integer }
+        completedTasks: { type: integer }
+        openTasks: { type: integer }
+        documentCount: { type: integer }
+        contractCount: { type: integer }
+        meetingCount: { type: integer }
+        reportCount: { type: integer }
+        equipmentCount: { type: integer }
+
+    # ─── Task Schemas ─────────────────────────────────────────────────────────
+    Task:
+      type: object
+      required:
+        - id
+        - title
+        - status
+        - priority
+        - projectId
+        - projectName
+        - createdAt
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        description: { type: ["string", "null"] }
+        status: { type: string }
+        priority: { type: string }
+        projectId: { type: integer }
+        projectName: { type: string }
+        assigneeId: { type: ["integer", "null"] }
+        assigneeName: { type: ["string", "null"] }
+        dueDate: { type: ["string", "null"] }
+        createdAt: { type: string }
+
+    TaskInput:
+      type: object
+      required:
+        - title
+        - projectId
+        - status
+        - priority
+      properties:
+        title: { type: string }
+        description: { type: string }
+        status: { type: string }
+        priority: { type: string }
+        projectId: { type: integer }
+        assigneeId: { type: integer }
+        dueDate: { type: string }
+
+    TaskUpdate:
+      type: object
+      properties:
+        title: { type: string }
+        description: { type: string }
+        status: { type: string }
+        priority: { type: string }
+        assigneeId: { type: integer }
+        dueDate: { type: string }
+
+    TasksSummary:
+      type: object
+      required:
+        - total
+        - todo
+        - inProgress
+        - review
+        - done
+        - overdue
+      properties:
+        total: { type: integer }
+        todo: { type: integer }
+        inProgress: { type: integer }
+        review: { type: integer }
+        done: { type: integer }
+        overdue: { type: integer }
+
+    # ─── Document Schemas ─────────────────────────────────────────────────────
+    Document:
+      type: object
+      required:
+        - id
+        - name
+        - type
+        - size
+        - projectId
+        - projectName
+        - uploadedBy
+        - createdAt
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        type: { type: string }
+        size: { type: integer }
+        projectId: { type: integer }
+        projectName: { type: string }
+        uploadedBy: { type: string }
+        url: { type: ["string", "null"] }
+        createdAt: { type: string }
+
+    DocumentInput:
+      type: object
+      required:
+        - name
+        - type
+        - size
+        - projectId
+        - uploadedBy
+      properties:
+        name: { type: string }
+        type: { type: string }
+        size: { type: integer }
+        projectId: { type: integer }
+        uploadedBy: { type: string }
+        url: { type: string }
+
+    # ─── Contract Schemas ─────────────────────────────────────────────────────
+    Contract:
+      type: object
+      required:
+        - id
+        - name
+        - contractor
+        - value
+        - status
+        - projectId
+        - projectName
+        - startDate
+        - endDate
+        - createdAt
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        contractor: { type: string }
+        value: { type: number }
+        status: { type: string }
+        type: { type: ["string", "null"] }
+        projectId: { type: integer }
+        projectName: { type: string }
+        startDate: { type: string }
+        endDate: { type: string }
+        signedDate: { type: ["string", "null"] }
+        createdAt: { type: string }
+
+    ContractInput:
+      type: object
+      required:
+        - name
+        - contractor
+        - value
+        - projectId
+        - startDate
+        - endDate
+      properties:
+        name: { type: string }
+        contractor: { type: string }
+        value: { type: number }
+        status: { type: string }
+        type: { type: string }
+        projectId: { type: integer }
+        startDate: { type: string }
+        endDate: { type: string }
+        signedDate: { type: string }
+
+    ContractUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        contractor: { type: string }
+        value: { type: number }
+        status: { type: string }
+        type: { type: string }
+        startDate: { type: string }
+        endDate: { type: string }
+        signedDate: { type: string }
+
+    # ─── Daily Report Schemas ─────────────────────────────────────────────────
+    DailyReport:
+      type: object
+      required:
+        - id
+        - date
+        - weather
+        - progress
+        - projectId
+        - projectName
+        - createdBy
+        - createdAt
+      properties:
+        id: { type: integer }
+        date: { type: string }
+        weather: { type: string }
+        temperature: { type: ["number", "null"] }
+        progress: { type: number }
+        workersOnSite: { type: integer }
+        issues: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+        projectId: { type: integer }
+        projectName: { type: string }
+        createdBy: { type: string }
+        createdAt: { type: string }
+
+    DailyReportInput:
+      type: object
+      required:
+        - date
+        - weather
+        - progress
+        - projectId
+        - createdBy
+      properties:
+        date: { type: string }
+        weather: { type: string }
+        temperature: { type: number }
+        progress: { type: number }
+        workersOnSite: { type: integer }
+        issues: { type: string }
+        notes: { type: string }
+        projectId: { type: integer }
+        createdBy: { type: string }
+
+    # ─── Meeting Schemas ──────────────────────────────────────────────────────
+    Meeting:
+      type: object
+      required:
+        - id
+        - title
+        - date
+        - location
+        - status
+        - projectId
+        - projectName
+        - organizer
+        - createdAt
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        date: { type: string }
+        location: { type: string }
+        status: { type: string }
+        agenda: { type: ["string", "null"] }
+        minutes: { type: ["string", "null"] }
+        attendees: { type: string }
+        projectId: { type: integer }
+        projectName: { type: string }
+        organizer: { type: string }
+        createdAt: { type: string }
+
+    MeetingInput:
+      type: object
+      required:
+        - title
+        - date
+        - location
+        - projectId
+        - organizer
+      properties:
+        title: { type: string }
+        date: { type: string }
+        location: { type: string }
+        status: { type: string }
+        agenda: { type: string }
+        attendees: { type: string }
+        projectId: { type: integer }
+        organizer: { type: string }
+
+    MeetingUpdate:
+      type: object
+      properties:
+        title: { type: string }
+        date: { type: string }
+        location: { type: string }
+        status: { type: string }
+        agenda: { type: string }
+        minutes: { type: string }
+        attendees: { type: string }
+
+    # ─── User Schemas ─────────────────────────────────────────────────────────
+    User:
+      type: object
+      required:
+        - id
+        - name
+        - email
+        - role
+        - department
+        - organizationId
+        - createdAt
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string }
+        role: { type: string }
+        department: { type: ["string", "null"] }
+        phone: { type: ["string", "null"] }
+        avatarInitials: { type: string }
+        organizationId: { type: integer }
+        organizationName: { type: ["string", "null"] }
+        active: { type: boolean }
+        createdAt: { type: string }
+
+    UserInput:
+      type: object
+      required:
+        - name
+        - email
+        - role
+        - organizationId
+      properties:
+        name: { type: string }
+        email: { type: string }
+        role: { type: string }
+        department: { type: string }
+        phone: { type: string }
+        organizationId: { type: integer }
+
+    UserUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        email: { type: string }
+        role: { type: string }
+        department: { type: string }
+        phone: { type: string }
+        active: { type: boolean }
+
+    # ─── Equipment Schemas ────────────────────────────────────────────────────
+    Equipment:
+      type: object
+      required:
+        - id
+        - name
+        - type
+        - status
+        - createdAt
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        type: { type: string }
+        model: { type: ["string", "null"] }
+        serialNumber: { type: ["string", "null"] }
+        status: { type: string }
+        location: { type: ["string", "null"] }
+        projectId: { type: ["integer", "null"] }
+        projectName: { type: ["string", "null"] }
+        nextMaintenance: { type: ["string", "null"] }
+        createdAt: { type: string }
+
+    EquipmentInput:
+      type: object
+      required:
+        - name
+        - type
+        - status
+      properties:
+        name: { type: string }
+        type: { type: string }
+        model: { type: string }
+        serialNumber: { type: string }
+        status: { type: string }
+        location: { type: string }
+        projectId: { type: integer }
+        nextMaintenance: { type: string }
+
+    EquipmentUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        type: { type: string }
+        model: { type: string }
+        status: { type: string }
+        location: { type: string }
+        projectId: { type: integer }
+        nextMaintenance: { type: string }
+
+    # ─── Inventory Schemas ────────────────────────────────────────────────────
+    InventoryItem:
+      type: object
+      required:
+        - id
+        - name
+        - category
+        - quantity
+        - unit
+        - createdAt
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        category: { type: string }
+        quantity: { type: number }
+        unit: { type: string }
+        minStock: { type: ["number", "null"] }
+        projectId: { type: ["integer", "null"] }
+        projectName: { type: ["string", "null"] }
+        supplier: { type: ["string", "null"] }
+        unitCost: { type: ["number", "null"] }
+        createdAt: { type: string }
+
+    InventoryItemInput:
+      type: object
+      required:
+        - name
+        - category
+        - quantity
+        - unit
+      properties:
+        name: { type: string }
+        category: { type: string }
+        quantity: { type: number }
+        unit: { type: string }
+        minStock: { type: number }
+        projectId: { type: integer }
+        supplier: { type: string }
+        unitCost: { type: number }
+
+    InventoryItemUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        category: { type: string }
+        quantity: { type: number }
+        unit: { type: string }
+        minStock: { type: number }
+        projectId: { type: integer }
+        supplier: { type: string }
+        unitCost: { type: number }
+
+    # ─── Procurement Schemas ──────────────────────────────────────────────────
+    ProcurementOrder:
+      type: object
+      required:
+        - id
+        - title
+        - supplier
+        - totalAmount
+        - status
+        - projectId
+        - projectName
+        - requestedBy
+        - createdAt
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        supplier: { type: string }
+        totalAmount: { type: number }
+        status: { type: string }
+        projectId: { type: integer }
+        projectName: { type: string }
+        requestedBy: { type: string }
+        approvedBy: { type: ["string", "null"] }
+        deliveryDate: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+        createdAt: { type: string }
+
+    ProcurementOrderInput:
+      type: object
+      required:
+        - title
+        - supplier
+        - totalAmount
+        - projectId
+        - requestedBy
+      properties:
+        title: { type: string }
+        supplier: { type: string }
+        totalAmount: { type: number }
+        status: { type: string }
+        projectId: { type: integer }
+        requestedBy: { type: string }
+        deliveryDate: { type: string }
+        notes: { type: string }
+
+    ProcurementOrderUpdate:
+      type: object
+      properties:
+        title: { type: string }
+        supplier: { type: string }
+        totalAmount: { type: number }
+        status: { type: string }
+        approvedBy: { type: string }
+        deliveryDate: { type: string }
+        notes: { type: string }
+
+    # ─── Notification Schemas ─────────────────────────────────────────────────
+    Notification:
+      type: object
+      required:
+        - id
+        - title
+        - message
+        - type
+        - read
+        - createdAt
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        message: { type: string }
+        type: { type: string }
+        read: { type: boolean }
+        link: { type: ["string", "null"] }
+        createdAt: { type: string }
+
+    # ─── Organization Schemas ─────────────────────────────────────────────────
+    Organization:
+      type: object
+      required:
+        - id
+        - name
+        - type
+        - createdAt
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        type: { type: string }
+        logoInitials: { type: string }
+        industry: { type: ["string", "null"] }
+        country: { type: ["string", "null"] }
+        createdAt: { type: string }

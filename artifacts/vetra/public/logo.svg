@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40" fill="none">
+  <!-- V mark -->
+  <path d="M8 8 L18 32 L28 8" stroke="#f5920d" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- wordmark -->
+  <text x="38" y="28" font-family="Outfit, sans-serif" font-size="20" font-weight="700" letter-spacing="-0.5" fill="#f5f7fa">VETRA</text>
+</svg>

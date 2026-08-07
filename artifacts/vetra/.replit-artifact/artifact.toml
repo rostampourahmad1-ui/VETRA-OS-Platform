@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "VETRA Platform"
+version = "1.0.0"
+id = "artifacts/vetra"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22264
+
+[services.development]
+run = "pnpm --filter @workspace/vetra run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/vetra", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/vetra/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22264"
+BASE_PATH = "/"
