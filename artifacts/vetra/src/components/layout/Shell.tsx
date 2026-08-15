@@ -1,5 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'wouter';
+import { useEffect, useState } from 'react';
+import { get } from '@/lib/phase2-api';
 import {
   Building2, LayoutDashboard, FolderKanban, ListTodo, FileText,
   Briefcase, Activity, Users, Package, Truck,
@@ -45,7 +47,9 @@ function Sidebar() {
     { name: 'HR & Team', href: '/hr', icon: Users },
     { name: 'Equipment', href: '/equipment', icon: Wrench },
     { name: 'Inventory', href: '/inventory', icon: Package },
-    { name: 'Procurement', href: '/procurement', icon: Truck },
+                { name: 'Procurement', href: '/procurement', icon: Truck },
+            { name: 'Workspace', href: '/workspace', icon: LayoutDashboard },
+
   ];
 
   const initials = user?.firstName && user?.lastName
@@ -153,19 +157,22 @@ function Sidebar() {
 }
 
 function Topbar() {
+  const [, setLocation] = useLocation();
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<any[]>([]);
+  useEffect(() => {
+    if (query.trim().length < 2) { setResults([]); return; }
+    const timer = window.setTimeout(() => get<any[]>('/search', { q: query }).then(setResults).catch(() => setResults([])), 250);
+    return () => window.clearTimeout(timer);
+  }, [query]);
   return (
     <header className="h-16 flex items-center justify-between px-6 border-b bg-card">
       <div className="flex items-center gap-4 flex-1">
-        <Button variant="ghost" size="icon" className="md:hidden">
-          <Menu className="h-5 w-5" />
-        </Button>
+        <Button variant="ghost" size="icon" className="md:hidden"><Menu className="h-5 w-5" /></Button>
         <div className="relative w-full max-w-md hidden sm:block">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search projects, tasks, or documents..."
-            className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-primary font-sans"
-          />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search projects, tasks, documents..." className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-primary font-sans" />
+          {results.length > 0 && <div className="absolute z-20 top-11 left-0 right-0 rounded-md border bg-card shadow-lg p-2 space-y-1">{results.slice(0, 6).map((result) => <button key={`${result.type}-${result.id}`} onClick={() => { setLocation(result.href); setQuery(''); }} className="w-full text-left px-3 py-2 rounded hover:bg-muted text-sm"><span className="font-medium">{result.title}</span><span className="text-xs text-muted-foreground ml-2">{result.type}</span></button>)}</div>}
         </div>
       </div>
       <div className="flex items-center gap-4">

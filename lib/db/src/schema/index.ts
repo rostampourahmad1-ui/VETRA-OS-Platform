@@ -11,3 +11,4 @@ export * from "./inventory";
 export * from "./procurement";
 export * from "./notifications";
 export * from "./activity";
+export * from "./phase2";

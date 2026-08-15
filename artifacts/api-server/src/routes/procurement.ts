@@ -22,7 +22,7 @@ router.get("/procurement", async (req, res): Promise<void> => {
     totalAmount: parseFloat(p.totalAmount as string),
     status: p.status,
     projectId: p.projectId,
-    projectName: projMap.get(p.projectId) ?? "Unknown",
+    projectName: p.projectId == null ? "Unknown" : (projMap.get(p.projectId) ?? "Unknown"),
     requestedBy: p.requestedBy,
     approvedBy: p.approvedBy ?? null,
     deliveryDate: p.deliveryDate ?? null,
@@ -47,7 +47,7 @@ router.post("/procurement", async (req, res): Promise<void> => {
     notes: d.notes,
   }).returning();
 
-  const [proj] = await db.select().from(projectsTable).where(eq(projectsTable.id, row.projectId));
+  const [proj] = row.projectId == null ? [] : await db.select().from(projectsTable).where(eq(projectsTable.id, row.projectId));
 
   res.status(201).json({
     ...row,
@@ -76,7 +76,7 @@ router.patch("/procurement/:id", async (req, res): Promise<void> => {
   const [row] = await db.update(procurementTable).set(updates).where(eq(procurementTable.id, id)).returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
 
-  const [proj] = await db.select().from(projectsTable).where(eq(projectsTable.id, row.projectId));
+  const [proj] = row.projectId == null ? [] : await db.select().from(projectsTable).where(eq(projectsTable.id, row.projectId));
 
   res.json({
     ...row,

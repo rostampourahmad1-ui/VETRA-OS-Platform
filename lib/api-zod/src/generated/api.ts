@@ -1144,3 +1144,299 @@ export const ListOrganizationsResponseItem = zod.object({
 export const ListOrganizationsResponse = zod.array(ListOrganizationsResponseItem)
 
 
+/**
+ * @summary List role-based workspaces
+ */
+export const ListWorkspacesResponseItem = zod.object({
+  "role": zod.string(),
+  "label": zod.string(),
+  "description": zod.string(),
+  "available": zod.boolean()
+})
+export const ListWorkspacesResponse = zod.array(ListWorkspacesResponseItem)
+
+
+export const GetWorkspaceDashboardParams = zod.object({
+  "role": zod.coerce.string()
+})
+
+export const GetWorkspaceDashboardResponse = zod.object({
+  "role": zod.string().optional(),
+  "metrics": zod.record(zod.string(), zod.unknown()).optional(),
+  "projects": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "status": zod.string(),
+  "progress": zod.number(),
+  "budget": zod.number(),
+  "spent": zod.number(),
+  "client": zod.string(),
+  "location": zod.string(),
+  "startDate": zod.string(),
+  "endDate": zod.string(),
+  "managerId": zod.number(),
+  "managerName": zod.string(),
+  "organizationId": zod.number(),
+  "priority": zod.string().optional(),
+  "phase": zod.string().nullish(),
+  "createdAt": zod.string()
+})).optional()
+})
+
+
+export const GetCostControlSummaryQueryParams = zod.object({
+  "projectId": zod.coerce.number().optional()
+})
+
+export const GetCostControlSummaryResponse = zod.object({
+  "budgetTotal": zod.number().optional(),
+  "spentTotal": zod.number().optional(),
+  "remaining": zod.number().optional(),
+  "utilization": zod.number().optional(),
+  "categories": zod.array(zod.object({
+  "id": zod.number().optional(),
+  "organizationId": zod.number().optional(),
+  "name": zod.string().optional(),
+  "code": zod.string().optional(),
+  "color": zod.string().optional(),
+  "active": zod.boolean().optional()
+})).optional(),
+  "budgets": zod.array(zod.object({
+  "id": zod.number().optional(),
+  "projectId": zod.number().optional(),
+  "categoryId": zod.number().nullish(),
+  "name": zod.string().optional(),
+  "amount": zod.number().optional(),
+  "period": zod.string().optional()
+})).optional(),
+  "expenses": zod.array(zod.object({
+  "id": zod.number().optional(),
+  "projectId": zod.number().optional(),
+  "categoryId": zod.number().nullish(),
+  "description": zod.string().optional(),
+  "amount": zod.number().optional(),
+  "expenseDate": zod.coerce.date().optional(),
+  "status": zod.string().optional()
+})).optional()
+})
+
+
+export const ListExpenseCategoriesResponseItem = zod.object({
+  "id": zod.number().optional(),
+  "organizationId": zod.number().optional(),
+  "name": zod.string().optional(),
+  "code": zod.string().optional(),
+  "color": zod.string().optional(),
+  "active": zod.boolean().optional()
+})
+export const ListExpenseCategoriesResponse = zod.array(ListExpenseCategoriesResponseItem)
+
+
+export const CreateExpenseCategoryBody = zod.object({
+  "organizationId": zod.number().optional(),
+  "name": zod.string(),
+  "code": zod.string(),
+  "color": zod.string().optional()
+})
+
+export const CreateExpenseCategoryResponse = zod.object({
+  "id": zod.number().optional(),
+  "organizationId": zod.number().optional(),
+  "name": zod.string().optional(),
+  "code": zod.string().optional(),
+  "color": zod.string().optional(),
+  "active": zod.boolean().optional()
+})
+
+
+export const ListBudgetsResponseItem = zod.object({
+  "id": zod.number().optional(),
+  "projectId": zod.number().optional(),
+  "categoryId": zod.number().nullish(),
+  "name": zod.string().optional(),
+  "amount": zod.number().optional(),
+  "period": zod.string().optional()
+})
+export const ListBudgetsResponse = zod.array(ListBudgetsResponseItem)
+
+
+export const CreateBudgetBody = zod.object({
+  "organizationId": zod.number().optional(),
+  "projectId": zod.number(),
+  "categoryId": zod.number().optional(),
+  "name": zod.string(),
+  "amount": zod.number(),
+  "period": zod.string().optional()
+})
+
+export const CreateBudgetResponse = zod.object({
+  "id": zod.number().optional(),
+  "projectId": zod.number().optional(),
+  "categoryId": zod.number().nullish(),
+  "name": zod.string().optional(),
+  "amount": zod.number().optional(),
+  "period": zod.string().optional()
+})
+
+
+export const ListExpensesResponseItem = zod.object({
+  "id": zod.number().optional(),
+  "projectId": zod.number().optional(),
+  "categoryId": zod.number().nullish(),
+  "description": zod.string().optional(),
+  "amount": zod.number().optional(),
+  "expenseDate": zod.coerce.date().optional(),
+  "status": zod.string().optional()
+})
+export const ListExpensesResponse = zod.array(ListExpensesResponseItem)
+
+
+export const CreateExpenseBody = zod.object({
+  "organizationId": zod.number().optional(),
+  "projectId": zod.number(),
+  "categoryId": zod.number().optional(),
+  "description": zod.string(),
+  "amount": zod.number(),
+  "expenseDate": zod.coerce.date(),
+  "status": zod.string().optional()
+})
+
+export const CreateExpenseResponse = zod.object({
+  "id": zod.number().optional(),
+  "projectId": zod.number().optional(),
+  "categoryId": zod.number().nullish(),
+  "description": zod.string().optional(),
+  "amount": zod.number().optional(),
+  "expenseDate": zod.coerce.date().optional(),
+  "status": zod.string().optional()
+})
+
+
+export const globalSearchQueryQMin = 2;
+
+
+
+export const GlobalSearchQueryParams = zod.object({
+  "q": zod.coerce.string().min(globalSearchQueryQMin)
+})
+
+export const GlobalSearchResponseItem = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "type": zod.string(),
+  "href": zod.string()
+})
+export const GlobalSearchResponse = zod.array(GlobalSearchResponseItem)
+
+
+export const ListClientsQueryParams = zod.object({
+  "search": zod.coerce.string().optional()
+})
+
+export const ListClientsResponseItem = zod.object({
+  "id": zod.number().optional(),
+  "organizationId": zod.number().optional(),
+  "name": zod.string().optional(),
+  "company": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "type": zod.string().optional(),
+  "status": zod.string().optional(),
+  "notes": zod.string().nullish()
+})
+export const ListClientsResponse = zod.array(ListClientsResponseItem)
+
+
+export const CreateClientBody = zod.object({
+  "organizationId": zod.number().optional(),
+  "name": zod.string(),
+  "company": zod.string().optional(),
+  "email": zod.string().optional(),
+  "phone": zod.string().optional(),
+  "type": zod.string().optional(),
+  "status": zod.string().optional(),
+  "notes": zod.string().optional()
+})
+
+export const CreateClientResponse = zod.object({
+  "id": zod.number().optional(),
+  "organizationId": zod.number().optional(),
+  "name": zod.string().optional(),
+  "company": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "type": zod.string().optional(),
+  "status": zod.string().optional(),
+  "notes": zod.string().nullish()
+})
+
+
+export const GetClientParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetClientResponse = zod.object({
+  "id": zod.number().optional(),
+  "organizationId": zod.number().optional(),
+  "name": zod.string().optional(),
+  "company": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "type": zod.string().optional(),
+  "status": zod.string().optional(),
+  "notes": zod.string().nullish()
+})
+
+
+export const GetProfileResponse = zod.object({
+  "id": zod.number().optional(),
+  "name": zod.string().optional(),
+  "email": zod.string().optional(),
+  "phone": zod.string().nullish(),
+  "department": zod.string().nullish(),
+  "role": zod.string().optional()
+})
+
+
+export const UpdateProfileBody = zod.object({
+  "id": zod.number().optional(),
+  "name": zod.string().optional(),
+  "phone": zod.string().optional(),
+  "department": zod.string().optional()
+})
+
+export const UpdateProfileResponse = zod.object({
+  "id": zod.number().optional(),
+  "name": zod.string().optional(),
+  "email": zod.string().optional(),
+  "phone": zod.string().nullish(),
+  "department": zod.string().nullish(),
+  "role": zod.string().optional()
+})
+
+
+export const GetOrganizationSettingsResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "type": zod.string(),
+  "logoInitials": zod.string().optional(),
+  "industry": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+
+
+export const UpdatePreferencesBody = zod.record(zod.string(), zod.unknown())
+
+export const UpdatePreferencesResponse = zod.record(zod.string(), zod.unknown())
+
+
+export const GetReportsSummaryResponse = zod.object({
+  "generatedAt": zod.coerce.date().optional(),
+  "projects": zod.record(zod.string(), zod.unknown()).optional(),
+  "tasks": zod.record(zod.string(), zod.unknown()).optional(),
+  "costs": zod.record(zod.string(), zod.unknown()).optional()
+})
+
+

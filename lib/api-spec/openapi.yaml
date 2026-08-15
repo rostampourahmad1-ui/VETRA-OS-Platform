@@ -36,6 +36,8 @@ tags:
     description: Notification management
   - name: organizations
     description: Organization management
+  - name: phase2
+    description: Phase 2 workspace, finance, CRM and reporting operations
 
 paths:
   /healthz:
@@ -960,6 +962,119 @@ paths:
                 items:
                   $ref: "#/components/schemas/Organization"
 
+  /workspaces:
+    get:
+      operationId: listWorkspaces
+      tags: [phase2]
+      summary: List role-based workspaces
+      responses:
+        "200":
+          description: Available workspaces
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Workspace" } }
+  /workspaces/{role}:
+    get:
+      operationId: getWorkspaceDashboard
+      tags: [phase2]
+      parameters:
+        - { name: role, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Role dashboard
+          content:
+            application/json: { schema: { $ref: "#/components/schemas/WorkspaceDashboard" } }
+  /cost-control/summary:
+    get:
+      operationId: getCostControlSummary
+      tags: [phase2]
+      parameters:
+        - { name: projectId, in: query, schema: { type: integer } }
+      responses:
+        "200":
+          description: Cost control summary
+          content:
+            application/json: { schema: { $ref: "#/components/schemas/CostControlSummary" } }
+  /cost-control/categories:
+    get:
+      operationId: listExpenseCategories
+      tags: [phase2]
+      responses: { "200": { description: Expense categories, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/ExpenseCategory" } } } } } }
+    post:
+      operationId: createExpenseCategory
+      tags: [phase2]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/ExpenseCategoryInput" } } } }
+      responses: { "201": { description: Created category, content: { application/json: { schema: { $ref: "#/components/schemas/ExpenseCategory" } } } } }
+  /cost-control/budgets:
+    get:
+      operationId: listBudgets
+      tags: [phase2]
+      responses: { "200": { description: Budgets, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Budget" } } } } } }
+    post:
+      operationId: createBudget
+      tags: [phase2]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/BudgetInput" } } } }
+      responses: { "201": { description: Created budget, content: { application/json: { schema: { $ref: "#/components/schemas/Budget" } } } } }
+  /cost-control/expenses:
+    get:
+      operationId: listExpenses
+      tags: [phase2]
+      responses: { "200": { description: Expenses, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Expense" } } } } } }
+    post:
+      operationId: createExpense
+      tags: [phase2]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/ExpenseInput" } } } }
+      responses: { "201": { description: Created expense, content: { application/json: { schema: { $ref: "#/components/schemas/Expense" } } } } }
+  /search:
+    get:
+      operationId: globalSearch
+      tags: [phase2]
+      parameters: [ { name: q, in: query, required: true, schema: { type: string, minLength: 2 } } ]
+      responses: { "200": { description: Search results, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/SearchResult" } } } } } }
+  /crm/clients:
+    get:
+      operationId: listClients
+      tags: [phase2]
+      parameters: [ { name: search, in: query, schema: { type: string } } ]
+      responses: { "200": { description: Clients, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Client" } } } } } }
+    post:
+      operationId: createClient
+      tags: [phase2]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/ClientInput" } } } }
+      responses: { "201": { description: Created client, content: { application/json: { schema: { $ref: "#/components/schemas/Client" } } } } }
+  /crm/clients/{id}:
+    get:
+      operationId: getClient
+      tags: [phase2]
+      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
+      responses: { "200": { description: Client, content: { application/json: { schema: { $ref: "#/components/schemas/Client" } } } } }
+  /settings/profile:
+    get:
+      operationId: getProfile
+      tags: [phase2]
+      responses: { "200": { description: Profile, content: { application/json: { schema: { $ref: "#/components/schemas/UserProfile" } } } } }
+    patch:
+      operationId: updateProfile
+      tags: [phase2]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/ProfileUpdate" } } } }
+      responses: { "200": { description: Updated profile, content: { application/json: { schema: { $ref: "#/components/schemas/UserProfile" } } } } }
+  /settings/organization:
+    get:
+      operationId: getOrganizationSettings
+      tags: [phase2]
+      responses: { "200": { description: Organization settings, content: { application/json: { schema: { $ref: "#/components/schemas/Organization" } } } } }
+  /settings/preferences:
+    patch:
+      operationId: updatePreferences
+      tags: [phase2]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, additionalProperties: true } } } }
+      responses: { "200": { description: Preferences, content: { application/json: { schema: { type: object, additionalProperties: true } } } } }
+  /reports/summary:
+    get:
+      operationId: getReportsSummary
+      tags: [phase2]
+      responses: { "200": { description: Summary report, content: { application/json: { schema: { $ref: "#/components/schemas/ReportsSummary" } } } } }
+
 components:
   schemas:
     HealthStatus:
@@ -1654,3 +1769,140 @@ components:
         industry: { type: ["string", "null"] }
         country: { type: ["string", "null"] }
         createdAt: { type: string }
+    # ─── Phase 2 Schemas ──────────────────────────────────────────────────────
+    Workspace:
+      type: object
+      required: [role, label, description, available]
+      properties:
+        role: { type: string }
+        label: { type: string }
+        description: { type: string }
+        available: { type: boolean }
+    WorkspaceDashboard:
+      type: object
+      properties:
+        role: { type: string }
+        metrics: { type: object, additionalProperties: true }
+        projects: { type: array, items: { $ref: "#/components/schemas/Project" } }
+    CostControlSummary:
+      type: object
+      properties:
+        budgetTotal: { type: number }
+        spentTotal: { type: number }
+        remaining: { type: number }
+        utilization: { type: number }
+        categories: { type: array, items: { $ref: "#/components/schemas/ExpenseCategory" } }
+        budgets: { type: array, items: { $ref: "#/components/schemas/Budget" } }
+        expenses: { type: array, items: { $ref: "#/components/schemas/Expense" } }
+    ExpenseCategory:
+      type: object
+      properties:
+        id: { type: integer }
+        organizationId: { type: integer }
+        name: { type: string }
+        code: { type: string }
+        color: { type: string }
+        active: { type: boolean }
+    ExpenseCategoryInput:
+      type: object
+      required: [name, code]
+      properties:
+        organizationId: { type: integer }
+        name: { type: string }
+        code: { type: string }
+        color: { type: string }
+    Budget:
+      type: object
+      properties:
+        id: { type: integer }
+        projectId: { type: integer }
+        categoryId: { type: [integer, "null"] }
+        name: { type: string }
+        amount: { type: number }
+        period: { type: string }
+    BudgetInput:
+      type: object
+      required: [projectId, name, amount]
+      properties:
+        organizationId: { type: integer }
+        projectId: { type: integer }
+        categoryId: { type: integer }
+        name: { type: string }
+        amount: { type: number }
+        period: { type: string }
+    Expense:
+      type: object
+      properties:
+        id: { type: integer }
+        projectId: { type: integer }
+        categoryId: { type: [integer, "null"] }
+        description: { type: string }
+        amount: { type: number }
+        expenseDate: { type: string, format: date }
+        status: { type: string }
+    ExpenseInput:
+      type: object
+      required: [projectId, description, amount, expenseDate]
+      properties:
+        organizationId: { type: integer }
+        projectId: { type: integer }
+        categoryId: { type: integer }
+        description: { type: string }
+        amount: { type: number }
+        expenseDate: { type: string, format: date }
+        status: { type: string }
+    SearchResult:
+      type: object
+      required: [id, title, type, href]
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        type: { type: string }
+        href: { type: string }
+    Client:
+      type: object
+      properties:
+        id: { type: integer }
+        organizationId: { type: integer }
+        name: { type: string }
+        company: { type: [string, "null"] }
+        email: { type: [string, "null"] }
+        phone: { type: [string, "null"] }
+        type: { type: string }
+        status: { type: string }
+        notes: { type: [string, "null"] }
+    ClientInput:
+      type: object
+      required: [name]
+      properties:
+        organizationId: { type: integer }
+        name: { type: string }
+        company: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        type: { type: string }
+        status: { type: string }
+        notes: { type: string }
+    UserProfile:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string }
+        phone: { type: [string, "null"] }
+        department: { type: [string, "null"] }
+        role: { type: string }
+    ProfileUpdate:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        phone: { type: string }
+        department: { type: string }
+    ReportsSummary:
+      type: object
+      properties:
+        generatedAt: { type: string, format: date-time }
+        projects: { type: object, additionalProperties: true }
+        tasks: { type: object, additionalProperties: true }
+        costs: { type: object, additionalProperties: true }

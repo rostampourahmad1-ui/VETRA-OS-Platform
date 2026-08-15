@@ -13,6 +13,10 @@ import inventoryRouter from "./inventory";
 import procurementRouter from "./procurement";
 import notificationsRouter from "./notifications";
 import organizationsRouter from "./organizations";
+import costControlRouter from "./cost-control";
+import crmRouter from "./crm";
+import searchRouter from "./search";
+import phase2Router from "./phase2";
 
 const router: IRouter = Router();
 
@@ -30,5 +34,9 @@ router.use(inventoryRouter);
 router.use(procurementRouter);
 router.use(notificationsRouter);
 router.use(organizationsRouter);
+router.use(costControlRouter);
+router.use(crmRouter);
+router.use(searchRouter);
+router.use(phase2Router);
 
 export default router;

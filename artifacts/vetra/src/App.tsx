@@ -23,6 +23,11 @@ import EquipmentList from '@/pages/equipment/EquipmentList';
 import InventoryList from '@/pages/inventory/InventoryList';
 import ProcurementList from '@/pages/procurement/ProcurementList';
 import PlaceholderPage from '@/pages/placeholders/PlaceholderPage';
+import WorkspaceSelector, { WorkspaceDashboard } from '@/pages/workspace/Workspace';
+import CostControl from '@/pages/cost-control/CostControl';
+import CRM from '@/pages/crm/CRM';
+import Reports from '@/pages/reports/Reports';
+import Settings from '@/pages/settings/Settings';
 import NotFound from '@/pages/not-found';
 
 // ─── Clerk key resolution ────────────────────────────────────────────────────
@@ -173,24 +178,18 @@ function AppRoutes() {
             <Route path="/equipment" component={EquipmentList} />
             <Route path="/inventory" component={InventoryList} />
             <Route path="/procurement" component={ProcurementList} />
-            <Route path="/cost-control">
-              <PlaceholderPage title="Cost Control" description="Manage budgets, expenses, and track financial health across projects." />
-            </Route>
+            <Route path="/workspace"><WorkspaceSelector /></Route>
+            <Route path="/workspace/:role">{(params) => <WorkspaceDashboard role={params.role} />}</Route>
+            <Route path="/cost-control"><CostControl /></Route>
             <Route path="/accounting">
               <PlaceholderPage title="Accounting" description="Financial summary and full ledger." />
             </Route>
-            <Route path="/crm">
-              <PlaceholderPage title="CRM" description="Client and organization directory." />
-            </Route>
-            <Route path="/reports">
-              <PlaceholderPage title="Reports" description="Custom reports and analytics exports." />
-            </Route>
+            <Route path="/crm"><CRM /></Route>
+            <Route path="/reports"><Reports /></Route>
             <Route path="/ai-assistant">
               <PlaceholderPage title="AI Assistant" description="Intelligent querying and insights for your project data." />
             </Route>
-            <Route path="/settings">
-              <PlaceholderPage title="Settings" description="Workspace configuration and preferences." />
-            </Route>
+            <Route path="/settings"><Settings /></Route>
             <Route component={NotFound} />
           </Switch>
         </Shell>

@@ -469,6 +469,152 @@ export interface Organization {
   createdAt: string;
 }
 
+export interface Workspace {
+  role: string;
+  label: string;
+  description: string;
+  available: boolean;
+}
+
+export type WorkspaceDashboardMetrics = { [key: string]: unknown };
+
+export interface WorkspaceDashboard {
+  role?: string;
+  metrics?: WorkspaceDashboardMetrics;
+  projects?: Project[];
+}
+
+export interface ExpenseCategory {
+  id?: number;
+  organizationId?: number;
+  name?: string;
+  code?: string;
+  color?: string;
+  active?: boolean;
+}
+
+export interface Budget {
+  id?: number;
+  projectId?: number;
+  /** @nullable */
+  categoryId?: number | null;
+  name?: string;
+  amount?: number;
+  period?: string;
+}
+
+export interface Expense {
+  id?: number;
+  projectId?: number;
+  /** @nullable */
+  categoryId?: number | null;
+  description?: string;
+  amount?: number;
+  expenseDate?: string;
+  status?: string;
+}
+
+export interface CostControlSummary {
+  budgetTotal?: number;
+  spentTotal?: number;
+  remaining?: number;
+  utilization?: number;
+  categories?: ExpenseCategory[];
+  budgets?: Budget[];
+  expenses?: Expense[];
+}
+
+export interface ExpenseCategoryInput {
+  organizationId?: number;
+  name: string;
+  code: string;
+  color?: string;
+}
+
+export interface BudgetInput {
+  organizationId?: number;
+  projectId: number;
+  categoryId?: number;
+  name: string;
+  amount: number;
+  period?: string;
+}
+
+export interface ExpenseInput {
+  organizationId?: number;
+  projectId: number;
+  categoryId?: number;
+  description: string;
+  amount: number;
+  expenseDate: string;
+  status?: string;
+}
+
+export interface SearchResult {
+  id: number;
+  title: string;
+  type: string;
+  href: string;
+}
+
+export interface Client {
+  id?: number;
+  organizationId?: number;
+  name?: string;
+  /** @nullable */
+  company?: string | null;
+  /** @nullable */
+  email?: string | null;
+  /** @nullable */
+  phone?: string | null;
+  type?: string;
+  status?: string;
+  /** @nullable */
+  notes?: string | null;
+}
+
+export interface ClientInput {
+  organizationId?: number;
+  name: string;
+  company?: string;
+  email?: string;
+  phone?: string;
+  type?: string;
+  status?: string;
+  notes?: string;
+}
+
+export interface UserProfile {
+  id?: number;
+  name?: string;
+  email?: string;
+  /** @nullable */
+  phone?: string | null;
+  /** @nullable */
+  department?: string | null;
+  role?: string;
+}
+
+export interface ProfileUpdate {
+  id?: number;
+  name?: string;
+  phone?: string;
+  department?: string;
+}
+
+export type ReportsSummaryProjects = { [key: string]: unknown };
+
+export type ReportsSummaryTasks = { [key: string]: unknown };
+
+export type ReportsSummaryCosts = { [key: string]: unknown };
+
+export interface ReportsSummary {
+  generatedAt?: string;
+  projects?: ReportsSummaryProjects;
+  tasks?: ReportsSummaryTasks;
+  costs?: ReportsSummaryCosts;
+}
+
 export type ListProjectsParams = {
 status?: string;
 search?: string;
@@ -518,4 +664,23 @@ export type ListProcurementOrdersParams = {
 projectId?: number;
 status?: string;
 };
+
+export type GetCostControlSummaryParams = {
+projectId?: number;
+};
+
+export type GlobalSearchParams = {
+/**
+ * @minLength 2
+ */
+q: string;
+};
+
+export type ListClientsParams = {
+search?: string;
+};
+
+export type UpdatePreferencesBody = { [key: string]: unknown };
+
+export type UpdatePreferences200 = { [key: string]: unknown };
 

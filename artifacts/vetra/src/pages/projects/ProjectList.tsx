@@ -3,6 +3,7 @@ import { useListProjects } from '@workspace/api-client-react';
 import { Link, useLocation } from 'wouter';
 import { Plus, Search, Filter, MoreHorizontal, Building2, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { formatJalali } from '@/lib/jalali';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -119,7 +120,8 @@ export default function ProjectList() {
                       <span>Client</span>
                     </div>
                     <div className="flex flex-col text-right">
-                      <span className="font-medium text-foreground">{new Date(project.endDate).toLocaleDateString()}</span>
+                      <span className="font-medium text-foreground">{formatJalali(project.endDate)}
+</span>
                       <span>Deadline</span>
                     </div>
                   </div>
