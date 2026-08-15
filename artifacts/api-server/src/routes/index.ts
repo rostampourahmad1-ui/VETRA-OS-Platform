@@ -17,10 +17,15 @@ import costControlRouter from "./cost-control";
 import crmRouter from "./crm";
 import searchRouter from "./search";
 import phase2Router from "./phase2";
+import planningRouter from "./planning";
+import workflowsRouter from "./workflows";
+import aiRouter from "./ai";
+import { attachTenant } from "../middlewares/tenant";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use(attachTenant);
 router.use(dashboardRouter);
 router.use(projectsRouter);
 router.use(tasksRouter);
@@ -38,5 +43,8 @@ router.use(costControlRouter);
 router.use(crmRouter);
 router.use(searchRouter);
 router.use(phase2Router);
+router.use(planningRouter);
+router.use(workflowsRouter);
+router.use(aiRouter);
 
 export default router;

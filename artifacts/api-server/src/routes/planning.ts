@@ -1,0 +1,12 @@
+import { Router } from "express";
+import { and, eq } from "drizzle-orm";
+import { db, phasesTable, milestonesTable, projectsTable } from "@workspace/db";
+import { requirePermission } from "../middlewares/permissions";
+import { tenantId } from "../middlewares/tenant";
+
+const router = Router();
+async function projectOwned(req: any, id: number) { const [row] = await db.select().from(projectsTable).where(and(eq(projectsTable.id, id), eq(projectsTable.organizationId, tenantId(req)))); return row; }
+router.get("/projects/:projectId/timeline", requirePermission("planning.read"), async (req, res) => { const projectId = Number(req.params.projectId); if (!(await projectOwned(req, projectId))) { res.status(404).json({ error: "Project not found" }); return; } const [phases, milestones] = await Promise.all([db.select().from(phasesTable).where(and(eq(phasesTable.projectId, projectId), eq(phasesTable.organizationId, tenantId(req)))), db.select().from(milestonesTable).where(and(eq(milestonesTable.projectId, projectId), eq(milestonesTable.organizationId, tenantId(req))))]); res.json({ phases, milestones }); });
+router.post("/projects/:projectId/phases", requirePermission("planning.manage"), async (req, res): Promise<void> => { const projectId = Number(req.params.projectId); if (!(await projectOwned(req, projectId))) { res.status(404).json({ error: "Project not found" }); return; } const { name, description, startDate, endDate, progress = 0, color = "#2563eb" } = req.body ?? {}; if (!name || !startDate || !endDate) { res.status(400).json({ error: "name, startDate and endDate are required" }); return; } const [row] = await db.insert(phasesTable).values({ projectId, organizationId: tenantId(req), name, description, startDate, endDate, progress, color }).returning(); res.status(201).json(row); });
+router.post("/projects/:projectId/milestones", requirePermission("planning.manage"), async (req, res): Promise<void> => { const projectId = Number(req.params.projectId); if (!(await projectOwned(req, projectId))) { res.status(404).json({ error: "Project not found" }); return; } const { name, dueDate, phaseId, status = "pending" } = req.body ?? {}; if (!name || !dueDate) { res.status(400).json({ error: "name and dueDate are required" }); return; } const [row] = await db.insert(milestonesTable).values({ projectId, organizationId: tenantId(req), name, dueDate, phaseId, status }).returning(); res.status(201).json(row); });
+export default router;

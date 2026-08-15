@@ -12,3 +12,6 @@ export * from "./procurement";
 export * from "./notifications";
 export * from "./activity";
 export * from "./phase2";
+export * from "./rbac";
+export * from "./planning";
+export * from "./workflows";

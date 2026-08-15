@@ -13,6 +13,8 @@ import LandingPage from '@/pages/landing/LandingPage';
 import Dashboard from '@/pages/dashboard/Dashboard';
 import ProjectList from '@/pages/projects/ProjectList';
 import ProjectDetail from '@/pages/projects/ProjectDetail';
+import ProjectTimeline from '@/pages/planning/ProjectTimeline';
+import AIAssistant from '@/pages/ai/AIAssistant';
 import TaskList from '@/pages/tasks/TaskList';
 import DocumentList from '@/pages/documents/DocumentList';
 import ContractList from '@/pages/contracts/ContractList';
@@ -169,6 +171,7 @@ function AppRoutes() {
             <Route path="/" component={Dashboard} />
             <Route path="/projects" component={ProjectList} />
             <Route path="/projects/:id" component={ProjectDetail} />
+            <Route path="/projects/:id/timeline" component={ProjectTimeline} />
             <Route path="/tasks" component={TaskList} />
             <Route path="/documents" component={DocumentList} />
             <Route path="/contracts" component={ContractList} />
@@ -186,9 +189,7 @@ function AppRoutes() {
             </Route>
             <Route path="/crm"><CRM /></Route>
             <Route path="/reports"><Reports /></Route>
-            <Route path="/ai-assistant">
-              <PlaceholderPage title="AI Assistant" description="Intelligent querying and insights for your project data." />
-            </Route>
+            <Route path="/ai-assistant" component={AIAssistant} />
             <Route path="/settings"><Settings /></Route>
             <Route component={NotFound} />
           </Switch>

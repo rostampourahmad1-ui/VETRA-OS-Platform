@@ -3,7 +3,7 @@ import { useGetProject, useGetProjectStats } from '@workspace/api-client-react';
 import { useParams, Link } from 'wouter';
 import { 
   Building2, MapPin, Calendar, Users, DollarSign, Activity, 
-  ArrowLeft, FileText, CheckSquare, Settings, ChevronRight
+  ArrowLeft, FileText, CheckSquare, Settings, ChevronRight, CalendarRange
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -63,6 +63,8 @@ export default function ProjectDetail() {
           <Progress value={project.progress} className="h-2" />
         </div>
       </div>
+
+      <div className="flex justify-end"><Link href={`/projects/${id}/timeline`}><Button variant="outline" className="gap-2"><CalendarRange className="h-4 w-4" /> Project Timeline</Button></Link></div>
 
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="w-full justify-start border-b rounded-none h-auto p-0 bg-transparent overflow-x-auto flex-nowrap">
