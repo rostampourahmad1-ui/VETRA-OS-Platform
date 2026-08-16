@@ -6,7 +6,7 @@ import {
   Building2, LayoutDashboard, FolderKanban, ListTodo, FileText,
   Briefcase, Activity, Users, Package, Truck, ClipboardList,
   Settings, ChevronDown, Bell, Search, Menu,
-  Calendar, Wrench, BarChart3, Bot, Calculator,
+  Calendar, Wrench, BarChart3, Bot, Calculator, ClipboardCheck,
   UserCircle, LogOut,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -42,6 +42,7 @@ function Sidebar() {
     { name: 'Tasks', href: '/tasks', icon: ListTodo },
     { name: 'Documents', href: '/documents', icon: FileText },
     { name: 'Forms', href: '/forms', icon: ClipboardList },
+    { name: 'Quality', href: '/quality', icon: ClipboardCheck },
     { name: 'Contracts', href: '/contracts', icon: Briefcase },
     { name: 'Daily Reports', href: '/daily-reports', icon: Activity },
     { name: 'Meetings', href: '/meetings', icon: Calendar },

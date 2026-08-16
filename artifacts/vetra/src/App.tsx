@@ -31,6 +31,7 @@ import CRM from '@/pages/crm/CRM';
 import Reports from '@/pages/reports/Reports';
 import Settings from '@/pages/settings/Settings';
 import FormsBuilder from '@/pages/forms/FormsBuilder';
+import QualityManagement from '@/pages/quality/QualityManagement';
 import NotFound from '@/pages/not-found';
 
 // ─── Clerk key resolution ────────────────────────────────────────────────────
@@ -176,6 +177,7 @@ function AppRoutes() {
             <Route path="/tasks" component={TaskList} />
             <Route path="/documents" component={DocumentList} />
             <Route path="/forms" component={FormsBuilder} />
+            <Route path="/quality" component={QualityManagement} />
             <Route path="/contracts" component={ContractList} />
             <Route path="/daily-reports" component={DailyReportList} />
             <Route path="/meetings" component={MeetingList} />

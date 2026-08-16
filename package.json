@@ -14,10 +14,10 @@
     "@replit/connectors-sdk": "^0.4.1"
   },
   "devDependencies": {
+    "@types/supertest": "^6.0.3",
     "prettier": "^3.9.5",
+    "supertest": "^7.2.2",
     "typescript": "~5.9.3",
-    "vitest": "^3.2.4",
-    "supertest": "^7.1.4",
-    "@types/supertest": "^6.0.3"
+    "vitest": "^3.2.7"
   }
 }

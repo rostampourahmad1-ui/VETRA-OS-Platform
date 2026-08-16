@@ -20,6 +20,7 @@ import phase2Router from "./phase2";
 import planningRouter from "./planning";
 import workflowsRouter from "./workflows";
 import aiRouter from "./ai";
+import qualityRouter from "./quality";
 import { attachTenant } from "../middlewares/tenant";
 
 const router: IRouter = Router();
@@ -46,5 +47,6 @@ router.use(phase2Router);
 router.use(planningRouter);
 router.use(workflowsRouter);
 router.use(aiRouter);
+router.use(qualityRouter);
 
 export default router;
