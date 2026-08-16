@@ -19,11 +19,5 @@
     "vitest": "^3.2.4",
     "supertest": "^7.1.4",
     "@types/supertest": "^6.0.3"
-  },
-  "pnpm": {
-    "overrides": {
-      "js-yaml": ">=4.3.0",
-      "esbuild": ">=0.25.0"
-    }
   }
 }

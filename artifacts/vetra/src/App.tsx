@@ -30,6 +30,7 @@ import CostControl from '@/pages/cost-control/CostControl';
 import CRM from '@/pages/crm/CRM';
 import Reports from '@/pages/reports/Reports';
 import Settings from '@/pages/settings/Settings';
+import FormsBuilder from '@/pages/forms/FormsBuilder';
 import NotFound from '@/pages/not-found';
 
 // ─── Clerk key resolution ────────────────────────────────────────────────────
@@ -174,6 +175,7 @@ function AppRoutes() {
             <Route path="/projects/:id/timeline" component={ProjectTimeline} />
             <Route path="/tasks" component={TaskList} />
             <Route path="/documents" component={DocumentList} />
+            <Route path="/forms" component={FormsBuilder} />
             <Route path="/contracts" component={ContractList} />
             <Route path="/daily-reports" component={DailyReportList} />
             <Route path="/meetings" component={MeetingList} />

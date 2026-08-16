@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { get } from '@/lib/phase2-api';
 import {
   Building2, LayoutDashboard, FolderKanban, ListTodo, FileText,
-  Briefcase, Activity, Users, Package, Truck,
+  Briefcase, Activity, Users, Package, Truck, ClipboardList,
   Settings, ChevronDown, Bell, Search, Menu,
   Calendar, Wrench, BarChart3, Bot, Calculator,
   UserCircle, LogOut,
@@ -41,6 +41,7 @@ function Sidebar() {
     { name: 'Projects', href: '/projects', icon: FolderKanban },
     { name: 'Tasks', href: '/tasks', icon: ListTodo },
     { name: 'Documents', href: '/documents', icon: FileText },
+    { name: 'Forms', href: '/forms', icon: ClipboardList },
     { name: 'Contracts', href: '/contracts', icon: Briefcase },
     { name: 'Daily Reports', href: '/daily-reports', icon: Activity },
     { name: 'Meetings', href: '/meetings', icon: Calendar },
