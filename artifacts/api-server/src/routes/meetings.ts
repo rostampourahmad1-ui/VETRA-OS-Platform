@@ -1,11 +1,14 @@
+import { requireAuth } from "../middlewares/requireAuth";
+import { requirePermission } from "../middlewares/permissions";
 import { Router } from "express";
 import { db, meetingsTable, projectsTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { CreateMeetingBody, UpdateMeetingBody } from "@workspace/api-zod";
 
 const router = Router();
+router.use(requireAuth);
 
-router.get("/meetings", async (req, res): Promise<void> => {
+router.get("/meetings", requirePermission("meetings.read"), async (req, res): Promise<void> => {
   const { projectId, status } = req.query as { projectId?: string; status?: string };
 
   let rows = await db.select().from(meetingsTable).orderBy(sql`${meetingsTable.date} desc`);
@@ -31,7 +34,7 @@ router.get("/meetings", async (req, res): Promise<void> => {
   })));
 });
 
-router.post("/meetings", async (req, res): Promise<void> => {
+router.post("/meetings", requirePermission("meetings.create"), async (req, res): Promise<void> => {
   const parsed = CreateMeetingBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const d = parsed.data;
@@ -57,7 +60,7 @@ router.post("/meetings", async (req, res): Promise<void> => {
   });
 });
 
-router.get("/meetings/:id", async (req, res): Promise<void> => {
+router.get("/meetings/:id", requirePermission("meetings.read"), async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw, 10);
   const [row] = await db.select().from(meetingsTable).where(eq(meetingsTable.id, id));
@@ -72,7 +75,7 @@ router.get("/meetings/:id", async (req, res): Promise<void> => {
   });
 });
 
-router.patch("/meetings/:id", async (req, res): Promise<void> => {
+router.patch("/meetings/:id", requirePermission("meetings.update"), async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw, 10);
   const parsed = UpdateMeetingBody.safeParse(req.body);

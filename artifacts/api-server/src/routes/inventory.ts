@@ -1,11 +1,14 @@
+import { requireAuth } from "../middlewares/requireAuth";
+import { requirePermission } from "../middlewares/permissions";
 import { Router } from "express";
 import { db, inventoryTable, projectsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { CreateInventoryItemBody, UpdateInventoryItemBody } from "@workspace/api-zod";
 
 const router = Router();
+router.use(requireAuth);
 
-router.get("/inventory", async (req, res): Promise<void> => {
+router.get("/inventory", requirePermission("inventory.read"), async (req, res): Promise<void> => {
   const { projectId, category } = req.query as { projectId?: string; category?: string };
 
   let rows = await db.select().from(inventoryTable);
@@ -30,7 +33,7 @@ router.get("/inventory", async (req, res): Promise<void> => {
   })));
 });
 
-router.post("/inventory", async (req, res): Promise<void> => {
+router.post("/inventory", requirePermission("inventory.create"), async (req, res): Promise<void> => {
   const parsed = CreateInventoryItemBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const d = parsed.data;
@@ -58,7 +61,7 @@ router.post("/inventory", async (req, res): Promise<void> => {
   });
 });
 
-router.patch("/inventory/:id", async (req, res): Promise<void> => {
+router.patch("/inventory/:id", requirePermission("inventory.update"), async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw, 10);
   const parsed = UpdateInventoryItemBody.safeParse(req.body);

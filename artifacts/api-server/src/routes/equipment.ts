@@ -1,11 +1,14 @@
+import { requireAuth } from "../middlewares/requireAuth";
+import { requirePermission } from "../middlewares/permissions";
 import { Router } from "express";
 import { db, equipmentTable, projectsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { CreateEquipmentBody, UpdateEquipmentBody } from "@workspace/api-zod";
 
 const router = Router();
+router.use(requireAuth);
 
-router.get("/equipment", async (req, res): Promise<void> => {
+router.get("/equipment", requirePermission("equipment.read"), async (req, res): Promise<void> => {
   const { projectId, status } = req.query as { projectId?: string; status?: string };
 
   let rows = await db.select().from(equipmentTable);
@@ -30,7 +33,7 @@ router.get("/equipment", async (req, res): Promise<void> => {
   })));
 });
 
-router.post("/equipment", async (req, res): Promise<void> => {
+router.post("/equipment", requirePermission("equipment.create"), async (req, res): Promise<void> => {
   const parsed = CreateEquipmentBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const d = parsed.data;
@@ -55,7 +58,7 @@ router.post("/equipment", async (req, res): Promise<void> => {
   });
 });
 
-router.patch("/equipment/:id", async (req, res): Promise<void> => {
+router.patch("/equipment/:id", requirePermission("equipment.update"), async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw, 10);
   const parsed = UpdateEquipmentBody.safeParse(req.body);

@@ -1,11 +1,14 @@
+import { requireAuth } from "../middlewares/requireAuth";
+import { requirePermission } from "../middlewares/permissions";
 import { Router } from "express";
 import { db, dailyReportsTable, projectsTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { CreateDailyReportBody } from "@workspace/api-zod";
 
 const router = Router();
+router.use(requireAuth);
 
-router.get("/daily-reports", async (req, res): Promise<void> => {
+router.get("/daily-reports", requirePermission("daily-reports.read"), async (req, res): Promise<void> => {
   const { projectId } = req.query as { projectId?: string };
 
   let rows = await db.select().from(dailyReportsTable).orderBy(sql`${dailyReportsTable.date} desc`);
@@ -30,7 +33,7 @@ router.get("/daily-reports", async (req, res): Promise<void> => {
   })));
 });
 
-router.post("/daily-reports", async (req, res): Promise<void> => {
+router.post("/daily-reports", requirePermission("daily-reports.create"), async (req, res): Promise<void> => {
   const parsed = CreateDailyReportBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const d = parsed.data;
@@ -58,7 +61,7 @@ router.post("/daily-reports", async (req, res): Promise<void> => {
   });
 });
 
-router.get("/daily-reports/:id", async (req, res): Promise<void> => {
+router.get("/daily-reports/:id", requirePermission("daily-reports.read"), async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw, 10);
   const [row] = await db.select().from(dailyReportsTable).where(eq(dailyReportsTable.id, id));

@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
 import { ClerkProvider, SignIn, SignUp, Show, useClerk } from '@clerk/react';
+import { useEffect, useRef } from 'react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { dark } from '@clerk/themes';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -31,6 +31,9 @@ import CRM from '@/pages/crm/CRM';
 import Reports from '@/pages/reports/Reports';
 import Settings from '@/pages/settings/Settings';
 import FormsBuilder from '@/pages/forms/FormsBuilder';
+import OrgProjectSelector from '@/pages/onboarding/OrgProjectSelector';
+import ThemeSwitcher from '@/components/theme-switcher';
+import { OrganizationProjectProvider } from '@/contexts/OrganizationProjectContext';
 import QualityManagement from '@/pages/quality/QualityManagement';
 import NotFound from '@/pages/not-found';
 
@@ -168,9 +171,12 @@ function AppRoutes() {
   return (
     <>
       <Show when="signed-in">
-        <Shell>
+        <OrganizationProjectProvider>
+          <Shell>
+            <div className="flex justify-start px-4 pt-4"><ThemeSwitcher /></div>
           <Switch>
             <Route path="/" component={Dashboard} />
+            <Route path="/onboarding" component={OrgProjectSelector} />
             <Route path="/projects" component={ProjectList} />
             <Route path="/projects/:id" component={ProjectDetail} />
             <Route path="/projects/:id/timeline" component={ProjectTimeline} />
@@ -197,7 +203,8 @@ function AppRoutes() {
             <Route path="/settings"><Settings /></Route>
             <Route component={NotFound} />
           </Switch>
-        </Shell>
+          </Shell>
+        </OrganizationProjectProvider>
       </Show>
 
       <Show when="signed-out">

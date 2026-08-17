@@ -12,11 +12,13 @@ const { tables, rows, db } = mocks;
 vi.mock("@workspace/db", () => ({ ...mocks.tables, db: mocks.db }));
 vi.mock("drizzle-orm", () => ({ eq: () => ({}), and: (...args: any[]) => args, ilike: () => ({}) }));
 vi.mock("../artifacts/api-server/src/middlewares/permissions", () => ({ requirePermission: () => (_req: any, _res: any, next: any) => next() }));
+vi.mock("../artifacts/api-server/src/middlewares/requireAuth", () => ({ requireAuth: (_req: any, _res: any, next: any) => next() }));
 vi.mock("../artifacts/api-server/src/middlewares/tenant", () => ({ tenantId: () => 1 }));
 
 import projectsRouter from "../artifacts/api-server/src/routes/projects";
 import tasksRouter from "../artifacts/api-server/src/routes/tasks";
 import costRouter from "../artifacts/api-server/src/routes/cost-control";
+import usersRouter from "../artifacts/api-server/src/routes/users";
 
 function appWith(router: any) { const app = express(); app.use(express.json()); app.use((req: any, _res, next) => { req.organizationId = 1; req.vetraUser = { id: 7, organizationId: 1, role: "CEO" }; next(); }); app.use(router); return app; }
 
@@ -34,6 +36,11 @@ describe("tenant-scoped API routes", () => {
     rows.set(tables.usersTable, []);
     const response = await request(appWith(tasksRouter)).get("/tasks/summary");
     expect(response.status).toBe(200); expect(response.body.total).toBe(1); expect(response.body.todo).toBe(1);
+  });
+  it("Tenant A cannot read Tenant B user data by manipulating the user ID", async () => {
+    rows.set(tables.usersTable, []);
+    const response = await request(appWith(usersRouter)).get("/users/999");
+    expect(response.status).toBe(404);
   });
   it("cost-control summary only exposes tenant-owned financial rows", async () => {
     rows.set(tables.budgetsTable, [{ organizationId: 1, amount: "100", projectId: 1 }]);

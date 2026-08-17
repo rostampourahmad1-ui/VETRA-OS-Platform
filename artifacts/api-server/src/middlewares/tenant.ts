@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import { getAuth } from "@clerk/express";
 import { and, eq } from "drizzle-orm";
-import { db, usersTable } from "@workspace/db";
+import { db, usersTable, projectsTable } from "@workspace/db";
 
 declare global {
   namespace Express {
@@ -41,4 +41,12 @@ export async function attachTenant(req: Request, res: Response, next: NextFuncti
 export function tenantId(req: Request): number {
   if (!req.organizationId) throw new Error("Tenant context is missing");
   return req.organizationId;
+}
+
+export async function ownedProject(req: Request, projectId: number) {
+  const [project] = await db.select().from(projectsTable).where(and(
+    eq(projectsTable.id, projectId),
+    eq(projectsTable.organizationId, tenantId(req)),
+  ));
+  return project;
 }

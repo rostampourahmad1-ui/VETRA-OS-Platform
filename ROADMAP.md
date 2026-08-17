@@ -6,7 +6,7 @@ VETRA is a modular construction-management platform for engineering companies, c
 
 ## Current baseline
 
-The repository currently contains the `artifacts/vetra` web application, the `artifacts/mockup-sandbox` visual sandbox, the `artifacts/api-server` service, shared libraries under `lib/`, and the root Vitest suite. The baseline verification completed on 2026-08-16 shows that dependency installation, TypeScript validation, and all five existing tests pass. The production build was initially blocked because both Vite configurations required `PORT` and `BASE_PATH` even for non-Replit builds; those configurations now use safe defaults (`PORT=5000`, `BASE_PATH=/`).
+The repository currently contains the `artifacts/vetra` web application, the `artifacts/mockup-sandbox` visual sandbox, the `artifacts/api-server` service, shared libraries under `lib/`, and the root Vitest suite. The baseline verification completed on 2026-08-16 shows that dependency installation, TypeScript validation, and all five existing tests pass. The production build was initially blocked because both Vite configurations required `PORT` and `BASE_PATH` even for standalone builds; those configurations now use safe defaults (`PORT=5000`, `BASE_PATH=/`).
 
 The Blueprint defines Forms, Payroll, Quality, and Safety as important product areas, while the current UI already includes core navigation, projects, tasks, documents, contracts, reports, meetings, HR, equipment, inventory, procurement, cost control, CRM, reports, AI Assistant, and settings. Forms, Payroll, Quality, and Safety are not yet implemented as first-class routes or domain features. The next increment therefore starts with Forms Builder because it is cross-cutting, directly supports project and daily-report workflows, and provides a reusable foundation for approvals, quality inspections, safety checklists, and HR processes.
 
@@ -14,7 +14,7 @@ The Blueprint defines Forms, Payroll, Quality, and Safety as important product a
 
 | Priority | Workstream | Scope | Exit criteria |
 | --- | --- | --- | --- |
-| P0 | Build and release hygiene | Keep `pnpm install`, `pnpm typecheck`, `pnpm build`, and `pnpm test` deterministic; remove environment-specific assumptions from build configuration. | All four commands pass from a clean checkout without Replit-only environment variables. |
+| P0 | Build and release hygiene | Keep `pnpm install`, `pnpm typecheck`, `pnpm build`, and `pnpm test` deterministic; remove environment-specific assumptions from build configuration. | All four commands pass from a clean checkout without platform-specific environment variables. |
 | P1 | Forms Builder | Add a first-class Forms route with template management, field palette, editable form canvas, field settings, preview mode, and local draft persistence. | A user can create a draft form, add/reorder/remove fields, edit labels and required state, preview it, and see the draft after reload. |
 | P2 | Forms backend and workflow | Add typed form/template/submission entities, organization/project scope, RBAC checks, versioning, submissions, comments, attachments, and approval workflow. | Forms are persisted server-side, access-controlled, versioned, and auditable. |
 | P3 | Quality Management | Build inspection templates from Forms, non-conformance records, corrective actions, approval states, and project-level quality dashboards. | Quality inspections can be issued, assigned, reviewed, and tracked to closure. |

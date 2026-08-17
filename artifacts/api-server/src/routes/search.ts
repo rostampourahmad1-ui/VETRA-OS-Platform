@@ -1,9 +1,12 @@
+import { requireAuth } from '../middlewares/requireAuth';
+import { requirePermission } from '../middlewares/permissions';
 import { Router } from 'express';
 import { db, projectsTable, tasksTable, documentsTable, contractsTable, clientsTable } from '@workspace/db';
 import { ilike } from 'drizzle-orm';
 
 const router = Router();
-router.get('/search', async (req, res): Promise<void> => {
+router.use(requireAuth);
+router.get('/search', requirePermission("search.read"), async (req, res): Promise<void> => {
   const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
   if (q.length < 2) { res.json([]); return; }
   const pattern = `%${q}%`;

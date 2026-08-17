@@ -10,9 +10,7 @@
     "test": "vitest run"
   },
   "private": true,
-  "dependencies": {
-    "@replit/connectors-sdk": "^0.4.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/supertest": "^6.0.3",
     "prettier": "^3.9.5",

@@ -1,3 +1,5 @@
+import { requireAuth } from "../middlewares/requireAuth";
+import { requirePermission } from "../middlewares/permissions";
 import { Router } from "express";
 import { db } from "@workspace/db";
 import {
@@ -10,8 +12,9 @@ import {
 import { sql, eq, count, and, lt } from "drizzle-orm";
 
 const router = Router();
+router.use(requireAuth);
 
-router.get("/dashboard/summary", async (req, res): Promise<void> => {
+router.get("/dashboard/summary", requirePermission("dashboard.read"), async (req, res): Promise<void> => {
   const [projects, tasks, users, equipment] = await Promise.all([
     db.select().from(projectsTable),
     db.select().from(tasksTable),
@@ -55,7 +58,7 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
   });
 });
 
-router.get("/dashboard/project-health", async (req, res): Promise<void> => {
+router.get("/dashboard/project-health", requirePermission("dashboard.read"), async (req, res): Promise<void> => {
   const projects = await db.select().from(projectsTable);
   const today = new Date();
 
@@ -86,7 +89,7 @@ router.get("/dashboard/project-health", async (req, res): Promise<void> => {
   res.json(health);
 });
 
-router.get("/dashboard/recent-activity", async (req, res): Promise<void> => {
+router.get("/dashboard/recent-activity", requirePermission("dashboard.read"), async (req, res): Promise<void> => {
   const items = await db
     .select()
     .from(activityTable)
@@ -105,7 +108,7 @@ router.get("/dashboard/recent-activity", async (req, res): Promise<void> => {
   );
 });
 
-router.get("/dashboard/cash-flow", async (req, res): Promise<void> => {
+router.get("/dashboard/cash-flow", requirePermission("dashboard.read"), async (req, res): Promise<void> => {
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const currentMonth = new Date().getMonth();
   const data = months.map((month, i) => {

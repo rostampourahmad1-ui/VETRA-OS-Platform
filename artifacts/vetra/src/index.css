@@ -1,6 +1,6 @@
 @layer theme, base, clerk, components, utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+@import './styles/themes.css';
 @import 'tailwindcss';
 
 /* Clerk placeholder text on dark inputs */
@@ -123,9 +123,9 @@
   --chart-4: 210 16% 80%;
   --chart-5: 0 84% 60%;
 
-  --app-font-sans: 'Outfit', sans-serif;
+  --app-font-sans: 'Vazirmatn', 'IRANSans', Tahoma, sans-serif;
   --app-font-serif: Georgia, serif;
-  --app-font-mono: 'Space Mono', monospace;
+  --app-font-mono: Tahoma, sans-serif;
   --radius: 0.5rem;
   
   --shadow-2xs: 0px 2px 0px 0px rgba(0,0,0,0.05);
@@ -207,8 +207,14 @@
     @apply border-border;
   }
 
+  html {
+    direction: rtl;
+  }
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    direction: rtl;
+    background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+    color: var(--text-primary);
   }
 }
 
