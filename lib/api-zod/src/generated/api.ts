@@ -1371,6 +1371,18 @@ export const CreateClientResponse = zod.object({
   "notes": zod.string().nullish()
 })
 
+/**
+ * @summary Update a client (PATCH) — strict; server-side fields rejected
+ */
+export const UpdateClientBody = zod.object({
+  "name": zod.string().optional(),
+  "company": zod.string().nullable().optional(),
+  "email": zod.string().nullable().optional(),
+  "phone": zod.string().nullable().optional(),
+  "type": zod.string().optional(),
+  "status": zod.string().optional(),
+  "notes": zod.string().nullable().optional(),
+}).strict();
 
 export const GetClientParams = zod.object({
   "id": zod.coerce.number().int()

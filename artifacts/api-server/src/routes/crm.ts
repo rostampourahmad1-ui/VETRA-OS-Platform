@@ -4,6 +4,8 @@ import { tenantId } from '../middlewares/tenant';
 import { Router } from 'express';
 import { db, clientsTable } from '@workspace/db';
 import { and, eq, ilike, or } from 'drizzle-orm';
+import { UpdateClientBody } from '@workspace/api-zod';
+import { logger } from '../lib/logger';
 
 const router = Router();
 router.use(requireAuth);
@@ -27,8 +29,26 @@ router.post('/crm/clients', requirePermission("crm.create"), async (req, res): P
   res.status(201).json(row);
 });
 router.patch('/crm/clients/:id', requirePermission("crm.update"), async (req, res): Promise<void> => {
-  const [row] = await db.update(clientsTable).set(req.body).where(and(eq(clientsTable.id, Number(req.params.id)), eq(clientsTable.organizationId, tenantId(req)))).returning();
-  if (!row) { res.status(404).json({ error: 'Client not found' }); return; }
+  const id = Number(req.params.id);
+  const orgId = tenantId(req);
+  const parsed = UpdateClientBody.safeParse(req.body);
+  if (!parsed.success) {
+    logger.warn({ userId: req.vetraUser?.id, orgId, clientId: id, issues: parsed.error.flatten() }, 'CRM PATCH validation failed');
+    res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten().fieldErrors });
+    return;
+  }
+  const allowed = parsed.data;
+  const updates: Record<string, unknown> = {};
+  for (const key of Object.keys(allowed) as (keyof typeof allowed)[]) {
+    if (allowed[key] !== undefined) updates[key] = allowed[key];
+  }
+  const [row] = await db.update(clientsTable).set(updates).where(and(eq(clientsTable.id, id), eq(clientsTable.organizationId, orgId))).returning();
+  if (!row) {
+    logger.warn({ userId: req.vetraUser?.id, orgId, clientId: id }, 'CRM PATCH target not found (404)');
+    res.status(404).json({ error: 'Client not found' });
+    return;
+  }
+  logger.info({ userId: req.vetraUser?.id, orgId, clientId: id, updatedFields: Object.keys(allowed).filter(k => allowed[k] !== undefined) }, 'CRM client updated');
   res.json(row);
 });
 export default router;

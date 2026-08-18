@@ -9,6 +9,7 @@ import {
   getClerkProxyHost,
 } from "./middlewares/clerkProxyMiddleware";
 import router from "./routes";
+import webhookRouter from "./routes/webhook";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
@@ -55,6 +56,10 @@ app.use(
     },
   }),
 );
+
+// Webhook routes must be mounted before express.json() for raw body access
+app.use("/api", webhookRouter);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
