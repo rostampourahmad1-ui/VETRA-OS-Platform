@@ -1087,6 +1087,11 @@ paths:
         '200':
           description: Project phases and milestones
   /projects/{projectId}/phases:
+    parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema: { type: integer }
     post:
       summary: Create a project phase
       requestBody:
@@ -1097,6 +1102,11 @@ paths:
       responses:
         '201': { description: Created }
   /projects/{projectId}/milestones:
+    parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema: { type: integer }
     post:
       summary: Create a project milestone
       requestBody:
@@ -1119,10 +1129,20 @@ paths:
             schema: { $ref: '#/components/schemas/WorkflowInput' }
       responses: { '201': { description: Created } }
   /workflows/{id}/runs:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
     post:
       summary: Start an approval workflow
       responses: { '201': { description: Created } }
   /workflow-runs/{id}/decision:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
     post:
       summary: Approve or reject the current workflow step
       requestBody:
@@ -1152,6 +1172,42 @@ paths:
 
 components:
   schemas:
+
+    PhaseInput:
+      type: object
+      required: [name, startDate, endDate]
+      properties:
+        name: { type: string }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+        progress: { type: integer, minimum: 0, maximum: 100 }
+    MilestoneInput:
+      type: object
+      required: [name, dueDate]
+      properties:
+        name: { type: string }
+        dueDate: { type: string, format: date }
+        phaseId: { type: integer }
+    WorkflowInput:
+      type: object
+      required: [name, entityType, steps]
+      properties:
+        name: { type: string }
+        entityType: { type: string, example: expense }
+        steps:
+          type: array
+          items:
+            type: object
+            required: [name, requiredPermission]
+            properties:
+              name: { type: string }
+              requiredPermission: { type: string }
+    DocumentUpload:
+      type: object
+      required: [file, projectId]
+      properties:
+        file: { type: string, format: binary }
+        projectId: { type: integer }
     HealthStatus:
       type: object
       properties:
@@ -1981,42 +2037,3 @@ components:
         projects: { type: object, additionalProperties: true }
         tasks: { type: object, additionalProperties: true }
         costs: { type: object, additionalProperties: true }
-
-components:
-  schemas:
-
-    PhaseInput:
-      type: object
-      required: [name, startDate, endDate]
-      properties:
-        name: { type: string }
-        startDate: { type: string, format: date }
-        endDate: { type: string, format: date }
-        progress: { type: integer, minimum: 0, maximum: 100 }
-    MilestoneInput:
-      type: object
-      required: [name, dueDate]
-      properties:
-        name: { type: string }
-        dueDate: { type: string, format: date }
-        phaseId: { type: integer }
-    WorkflowInput:
-      type: object
-      required: [name, entityType, steps]
-      properties:
-        name: { type: string }
-        entityType: { type: string, example: expense }
-        steps:
-          type: array
-          items:
-            type: object
-            required: [name, requiredPermission]
-            properties:
-              name: { type: string }
-              requiredPermission: { type: string }
-    DocumentUpload:
-      type: object
-      required: [file, projectId]
-      properties:
-        file: { type: string, format: binary }
-        projectId: { type: integer }

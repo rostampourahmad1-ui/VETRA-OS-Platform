@@ -1,8 +1,14 @@
-from pathlib import Path
-p = Path('lib/api-spec/openapi.yaml')
-s = p.read_text()
-marker = '\ncomponents:'
-addition = r'''
+import { readFile, writeFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+
+const specPath = fileURLToPath(
+  new URL("../lib/api-spec/openapi.yaml", import.meta.url),
+);
+let spec = await readFile(specPath, "utf8");
+
+const componentsMarker = "\ncomponents:";
+const schemasMarker = "\ncomponents:\n  schemas:\n";
+const paths = String.raw`
   /projects/{projectId}/timeline:
     get:
       summary: Get project Gantt timeline
@@ -97,8 +103,9 @@ addition = r'''
           application/json:
             schema: { type: object, required: [query], properties: { query: { type: string } } }
       responses: { '200': { description: Assistant answer } }
-'''
-schemas = r'''
+`;
+
+const schemas = String.raw`
     PhaseInput:
       type: object
       required: [name, startDate, endDate]
@@ -134,29 +141,39 @@ schemas = r'''
       properties:
         file: { type: string, format: binary }
         projectId: { type: integer }
-'''
-if '/projects/{projectId}/timeline:' not in s:
-    s = s.replace(marker, addition + marker, 1)
+`;
 
-# A previous version appended a second top-level `components` key.  YAML allows
-# parsers to handle duplicate keys inconsistently, and Orval rejects this spec.
-# Remove that exact legacy block before inserting the schemas into the original
-# components section.  Keep this migration so re-running the script is safe.
-legacy_schema_block = '\ncomponents:\n  schemas:\n' + schemas
-components_before_migration = s.count('\ncomponents:')
-if components_before_migration > 1:
-    legacy_index = s.rfind(legacy_schema_block)
-    if legacy_index == -1:
-        raise RuntimeError('OpenAPI document contains duplicate components sections')
-    s = s[:legacy_index] + s[legacy_index + len(legacy_schema_block):]
+if (!spec.includes("/projects/{projectId}/timeline:")) {
+  const index = spec.indexOf(componentsMarker);
+  if (index === -1) {
+    throw new Error("OpenAPI document does not contain a components section");
+  }
+  spec = `${spec.slice(0, index)}${paths}${spec.slice(index)}`;
+}
 
-schemas_marker = '\ncomponents:\n  schemas:\n'
-if '    PhaseInput:' not in s:
-    if schemas_marker not in s:
-        raise RuntimeError('OpenAPI document does not contain a components.schemas section')
-    s = s.replace(schemas_marker, schemas_marker + schemas, 1)
+// Migrate the duplicate components block produced by the old Python helper.
+const legacySchemaBlock = `${schemasMarker}${schemas}`;
+const componentsBeforeMigration = (spec.match(/\ncomponents:/g) ?? []).length;
+if (componentsBeforeMigration > 1) {
+  const legacyIndex = spec.lastIndexOf(legacySchemaBlock);
+  if (legacyIndex === -1) {
+    throw new Error("OpenAPI document contains duplicate components sections");
+  }
+  spec = `${spec.slice(0, legacyIndex)}${spec.slice(legacyIndex + legacySchemaBlock.length)}`;
+}
 
-if s.count('\ncomponents:') != 1:
-    raise RuntimeError('OpenAPI document must contain exactly one top-level components section')
+if (!spec.includes("    PhaseInput:")) {
+  if (!spec.includes(schemasMarker)) {
+    throw new Error("OpenAPI document does not contain a components.schemas section");
+  }
+  spec = spec.replace(schemasMarker, `${schemasMarker}${schemas}`);
+}
 
-p.write_text(s)
+const componentsCount = (spec.match(/\ncomponents:/g) ?? []).length;
+if (componentsCount !== 1) {
+  throw new Error(
+    `OpenAPI document must contain exactly one top-level components section; found ${componentsCount}`,
+  );
+}
+
+await writeFile(specPath, spec, "utf8");

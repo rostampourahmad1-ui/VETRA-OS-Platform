@@ -20,17 +20,17 @@ export const HealthCheckResponse = zod.object({
  * @summary Executive dashboard summary
  */
 export const GetDashboardSummaryResponse = zod.object({
-  "activeProjects": zod.int(),
+  "activeProjects": zod.number().int(),
   "totalBudget": zod.number(),
   "spentBudget": zod.number(),
   "overallProgress": zod.number(),
-  "delayedActivities": zod.int(),
-  "totalWorkforce": zod.int(),
-  "pendingApprovals": zod.int(),
-  "equipmentActive": zod.int(),
-  "equipmentTotal": zod.int(),
-  "openTasks": zod.int(),
-  "overdueTasksCount": zod.int()
+  "delayedActivities": zod.number().int(),
+  "totalWorkforce": zod.number().int(),
+  "pendingApprovals": zod.number().int(),
+  "equipmentActive": zod.number().int(),
+  "equipmentTotal": zod.number().int(),
+  "openTasks": zod.number().int(),
+  "overdueTasksCount": zod.number().int()
 })
 
 
@@ -38,14 +38,14 @@ export const GetDashboardSummaryResponse = zod.object({
  * @summary Project health overview
  */
 export const GetDashboardProjectHealthResponseItem = zod.object({
-  "projectId": zod.int(),
+  "projectId": zod.number().int(),
   "projectName": zod.string(),
   "progress": zod.number(),
   "status": zod.string(),
   "health": zod.string(),
   "budgetUsed": zod.number(),
   "budgetTotal": zod.number(),
-  "daysRemaining": zod.int()
+  "daysRemaining": zod.number().int()
 })
 export const GetDashboardProjectHealthResponse = zod.array(GetDashboardProjectHealthResponseItem)
 
@@ -54,7 +54,7 @@ export const GetDashboardProjectHealthResponse = zod.array(GetDashboardProjectHe
  * @summary Recent activity feed
  */
 export const GetDashboardRecentActivityResponseItem = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "type": zod.string(),
   "description": zod.string(),
   "user": zod.string(),
@@ -84,7 +84,7 @@ export const ListProjectsQueryParams = zod.object({
 })
 
 export const ListProjectsResponseItem = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "name": zod.string(),
   "description": zod.string().nullish(),
   "status": zod.string(),
@@ -95,9 +95,9 @@ export const ListProjectsResponseItem = zod.object({
   "location": zod.string(),
   "startDate": zod.string(),
   "endDate": zod.string(),
-  "managerId": zod.int(),
+  "managerId": zod.number().int(),
   "managerName": zod.string(),
-  "organizationId": zod.int(),
+  "organizationId": zod.number().int(),
   "priority": zod.string().optional(),
   "phase": zod.string().nullish(),
   "createdAt": zod.string()
@@ -116,15 +116,15 @@ export const CreateProjectBody = zod.object({
   "startDate": zod.string(),
   "endDate": zod.string(),
   "budget": zod.number(),
-  "managerId": zod.int(),
-  "organizationId": zod.int(),
+  "managerId": zod.number().int(),
+  "organizationId": zod.number().int(),
   "priority": zod.string().optional(),
   "phase": zod.string().optional(),
   "status": zod.string().optional()
 })
 
 export const CreateProjectResponse = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "name": zod.string(),
   "description": zod.string().nullish(),
   "status": zod.string(),
@@ -135,9 +135,9 @@ export const CreateProjectResponse = zod.object({
   "location": zod.string(),
   "startDate": zod.string(),
   "endDate": zod.string(),
-  "managerId": zod.int(),
+  "managerId": zod.number().int(),
   "managerName": zod.string(),
-  "organizationId": zod.int(),
+  "organizationId": zod.number().int(),
   "priority": zod.string().optional(),
   "phase": zod.string().nullish(),
   "createdAt": zod.string()
@@ -152,7 +152,7 @@ export const GetProjectParams = zod.object({
 })
 
 export const GetProjectResponse = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "name": zod.string(),
   "description": zod.string().nullish(),
   "status": zod.string(),
@@ -163,9 +163,9 @@ export const GetProjectResponse = zod.object({
   "location": zod.string(),
   "startDate": zod.string(),
   "endDate": zod.string(),
-  "managerId": zod.int(),
+  "managerId": zod.number().int(),
   "managerName": zod.string(),
-  "organizationId": zod.int(),
+  "organizationId": zod.number().int(),
   "priority": zod.string().optional(),
   "phase": zod.string().nullish(),
   "createdAt": zod.string()
@@ -190,13 +190,13 @@ export const UpdateProjectBody = zod.object({
   "location": zod.string().optional(),
   "startDate": zod.string().optional(),
   "endDate": zod.string().optional(),
-  "managerId": zod.int().optional(),
+  "managerId": zod.number().int().optional(),
   "priority": zod.string().optional(),
   "phase": zod.string().optional()
 })
 
 export const UpdateProjectResponse = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "name": zod.string(),
   "description": zod.string().nullish(),
   "status": zod.string(),
@@ -207,9 +207,9 @@ export const UpdateProjectResponse = zod.object({
   "location": zod.string(),
   "startDate": zod.string(),
   "endDate": zod.string(),
-  "managerId": zod.int(),
+  "managerId": zod.number().int(),
   "managerName": zod.string(),
-  "organizationId": zod.int(),
+  "organizationId": zod.number().int(),
   "priority": zod.string().optional(),
   "phase": zod.string().nullish(),
   "createdAt": zod.string()
@@ -234,14 +234,14 @@ export const GetProjectStatsParams = zod.object({
 })
 
 export const GetProjectStatsResponse = zod.object({
-  "taskCount": zod.int(),
-  "completedTasks": zod.int(),
-  "openTasks": zod.int(),
-  "documentCount": zod.int(),
-  "contractCount": zod.int(),
-  "meetingCount": zod.int(),
-  "reportCount": zod.int(),
-  "equipmentCount": zod.int()
+  "taskCount": zod.number().int(),
+  "completedTasks": zod.number().int(),
+  "openTasks": zod.number().int(),
+  "documentCount": zod.number().int(),
+  "contractCount": zod.number().int(),
+  "meetingCount": zod.number().int(),
+  "reportCount": zod.number().int(),
+  "equipmentCount": zod.number().int()
 })
 
 
@@ -255,14 +255,14 @@ export const ListTasksQueryParams = zod.object({
 })
 
 export const ListTasksResponseItem = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "title": zod.string(),
   "description": zod.string().nullish(),
   "status": zod.string(),
   "priority": zod.string(),
-  "projectId": zod.int(),
+  "projectId": zod.number().int(),
   "projectName": zod.string(),
-  "assigneeId": zod.int().nullish(),
+  "assigneeId": zod.number().int().nullish(),
   "assigneeName": zod.string().nullish(),
   "dueDate": zod.string().nullish(),
   "createdAt": zod.string()
@@ -278,20 +278,20 @@ export const CreateTaskBody = zod.object({
   "description": zod.string().optional(),
   "status": zod.string(),
   "priority": zod.string(),
-  "projectId": zod.int(),
-  "assigneeId": zod.int().optional(),
+  "projectId": zod.number().int(),
+  "assigneeId": zod.number().int().optional(),
   "dueDate": zod.string().optional()
 })
 
 export const CreateTaskResponse = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "title": zod.string(),
   "description": zod.string().nullish(),
   "status": zod.string(),
   "priority": zod.string(),
-  "projectId": zod.int(),
+  "projectId": zod.number().int(),
   "projectName": zod.string(),
-  "assigneeId": zod.int().nullish(),
+  "assigneeId": zod.number().int().nullish(),
   "assigneeName": zod.string().nullish(),
   "dueDate": zod.string().nullish(),
   "createdAt": zod.string()
@@ -306,14 +306,14 @@ export const GetTaskParams = zod.object({
 })
 
 export const GetTaskResponse = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "title": zod.string(),
   "description": zod.string().nullish(),
   "status": zod.string(),
   "priority": zod.string(),
-  "projectId": zod.int(),
+  "projectId": zod.number().int(),
   "projectName": zod.string(),
-  "assigneeId": zod.int().nullish(),
+  "assigneeId": zod.number().int().nullish(),
   "assigneeName": zod.string().nullish(),
   "dueDate": zod.string().nullish(),
   "createdAt": zod.string()
@@ -332,19 +332,19 @@ export const UpdateTaskBody = zod.object({
   "description": zod.string().optional(),
   "status": zod.string().optional(),
   "priority": zod.string().optional(),
-  "assigneeId": zod.int().optional(),
+  "assigneeId": zod.number().int().optional(),
   "dueDate": zod.string().optional()
 })
 
 export const UpdateTaskResponse = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "title": zod.string(),
   "description": zod.string().nullish(),
   "status": zod.string(),
   "priority": zod.string(),
-  "projectId": zod.int(),
+  "projectId": zod.number().int(),
   "projectName": zod.string(),
-  "assigneeId": zod.int().nullish(),
+  "assigneeId": zod.number().int().nullish(),
   "assigneeName": zod.string().nullish(),
   "dueDate": zod.string().nullish(),
   "createdAt": zod.string()
@@ -365,12 +365,12 @@ export const DeleteTaskResponse = zod.void()
  * @summary Tasks summary by status
  */
 export const GetTasksSummaryResponse = zod.object({
-  "total": zod.int(),
-  "todo": zod.int(),
-  "inProgress": zod.int(),
-  "review": zod.int(),
-  "done": zod.int(),
-  "overdue": zod.int()
+  "total": zod.number().int(),
+  "todo": zod.number().int(),
+  "inProgress": zod.number().int(),
+  "review": zod.number().int(),
+  "done": zod.number().int(),
+  "overdue": zod.number().int()
 })
 
 
@@ -383,11 +383,11 @@ export const ListDocumentsQueryParams = zod.object({
 })
 
 export const ListDocumentsResponseItem = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "name": zod.string(),
   "type": zod.string(),
-  "size": zod.int(),
-  "projectId": zod.int(),
+  "size": zod.number().int(),
+  "projectId": zod.number().int(),
   "projectName": zod.string(),
   "uploadedBy": zod.string(),
   "url": zod.string().nullish(),
@@ -402,18 +402,18 @@ export const ListDocumentsResponse = zod.array(ListDocumentsResponseItem)
 export const CreateDocumentBody = zod.object({
   "name": zod.string(),
   "type": zod.string(),
-  "size": zod.int(),
-  "projectId": zod.int(),
+  "size": zod.number().int(),
+  "projectId": zod.number().int(),
   "uploadedBy": zod.string(),
   "url": zod.string().optional()
 })
 
 export const CreateDocumentResponse = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "name": zod.string(),
   "type": zod.string(),
-  "size": zod.int(),
-  "projectId": zod.int(),
+  "size": zod.number().int(),
+  "projectId": zod.number().int(),
   "projectName": zod.string(),
   "uploadedBy": zod.string(),
   "url": zod.string().nullish(),
@@ -440,13 +440,13 @@ export const ListContractsQueryParams = zod.object({
 })
 
 export const ListContractsResponseItem = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "name": zod.string(),
   "contractor": zod.string(),
   "value": zod.number(),
   "status": zod.string(),
   "type": zod.string().nullish(),
-  "projectId": zod.int(),
+  "projectId": zod.number().int(),
   "projectName": zod.string(),
   "startDate": zod.string(),
   "endDate": zod.string(),
@@ -465,20 +465,20 @@ export const CreateContractBody = zod.object({
   "value": zod.number(),
   "status": zod.string().optional(),
   "type": zod.string().optional(),
-  "projectId": zod.int(),
+  "projectId": zod.number().int(),
   "startDate": zod.string(),
   "endDate": zod.string(),
   "signedDate": zod.string().optional()
 })
 
 export const CreateContractResponse = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "name": zod.string(),
   "contractor": zod.string(),
   "value": zod.number(),
   "status": zod.string(),
   "type": zod.string().nullish(),
-  "projectId": zod.int(),
+  "projectId": zod.number().int(),
   "projectName": zod.string(),
   "startDate": zod.string(),
   "endDate": zod.string(),
@@ -495,13 +495,13 @@ export const GetContractParams = zod.object({
 })
 
 export const GetContractResponse = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "name": zod.string(),
   "contractor": zod.string(),
   "value": zod.number(),
   "status": zod.string(),
   "type": zod.string().nullish(),
-  "projectId": zod.int(),
+  "projectId": zod.number().int(),
   "projectName": zod.string(),
   "startDate": zod.string(),
   "endDate": zod.string(),
@@ -529,13 +529,13 @@ export const UpdateContractBody = zod.object({
 })
 
 export const UpdateContractResponse = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "name": zod.string(),
   "contractor": zod.string(),
   "value": zod.number(),
   "status": zod.string(),
   "type": zod.string().nullish(),
-  "projectId": zod.int(),
+  "projectId": zod.number().int(),
   "projectName": zod.string(),
   "startDate": zod.string(),
   "endDate": zod.string(),
@@ -552,15 +552,15 @@ export const ListDailyReportsQueryParams = zod.object({
 })
 
 export const ListDailyReportsResponseItem = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "date": zod.string(),
   "weather": zod.string(),
   "temperature": zod.number().nullish(),
   "progress": zod.number(),
-  "workersOnSite": zod.int().optional(),
+  "workersOnSite": zod.number().int().optional(),
   "issues": zod.string().nullish(),
   "notes": zod.string().nullish(),
-  "projectId": zod.int(),
+  "projectId": zod.number().int(),
   "projectName": zod.string(),
   "createdBy": zod.string(),
   "createdAt": zod.string()
@@ -576,23 +576,23 @@ export const CreateDailyReportBody = zod.object({
   "weather": zod.string(),
   "temperature": zod.number().optional(),
   "progress": zod.number(),
-  "workersOnSite": zod.int().optional(),
+  "workersOnSite": zod.number().int().optional(),
   "issues": zod.string().optional(),
   "notes": zod.string().optional(),
-  "projectId": zod.int(),
+  "projectId": zod.number().int(),
   "createdBy": zod.string()
 })
 
 export const CreateDailyReportResponse = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "date": zod.string(),
   "weather": zod.string(),
   "temperature": zod.number().nullish(),
   "progress": zod.number(),
-  "workersOnSite": zod.int().optional(),
+  "workersOnSite": zod.number().int().optional(),
   "issues": zod.string().nullish(),
   "notes": zod.string().nullish(),
-  "projectId": zod.int(),
+  "projectId": zod.number().int(),
   "projectName": zod.string(),
   "createdBy": zod.string(),
   "createdAt": zod.string()
@@ -607,15 +607,15 @@ export const GetDailyReportParams = zod.object({
 })
 
 export const GetDailyReportResponse = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "date": zod.string(),
   "weather": zod.string(),
   "temperature": zod.number().nullish(),
   "progress": zod.number(),
-  "workersOnSite": zod.int().optional(),
+  "workersOnSite": zod.number().int().optional(),
   "issues": zod.string().nullish(),
   "notes": zod.string().nullish(),
-  "projectId": zod.int(),
+  "projectId": zod.number().int(),
   "projectName": zod.string(),
   "createdBy": zod.string(),
   "createdAt": zod.string()
@@ -631,7 +631,7 @@ export const ListMeetingsQueryParams = zod.object({
 })
 
 export const ListMeetingsResponseItem = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "title": zod.string(),
   "date": zod.string(),
   "location": zod.string(),
@@ -639,7 +639,7 @@ export const ListMeetingsResponseItem = zod.object({
   "agenda": zod.string().nullish(),
   "minutes": zod.string().nullish(),
   "attendees": zod.string().optional(),
-  "projectId": zod.int(),
+  "projectId": zod.number().int(),
   "projectName": zod.string(),
   "organizer": zod.string(),
   "createdAt": zod.string()
@@ -657,12 +657,12 @@ export const CreateMeetingBody = zod.object({
   "status": zod.string().optional(),
   "agenda": zod.string().optional(),
   "attendees": zod.string().optional(),
-  "projectId": zod.int(),
+  "projectId": zod.number().int(),
   "organizer": zod.string()
 })
 
 export const CreateMeetingResponse = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "title": zod.string(),
   "date": zod.string(),
   "location": zod.string(),
@@ -670,7 +670,7 @@ export const CreateMeetingResponse = zod.object({
   "agenda": zod.string().nullish(),
   "minutes": zod.string().nullish(),
   "attendees": zod.string().optional(),
-  "projectId": zod.int(),
+  "projectId": zod.number().int(),
   "projectName": zod.string(),
   "organizer": zod.string(),
   "createdAt": zod.string()
@@ -685,7 +685,7 @@ export const GetMeetingParams = zod.object({
 })
 
 export const GetMeetingResponse = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "title": zod.string(),
   "date": zod.string(),
   "location": zod.string(),
@@ -693,7 +693,7 @@ export const GetMeetingResponse = zod.object({
   "agenda": zod.string().nullish(),
   "minutes": zod.string().nullish(),
   "attendees": zod.string().optional(),
-  "projectId": zod.int(),
+  "projectId": zod.number().int(),
   "projectName": zod.string(),
   "organizer": zod.string(),
   "createdAt": zod.string()
@@ -718,7 +718,7 @@ export const UpdateMeetingBody = zod.object({
 })
 
 export const UpdateMeetingResponse = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "title": zod.string(),
   "date": zod.string(),
   "location": zod.string(),
@@ -726,7 +726,7 @@ export const UpdateMeetingResponse = zod.object({
   "agenda": zod.string().nullish(),
   "minutes": zod.string().nullish(),
   "attendees": zod.string().optional(),
-  "projectId": zod.int(),
+  "projectId": zod.number().int(),
   "projectName": zod.string(),
   "organizer": zod.string(),
   "createdAt": zod.string()
@@ -742,14 +742,14 @@ export const ListUsersQueryParams = zod.object({
 })
 
 export const ListUsersResponseItem = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "name": zod.string(),
   "email": zod.string(),
   "role": zod.string(),
   "department": zod.string().nullable(),
   "phone": zod.string().nullish(),
   "avatarInitials": zod.string().optional(),
-  "organizationId": zod.int(),
+  "organizationId": zod.number().int(),
   "organizationName": zod.string().nullish(),
   "active": zod.boolean().optional(),
   "createdAt": zod.string()
@@ -766,18 +766,18 @@ export const CreateUserBody = zod.object({
   "role": zod.string(),
   "department": zod.string().optional(),
   "phone": zod.string().optional(),
-  "organizationId": zod.int()
+  "organizationId": zod.number().int()
 })
 
 export const CreateUserResponse = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "name": zod.string(),
   "email": zod.string(),
   "role": zod.string(),
   "department": zod.string().nullable(),
   "phone": zod.string().nullish(),
   "avatarInitials": zod.string().optional(),
-  "organizationId": zod.int(),
+  "organizationId": zod.number().int(),
   "organizationName": zod.string().nullish(),
   "active": zod.boolean().optional(),
   "createdAt": zod.string()
@@ -792,14 +792,14 @@ export const GetUserParams = zod.object({
 })
 
 export const GetUserResponse = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "name": zod.string(),
   "email": zod.string(),
   "role": zod.string(),
   "department": zod.string().nullable(),
   "phone": zod.string().nullish(),
   "avatarInitials": zod.string().optional(),
-  "organizationId": zod.int(),
+  "organizationId": zod.number().int(),
   "organizationName": zod.string().nullish(),
   "active": zod.boolean().optional(),
   "createdAt": zod.string()
@@ -823,14 +823,14 @@ export const UpdateUserBody = zod.object({
 })
 
 export const UpdateUserResponse = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "name": zod.string(),
   "email": zod.string(),
   "role": zod.string(),
   "department": zod.string().nullable(),
   "phone": zod.string().nullish(),
   "avatarInitials": zod.string().optional(),
-  "organizationId": zod.int(),
+  "organizationId": zod.number().int(),
   "organizationName": zod.string().nullish(),
   "active": zod.boolean().optional(),
   "createdAt": zod.string()
@@ -846,14 +846,14 @@ export const ListEquipmentQueryParams = zod.object({
 })
 
 export const ListEquipmentResponseItem = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "name": zod.string(),
   "type": zod.string(),
   "model": zod.string().nullish(),
   "serialNumber": zod.string().nullish(),
   "status": zod.string(),
   "location": zod.string().nullish(),
-  "projectId": zod.int().nullish(),
+  "projectId": zod.number().int().nullish(),
   "projectName": zod.string().nullish(),
   "nextMaintenance": zod.string().nullish(),
   "createdAt": zod.string()
@@ -871,19 +871,19 @@ export const CreateEquipmentBody = zod.object({
   "serialNumber": zod.string().optional(),
   "status": zod.string(),
   "location": zod.string().optional(),
-  "projectId": zod.int().optional(),
+  "projectId": zod.number().int().optional(),
   "nextMaintenance": zod.string().optional()
 })
 
 export const CreateEquipmentResponse = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "name": zod.string(),
   "type": zod.string(),
   "model": zod.string().nullish(),
   "serialNumber": zod.string().nullish(),
   "status": zod.string(),
   "location": zod.string().nullish(),
-  "projectId": zod.int().nullish(),
+  "projectId": zod.number().int().nullish(),
   "projectName": zod.string().nullish(),
   "nextMaintenance": zod.string().nullish(),
   "createdAt": zod.string()
@@ -903,19 +903,19 @@ export const UpdateEquipmentBody = zod.object({
   "model": zod.string().optional(),
   "status": zod.string().optional(),
   "location": zod.string().optional(),
-  "projectId": zod.int().optional(),
+  "projectId": zod.number().int().optional(),
   "nextMaintenance": zod.string().optional()
 })
 
 export const UpdateEquipmentResponse = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "name": zod.string(),
   "type": zod.string(),
   "model": zod.string().nullish(),
   "serialNumber": zod.string().nullish(),
   "status": zod.string(),
   "location": zod.string().nullish(),
-  "projectId": zod.int().nullish(),
+  "projectId": zod.number().int().nullish(),
   "projectName": zod.string().nullish(),
   "nextMaintenance": zod.string().nullish(),
   "createdAt": zod.string()
@@ -931,13 +931,13 @@ export const ListInventoryQueryParams = zod.object({
 })
 
 export const ListInventoryResponseItem = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "name": zod.string(),
   "category": zod.string(),
   "quantity": zod.number(),
   "unit": zod.string(),
   "minStock": zod.number().nullish(),
-  "projectId": zod.int().nullish(),
+  "projectId": zod.number().int().nullish(),
   "projectName": zod.string().nullish(),
   "supplier": zod.string().nullish(),
   "unitCost": zod.number().nullish(),
@@ -955,19 +955,19 @@ export const CreateInventoryItemBody = zod.object({
   "quantity": zod.number(),
   "unit": zod.string(),
   "minStock": zod.number().optional(),
-  "projectId": zod.int().optional(),
+  "projectId": zod.number().int().optional(),
   "supplier": zod.string().optional(),
   "unitCost": zod.number().optional()
 })
 
 export const CreateInventoryItemResponse = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "name": zod.string(),
   "category": zod.string(),
   "quantity": zod.number(),
   "unit": zod.string(),
   "minStock": zod.number().nullish(),
-  "projectId": zod.int().nullish(),
+  "projectId": zod.number().int().nullish(),
   "projectName": zod.string().nullish(),
   "supplier": zod.string().nullish(),
   "unitCost": zod.number().nullish(),
@@ -988,19 +988,19 @@ export const UpdateInventoryItemBody = zod.object({
   "quantity": zod.number().optional(),
   "unit": zod.string().optional(),
   "minStock": zod.number().optional(),
-  "projectId": zod.int().optional(),
+  "projectId": zod.number().int().optional(),
   "supplier": zod.string().optional(),
   "unitCost": zod.number().optional()
 })
 
 export const UpdateInventoryItemResponse = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "name": zod.string(),
   "category": zod.string(),
   "quantity": zod.number(),
   "unit": zod.string(),
   "minStock": zod.number().nullish(),
-  "projectId": zod.int().nullish(),
+  "projectId": zod.number().int().nullish(),
   "projectName": zod.string().nullish(),
   "supplier": zod.string().nullish(),
   "unitCost": zod.number().nullish(),
@@ -1017,12 +1017,12 @@ export const ListProcurementOrdersQueryParams = zod.object({
 })
 
 export const ListProcurementOrdersResponseItem = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "title": zod.string(),
   "supplier": zod.string(),
   "totalAmount": zod.number(),
   "status": zod.string(),
-  "projectId": zod.int(),
+  "projectId": zod.number().int(),
   "projectName": zod.string(),
   "requestedBy": zod.string(),
   "approvedBy": zod.string().nullish(),
@@ -1041,19 +1041,19 @@ export const CreateProcurementOrderBody = zod.object({
   "supplier": zod.string(),
   "totalAmount": zod.number(),
   "status": zod.string().optional(),
-  "projectId": zod.int(),
+  "projectId": zod.number().int(),
   "requestedBy": zod.string(),
   "deliveryDate": zod.string().optional(),
   "notes": zod.string().optional()
 })
 
 export const CreateProcurementOrderResponse = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "title": zod.string(),
   "supplier": zod.string(),
   "totalAmount": zod.number(),
   "status": zod.string(),
-  "projectId": zod.int(),
+  "projectId": zod.number().int(),
   "projectName": zod.string(),
   "requestedBy": zod.string(),
   "approvedBy": zod.string().nullish(),
@@ -1081,12 +1081,12 @@ export const UpdateProcurementOrderBody = zod.object({
 })
 
 export const UpdateProcurementOrderResponse = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "title": zod.string(),
   "supplier": zod.string(),
   "totalAmount": zod.number(),
   "status": zod.string(),
-  "projectId": zod.int(),
+  "projectId": zod.number().int(),
   "projectName": zod.string(),
   "requestedBy": zod.string(),
   "approvedBy": zod.string().nullish(),
@@ -1100,7 +1100,7 @@ export const UpdateProcurementOrderResponse = zod.object({
  * @summary List notifications
  */
 export const ListNotificationsResponseItem = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "title": zod.string(),
   "message": zod.string(),
   "type": zod.string(),
@@ -1119,7 +1119,7 @@ export const MarkNotificationReadParams = zod.object({
 })
 
 export const MarkNotificationReadResponse = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "title": zod.string(),
   "message": zod.string(),
   "type": zod.string(),
@@ -1133,7 +1133,7 @@ export const MarkNotificationReadResponse = zod.object({
  * @summary List organizations
  */
 export const ListOrganizationsResponseItem = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "name": zod.string(),
   "type": zod.string(),
   "logoInitials": zod.string().optional(),
@@ -1164,7 +1164,7 @@ export const GetWorkspaceDashboardResponse = zod.object({
   "role": zod.string().optional(),
   "metrics": zod.record(zod.string(), zod.unknown()).optional(),
   "projects": zod.array(zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "name": zod.string(),
   "description": zod.string().nullish(),
   "status": zod.string(),
@@ -1175,9 +1175,9 @@ export const GetWorkspaceDashboardResponse = zod.object({
   "location": zod.string(),
   "startDate": zod.string(),
   "endDate": zod.string(),
-  "managerId": zod.int(),
+  "managerId": zod.number().int(),
   "managerName": zod.string(),
-  "organizationId": zod.int(),
+  "organizationId": zod.number().int(),
   "priority": zod.string().optional(),
   "phase": zod.string().nullish(),
   "createdAt": zod.string()
@@ -1195,25 +1195,25 @@ export const GetCostControlSummaryResponse = zod.object({
   "remaining": zod.number().optional(),
   "utilization": zod.number().optional(),
   "categories": zod.array(zod.object({
-  "id": zod.int().optional(),
-  "organizationId": zod.int().optional(),
+  "id": zod.number().int().optional(),
+  "organizationId": zod.number().int().optional(),
   "name": zod.string().optional(),
   "code": zod.string().optional(),
   "color": zod.string().optional(),
   "active": zod.boolean().optional()
 })).optional(),
   "budgets": zod.array(zod.object({
-  "id": zod.int().optional(),
-  "projectId": zod.int().optional(),
-  "categoryId": zod.int().nullish(),
+  "id": zod.number().int().optional(),
+  "projectId": zod.number().int().optional(),
+  "categoryId": zod.number().int().nullish(),
   "name": zod.string().optional(),
   "amount": zod.number().optional(),
   "period": zod.string().optional()
 })).optional(),
   "expenses": zod.array(zod.object({
-  "id": zod.int().optional(),
-  "projectId": zod.int().optional(),
-  "categoryId": zod.int().nullish(),
+  "id": zod.number().int().optional(),
+  "projectId": zod.number().int().optional(),
+  "categoryId": zod.number().int().nullish(),
   "description": zod.string().optional(),
   "amount": zod.number().optional(),
   "expenseDate": zod.coerce.date().optional(),
@@ -1223,8 +1223,8 @@ export const GetCostControlSummaryResponse = zod.object({
 
 
 export const ListExpenseCategoriesResponseItem = zod.object({
-  "id": zod.int().optional(),
-  "organizationId": zod.int().optional(),
+  "id": zod.number().int().optional(),
+  "organizationId": zod.number().int().optional(),
   "name": zod.string().optional(),
   "code": zod.string().optional(),
   "color": zod.string().optional(),
@@ -1234,15 +1234,15 @@ export const ListExpenseCategoriesResponse = zod.array(ListExpenseCategoriesResp
 
 
 export const CreateExpenseCategoryBody = zod.object({
-  "organizationId": zod.int().optional(),
+  "organizationId": zod.number().int().optional(),
   "name": zod.string(),
   "code": zod.string(),
   "color": zod.string().optional()
 })
 
 export const CreateExpenseCategoryResponse = zod.object({
-  "id": zod.int().optional(),
-  "organizationId": zod.int().optional(),
+  "id": zod.number().int().optional(),
+  "organizationId": zod.number().int().optional(),
   "name": zod.string().optional(),
   "code": zod.string().optional(),
   "color": zod.string().optional(),
@@ -1251,9 +1251,9 @@ export const CreateExpenseCategoryResponse = zod.object({
 
 
 export const ListBudgetsResponseItem = zod.object({
-  "id": zod.int().optional(),
-  "projectId": zod.int().optional(),
-  "categoryId": zod.int().nullish(),
+  "id": zod.number().int().optional(),
+  "projectId": zod.number().int().optional(),
+  "categoryId": zod.number().int().nullish(),
   "name": zod.string().optional(),
   "amount": zod.number().optional(),
   "period": zod.string().optional()
@@ -1262,18 +1262,18 @@ export const ListBudgetsResponse = zod.array(ListBudgetsResponseItem)
 
 
 export const CreateBudgetBody = zod.object({
-  "organizationId": zod.int().optional(),
-  "projectId": zod.int(),
-  "categoryId": zod.int().optional(),
+  "organizationId": zod.number().int().optional(),
+  "projectId": zod.number().int(),
+  "categoryId": zod.number().int().optional(),
   "name": zod.string(),
   "amount": zod.number(),
   "period": zod.string().optional()
 })
 
 export const CreateBudgetResponse = zod.object({
-  "id": zod.int().optional(),
-  "projectId": zod.int().optional(),
-  "categoryId": zod.int().nullish(),
+  "id": zod.number().int().optional(),
+  "projectId": zod.number().int().optional(),
+  "categoryId": zod.number().int().nullish(),
   "name": zod.string().optional(),
   "amount": zod.number().optional(),
   "period": zod.string().optional()
@@ -1281,9 +1281,9 @@ export const CreateBudgetResponse = zod.object({
 
 
 export const ListExpensesResponseItem = zod.object({
-  "id": zod.int().optional(),
-  "projectId": zod.int().optional(),
-  "categoryId": zod.int().nullish(),
+  "id": zod.number().int().optional(),
+  "projectId": zod.number().int().optional(),
+  "categoryId": zod.number().int().nullish(),
   "description": zod.string().optional(),
   "amount": zod.number().optional(),
   "expenseDate": zod.coerce.date().optional(),
@@ -1293,9 +1293,9 @@ export const ListExpensesResponse = zod.array(ListExpensesResponseItem)
 
 
 export const CreateExpenseBody = zod.object({
-  "organizationId": zod.int().optional(),
-  "projectId": zod.int(),
-  "categoryId": zod.int().optional(),
+  "organizationId": zod.number().int().optional(),
+  "projectId": zod.number().int(),
+  "categoryId": zod.number().int().optional(),
   "description": zod.string(),
   "amount": zod.number(),
   "expenseDate": zod.coerce.date(),
@@ -1303,9 +1303,9 @@ export const CreateExpenseBody = zod.object({
 })
 
 export const CreateExpenseResponse = zod.object({
-  "id": zod.int().optional(),
-  "projectId": zod.int().optional(),
-  "categoryId": zod.int().nullish(),
+  "id": zod.number().int().optional(),
+  "projectId": zod.number().int().optional(),
+  "categoryId": zod.number().int().nullish(),
   "description": zod.string().optional(),
   "amount": zod.number().optional(),
   "expenseDate": zod.coerce.date().optional(),
@@ -1322,7 +1322,7 @@ export const GlobalSearchQueryParams = zod.object({
 })
 
 export const GlobalSearchResponseItem = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "title": zod.string(),
   "type": zod.string(),
   "href": zod.string()
@@ -1335,8 +1335,8 @@ export const ListClientsQueryParams = zod.object({
 })
 
 export const ListClientsResponseItem = zod.object({
-  "id": zod.int().optional(),
-  "organizationId": zod.int().optional(),
+  "id": zod.number().int().optional(),
+  "organizationId": zod.number().int().optional(),
   "name": zod.string().optional(),
   "company": zod.string().nullish(),
   "email": zod.string().nullish(),
@@ -1349,7 +1349,7 @@ export const ListClientsResponse = zod.array(ListClientsResponseItem)
 
 
 export const CreateClientBody = zod.object({
-  "organizationId": zod.int().optional(),
+  "organizationId": zod.number().int().optional(),
   "name": zod.string(),
   "company": zod.string().optional(),
   "email": zod.string().optional(),
@@ -1360,8 +1360,8 @@ export const CreateClientBody = zod.object({
 })
 
 export const CreateClientResponse = zod.object({
-  "id": zod.int().optional(),
-  "organizationId": zod.int().optional(),
+  "id": zod.number().int().optional(),
+  "organizationId": zod.number().int().optional(),
   "name": zod.string().optional(),
   "company": zod.string().nullish(),
   "email": zod.string().nullish(),
@@ -1377,8 +1377,8 @@ export const GetClientParams = zod.object({
 })
 
 export const GetClientResponse = zod.object({
-  "id": zod.int().optional(),
-  "organizationId": zod.int().optional(),
+  "id": zod.number().int().optional(),
+  "organizationId": zod.number().int().optional(),
   "name": zod.string().optional(),
   "company": zod.string().nullish(),
   "email": zod.string().nullish(),
@@ -1390,7 +1390,7 @@ export const GetClientResponse = zod.object({
 
 
 export const GetProfileResponse = zod.object({
-  "id": zod.int().optional(),
+  "id": zod.number().int().optional(),
   "name": zod.string().optional(),
   "email": zod.string().optional(),
   "phone": zod.string().nullish(),
@@ -1400,14 +1400,14 @@ export const GetProfileResponse = zod.object({
 
 
 export const UpdateProfileBody = zod.object({
-  "id": zod.int().optional(),
+  "id": zod.number().int().optional(),
   "name": zod.string().optional(),
   "phone": zod.string().optional(),
   "department": zod.string().optional()
 })
 
 export const UpdateProfileResponse = zod.object({
-  "id": zod.int().optional(),
+  "id": zod.number().int().optional(),
   "name": zod.string().optional(),
   "email": zod.string().optional(),
   "phone": zod.string().nullish(),
@@ -1417,7 +1417,7 @@ export const UpdateProfileResponse = zod.object({
 
 
 export const GetOrganizationSettingsResponse = zod.object({
-  "id": zod.int(),
+  "id": zod.number().int(),
   "name": zod.string(),
   "type": zod.string(),
   "logoInitials": zod.string().optional(),
@@ -1466,7 +1466,7 @@ export const PostProjectsProjectIdPhasesBody = zod.object({
   "name": zod.string(),
   "startDate": zod.coerce.date(),
   "endDate": zod.coerce.date(),
-  "progress": zod.int().min(postProjectsProjectIdPhasesBodyProgressMin).max(postProjectsProjectIdPhasesBodyProgressMax).optional()
+  "progress": zod.number().int().min(postProjectsProjectIdPhasesBodyProgressMin).max(postProjectsProjectIdPhasesBodyProgressMax).optional()
 })
 
 export const PostProjectsProjectIdPhasesResponse = zod.void()
@@ -1482,7 +1482,7 @@ export const PostProjectsProjectIdMilestonesParams = zod.object({
 export const PostProjectsProjectIdMilestonesBody = zod.object({
   "name": zod.string(),
   "dueDate": zod.coerce.date(),
-  "phaseId": zod.int().optional()
+  "phaseId": zod.number().int().optional()
 })
 
 export const PostProjectsProjectIdMilestonesResponse = zod.void()
@@ -1537,8 +1537,8 @@ export const PostWorkflowRunsIdDecisionResponse = zod.unknown()
  * @summary Upload a document to local storage
  */
 export const PostDocumentsUploadBody = zod.object({
-  "file": zod.instanceof(File),
-  "projectId": zod.int()
+  "file": zod.any(),
+  "projectId": zod.number().int()
 })
 
 export const PostDocumentsUploadResponse = zod.void()
