@@ -57,6 +57,10 @@ export default defineConfig({
       prettier: true,
       override: {
         zod: {
+          // The workspace currently pins Zod 3.25.x. Pin generation explicitly
+          // so Orval's auto-detection cannot emit Zod 4-only helpers such as
+          // `zod.int()`.
+          version: 3,
           coerce: {
             query: ['boolean', 'number', 'string'],
             param: ['boolean', 'number', 'string'],

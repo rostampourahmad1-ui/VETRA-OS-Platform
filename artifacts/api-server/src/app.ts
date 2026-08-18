@@ -1,6 +1,5 @@
 import express, { type Express } from "express";
 import cors from "cors";
-import path from "node:path";
 import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
 import { publishableKeyFromHost } from "@clerk/shared/keys";
@@ -58,15 +57,16 @@ app.use(
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
 
 app.use(
-  clerkMiddleware((req) => ({
-    publishableKey: publishableKeyFromHost(
-      getClerkProxyHost(req) ?? "",
-      process.env.CLERK_PUBLISHABLE_KEY,
-    ),
-  })),
+  clerkMiddleware((req) => {
+    const proxyHost = getClerkProxyHost(req);
+    return {
+      publishableKey: proxyHost
+        ? publishableKeyFromHost(proxyHost, process.env.CLERK_PUBLISHABLE_KEY)
+        : process.env.CLERK_PUBLISHABLE_KEY,
+    };
+  }),
 );
 
 app.use("/api", router);

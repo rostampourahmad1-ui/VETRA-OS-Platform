@@ -2,6 +2,7 @@ import { pgTable, text, serial, timestamp, integer, date } from "drizzle-orm/pg-
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { projectsTable } from "./projects";
+import { organizationsTable } from "./organizations";
 
 export const equipmentTable = pgTable("equipment", {
   id: serial("id").primaryKey(),
@@ -12,10 +13,11 @@ export const equipmentTable = pgTable("equipment", {
   status: text("status").notNull().default("available"),
   location: text("location"),
   projectId: integer("project_id").references(() => projectsTable.id),
+  organizationId: integer("organization_id").notNull().references(() => organizationsTable.id),
   nextMaintenance: date("next_maintenance", { mode: "string" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const insertEquipmentSchema = createInsertSchema(equipmentTable).omit({ id: true, createdAt: true });
+export const insertEquipmentSchema = createInsertSchema(equipmentTable).omit({ id: true, createdAt: true, organizationId: true });
 export type InsertEquipment = z.infer<typeof insertEquipmentSchema>;
 export type Equipment = typeof equipmentTable.$inferSelect;

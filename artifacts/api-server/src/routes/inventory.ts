@@ -2,20 +2,23 @@ import { requireAuth } from "../middlewares/requireAuth";
 import { requirePermission } from "../middlewares/permissions";
 import { Router } from "express";
 import { db, inventoryTable, projectsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { CreateInventoryItemBody, UpdateInventoryItemBody } from "@workspace/api-zod";
+import { ownedProject, tenantId } from "../middlewares/tenant";
 
 const router = Router();
 router.use(requireAuth);
 
 router.get("/inventory", requirePermission("inventory.read"), async (req, res): Promise<void> => {
   const { projectId, category } = req.query as { projectId?: string; category?: string };
+  const organizationId = tenantId(req);
 
-  let rows = await db.select().from(inventoryTable);
-  if (projectId) rows = rows.filter(i => i.projectId === parseInt(projectId, 10));
-  if (category) rows = rows.filter(i => i.category === category);
+  const filters = [eq(inventoryTable.organizationId, organizationId)];
+  if (projectId) filters.push(eq(inventoryTable.projectId, parseInt(projectId, 10)));
+  if (category) filters.push(eq(inventoryTable.category, category));
+  const rows = await db.select().from(inventoryTable).where(and(...filters));
 
-  const projects = await db.select().from(projectsTable);
+  const projects = await db.select().from(projectsTable).where(eq(projectsTable.organizationId, organizationId));
   const projMap = new Map(projects.map(p => [p.id, p.name]));
 
   res.json(rows.map(i => ({
@@ -37,6 +40,9 @@ router.post("/inventory", requirePermission("inventory.create"), async (req, res
   const parsed = CreateInventoryItemBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const d = parsed.data;
+  const organizationId = tenantId(req);
+  const project = d.projectId === undefined ? null : await ownedProject(req, d.projectId);
+  if (d.projectId !== undefined && !project) { res.status(404).json({ error: "Project not found" }); return; }
 
   const [row] = await db.insert(inventoryTable).values({
     name: d.name,
@@ -45,18 +51,17 @@ router.post("/inventory", requirePermission("inventory.create"), async (req, res
     unit: d.unit,
     minStock: d.minStock?.toString(),
     projectId: d.projectId,
+    organizationId,
     supplier: d.supplier,
     unitCost: d.unitCost?.toString(),
   }).returning();
-
-  const proj = row.projectId ? await db.select().from(projectsTable).where(eq(projectsTable.id, row.projectId)) : [];
 
   res.status(201).json({
     ...row,
     quantity: parseFloat(row.quantity as string),
     minStock: row.minStock ? parseFloat(row.minStock as string) : null,
     unitCost: row.unitCost ? parseFloat(row.unitCost as string) : null,
-    projectName: proj[0]?.name ?? null,
+    projectName: project?.name ?? null,
     createdAt: row.createdAt.toISOString(),
   });
 });
@@ -68,6 +73,13 @@ router.patch("/inventory/:id", requirePermission("inventory.update"), async (req
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
   const d = parsed.data;
+  const organizationId = tenantId(req);
+  const [current] = await db.select().from(inventoryTable).where(and(eq(inventoryTable.id, id), eq(inventoryTable.organizationId, organizationId)));
+  if (!current) { res.status(404).json({ error: "Not found" }); return; }
+  const project = d.projectId === undefined
+    ? (current.projectId === null ? null : await ownedProject(req, current.projectId))
+    : (d.projectId === null ? null : await ownedProject(req, d.projectId));
+  if (d.projectId !== undefined && d.projectId !== null && !project) { res.status(400).json({ error: "Project not found" }); return; }
   const updates: Record<string, unknown> = {};
   if (d.name !== undefined) updates.name = d.name;
   if (d.category !== undefined) updates.category = d.category;
@@ -78,10 +90,10 @@ router.patch("/inventory/:id", requirePermission("inventory.update"), async (req
   if (d.supplier !== undefined) updates.supplier = d.supplier;
   if (d.unitCost !== undefined) updates.unitCost = d.unitCost?.toString();
 
-  const [row] = await db.update(inventoryTable).set(updates).where(eq(inventoryTable.id, id)).returning();
+  const [row] = await db.update(inventoryTable).set(updates).where(and(eq(inventoryTable.id, id), eq(inventoryTable.organizationId, organizationId))).returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
 
-  const proj = row.projectId ? await db.select().from(projectsTable).where(eq(projectsTable.id, row.projectId)) : [];
+  const proj = row.projectId ? await db.select().from(projectsTable).where(and(eq(projectsTable.id, row.projectId), eq(projectsTable.organizationId, organizationId))) : [];
 
   res.json({
     ...row,

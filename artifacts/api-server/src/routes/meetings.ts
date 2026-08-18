@@ -2,20 +2,23 @@ import { requireAuth } from "../middlewares/requireAuth";
 import { requirePermission } from "../middlewares/permissions";
 import { Router } from "express";
 import { db, meetingsTable, projectsTable } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { CreateMeetingBody, UpdateMeetingBody } from "@workspace/api-zod";
+import { ownedProject, tenantId } from "../middlewares/tenant";
 
 const router = Router();
 router.use(requireAuth);
 
 router.get("/meetings", requirePermission("meetings.read"), async (req, res): Promise<void> => {
   const { projectId, status } = req.query as { projectId?: string; status?: string };
+  const organizationId = tenantId(req);
 
-  let rows = await db.select().from(meetingsTable).orderBy(sql`${meetingsTable.date} desc`);
-  if (projectId) rows = rows.filter(m => m.projectId === parseInt(projectId, 10));
-  if (status) rows = rows.filter(m => m.status === status);
+  const filters = [eq(meetingsTable.organizationId, organizationId)];
+  if (projectId) filters.push(eq(meetingsTable.projectId, parseInt(projectId, 10)));
+  if (status) filters.push(eq(meetingsTable.status, status));
+  const rows = await db.select().from(meetingsTable).where(and(...filters)).orderBy(sql`${meetingsTable.date} desc`);
 
-  const projects = await db.select().from(projectsTable);
+  const projects = await db.select().from(projectsTable).where(eq(projectsTable.organizationId, organizationId));
   const projMap = new Map(projects.map(p => [p.id, p.name]));
 
   res.json(rows.map(m => ({
@@ -38,6 +41,9 @@ router.post("/meetings", requirePermission("meetings.create"), async (req, res):
   const parsed = CreateMeetingBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const d = parsed.data;
+  const organizationId = tenantId(req);
+  const project = await ownedProject(req, d.projectId);
+  if (!project) { res.status(404).json({ error: "Project not found" }); return; }
 
   const [row] = await db.insert(meetingsTable).values({
     title: d.title,
@@ -47,15 +53,14 @@ router.post("/meetings", requirePermission("meetings.create"), async (req, res):
     agenda: d.agenda,
     attendees: d.attendees ?? "",
     projectId: d.projectId,
+    organizationId,
     organizer: d.organizer,
   }).returning();
-
-  const [proj] = await db.select().from(projectsTable).where(eq(projectsTable.id, row.projectId));
 
   res.status(201).json({
     ...row,
     date: row.date.toISOString(),
-    projectName: proj?.name ?? "Unknown",
+    projectName: project.name,
     createdAt: row.createdAt.toISOString(),
   });
 });
@@ -63,9 +68,10 @@ router.post("/meetings", requirePermission("meetings.create"), async (req, res):
 router.get("/meetings/:id", requirePermission("meetings.read"), async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw, 10);
-  const [row] = await db.select().from(meetingsTable).where(eq(meetingsTable.id, id));
+  const organizationId = tenantId(req);
+  const [row] = await db.select().from(meetingsTable).where(and(eq(meetingsTable.id, id), eq(meetingsTable.organizationId, organizationId)));
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
-  const [proj] = await db.select().from(projectsTable).where(eq(projectsTable.id, row.projectId));
+  const [proj] = await db.select().from(projectsTable).where(and(eq(projectsTable.id, row.projectId), eq(projectsTable.organizationId, organizationId)));
 
   res.json({
     ...row,
@@ -82,6 +88,9 @@ router.patch("/meetings/:id", requirePermission("meetings.update"), async (req, 
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
   const d = parsed.data;
+  const organizationId = tenantId(req);
+  const [current] = await db.select().from(meetingsTable).where(and(eq(meetingsTable.id, id), eq(meetingsTable.organizationId, organizationId)));
+  if (!current) { res.status(404).json({ error: "Not found" }); return; }
   const updates: Record<string, unknown> = {};
   if (d.title !== undefined) updates.title = d.title;
   if (d.date !== undefined) updates.date = new Date(d.date);
@@ -91,10 +100,10 @@ router.patch("/meetings/:id", requirePermission("meetings.update"), async (req, 
   if (d.minutes !== undefined) updates.minutes = d.minutes;
   if (d.attendees !== undefined) updates.attendees = d.attendees;
 
-  const [row] = await db.update(meetingsTable).set(updates).where(eq(meetingsTable.id, id)).returning();
+  const [row] = await db.update(meetingsTable).set(updates).where(and(eq(meetingsTable.id, id), eq(meetingsTable.organizationId, organizationId))).returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
 
-  const [proj] = await db.select().from(projectsTable).where(eq(projectsTable.id, row.projectId));
+  const [proj] = await db.select().from(projectsTable).where(and(eq(projectsTable.id, row.projectId), eq(projectsTable.organizationId, organizationId)));
 
   res.json({
     ...row,
