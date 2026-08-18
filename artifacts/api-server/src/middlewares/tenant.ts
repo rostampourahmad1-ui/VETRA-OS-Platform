@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import { getAuth } from "@clerk/express";
 import { and, eq } from "drizzle-orm";
-import { db, usersTable, projectsTable } from "@workspace/db";
+import { db, usersTable, projectsTable, setOrganizationContext } from "@workspace/db";
 
 declare global {
   namespace Express {
@@ -26,6 +26,8 @@ export async function attachTenant(req: Request, res: Response, next: NextFuncti
   try {
     if (req.vetraUser) {
       req.organizationId = req.vetraUser.organizationId;
+      // VETRA-SEC-05: Set RLS context for database session
+      await setOrganizationContext(req.vetraUser.organizationId);
       next();
       return;
     }
@@ -48,6 +50,8 @@ export async function attachTenant(req: Request, res: Response, next: NextFuncti
     }
     req.vetraUser = user;
     req.organizationId = user.organizationId;
+    // VETRA-SEC-05: Set RLS context for database session
+    await setOrganizationContext(user.organizationId);
     next();
   } catch (error) {
     next(error);

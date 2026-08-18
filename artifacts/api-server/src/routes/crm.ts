@@ -39,8 +39,8 @@ router.patch('/crm/clients/:id', requirePermission("crm.update"), async (req, re
   }
   const allowed = parsed.data;
   const updates: Record<string, unknown> = {};
-  for (const key of Object.keys(allowed) as (keyof typeof allowed)[]) {
-    if (allowed[key] !== undefined) updates[key] = allowed[key];
+  for (const [key, value] of Object.entries(allowed as Record<string, unknown>)) {
+    if (value !== undefined) updates[key] = value;
   }
   const [row] = await db.update(clientsTable).set(updates).where(and(eq(clientsTable.id, id), eq(clientsTable.organizationId, orgId))).returning();
   if (!row) {
@@ -48,7 +48,7 @@ router.patch('/crm/clients/:id', requirePermission("crm.update"), async (req, re
     res.status(404).json({ error: 'Client not found' });
     return;
   }
-  logger.info({ userId: req.vetraUser?.id, orgId, clientId: id, updatedFields: Object.keys(allowed).filter(k => allowed[k] !== undefined) }, 'CRM client updated');
+  logger.info({ userId: req.vetraUser?.id, orgId, clientId: id, updatedFields: Object.keys(updates) }, 'CRM client updated');
   res.json(row);
 });
 export default router;

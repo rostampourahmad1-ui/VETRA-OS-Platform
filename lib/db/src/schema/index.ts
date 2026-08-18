@@ -16,3 +16,4 @@ export * from "./rbac";
 export * from "./planning";
 export * from "./workflows";
 export * from "./quality";
+export * from "./audit";
