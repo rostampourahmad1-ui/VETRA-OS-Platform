@@ -2,6 +2,7 @@ import { pgTable, text, serial, timestamp, integer, numeric } from "drizzle-orm/
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { projectsTable } from "./projects";
+import { organizationsTable } from "./organizations";
 
 export const inventoryTable = pgTable("inventory", {
   id: serial("id").primaryKey(),
@@ -11,11 +12,12 @@ export const inventoryTable = pgTable("inventory", {
   unit: text("unit").notNull().default("unit"),
   minStock: numeric("min_stock", { precision: 12, scale: 2 }),
   projectId: integer("project_id").references(() => projectsTable.id),
+  organizationId: integer("organization_id").notNull().references(() => organizationsTable.id),
   supplier: text("supplier"),
   unitCost: numeric("unit_cost", { precision: 12, scale: 2 }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const insertInventorySchema = createInsertSchema(inventoryTable).omit({ id: true, createdAt: true });
+export const insertInventorySchema = createInsertSchema(inventoryTable).omit({ id: true, createdAt: true, organizationId: true });
 export type InsertInventory = z.infer<typeof insertInventorySchema>;
 export type Inventory = typeof inventoryTable.$inferSelect;

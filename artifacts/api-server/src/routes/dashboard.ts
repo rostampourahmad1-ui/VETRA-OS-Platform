@@ -9,17 +9,19 @@ import {
   equipmentTable,
   activityTable,
 } from "@workspace/db";
-import { sql, eq, count, and, lt } from "drizzle-orm";
+import { sql, eq } from "drizzle-orm";
+import { tenantId } from "../middlewares/tenant";
 
 const router = Router();
 router.use(requireAuth);
 
 router.get("/dashboard/summary", requirePermission("dashboard.read"), async (req, res): Promise<void> => {
+  const organizationId = tenantId(req);
   const [projects, tasks, users, equipment] = await Promise.all([
-    db.select().from(projectsTable),
-    db.select().from(tasksTable),
-    db.select().from(usersTable).where(eq(usersTable.active, true)),
-    db.select().from(equipmentTable),
+    db.select().from(projectsTable).where(eq(projectsTable.organizationId, organizationId)),
+    db.select().from(tasksTable).where(eq(tasksTable.organizationId, organizationId)),
+    db.select().from(usersTable).where(eq(usersTable.organizationId, organizationId)),
+    db.select().from(equipmentTable).where(eq(equipmentTable.organizationId, organizationId)),
   ]);
 
   const activeProjects = projects.filter(p => p.status === "active").length;
@@ -59,7 +61,7 @@ router.get("/dashboard/summary", requirePermission("dashboard.read"), async (req
 });
 
 router.get("/dashboard/project-health", requirePermission("dashboard.read"), async (req, res): Promise<void> => {
-  const projects = await db.select().from(projectsTable);
+  const projects = await db.select().from(projectsTable).where(eq(projectsTable.organizationId, tenantId(req)));
   const today = new Date();
 
   const health = projects.map(p => {
@@ -93,6 +95,7 @@ router.get("/dashboard/recent-activity", requirePermission("dashboard.read"), as
   const items = await db
     .select()
     .from(activityTable)
+    .where(eq(activityTable.organizationId, tenantId(req)))
     .orderBy(sql`${activityTable.createdAt} desc`)
     .limit(20);
 

@@ -6,9 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface SearchResult {
-  id: number;
-  title: string;
-  type: string;
-  href: string;
+export interface MilestoneInput {
+  name: string;
+  dueDate: Date;
+  phaseId?: number;
 }

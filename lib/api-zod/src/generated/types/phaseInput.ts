@@ -6,9 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface ExpenseCategoryInput {
-  organizationId?: number;
+export interface PhaseInput {
   name: string;
-  code: string;
-  color?: string;
+  startDate: Date;
+  endDate: Date;
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  progress?: number;
 }

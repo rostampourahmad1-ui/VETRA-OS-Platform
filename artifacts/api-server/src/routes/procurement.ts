@@ -2,20 +2,23 @@ import { requireAuth } from "../middlewares/requireAuth";
 import { requirePermission } from "../middlewares/permissions";
 import { Router } from "express";
 import { db, procurementTable, projectsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { CreateProcurementOrderBody, UpdateProcurementOrderBody } from "@workspace/api-zod";
+import { ownedProject, tenantId } from "../middlewares/tenant";
 
 const router = Router();
 router.use(requireAuth);
 
 router.get("/procurement", requirePermission("procurement.read"), async (req, res): Promise<void> => {
   const { projectId, status } = req.query as { projectId?: string; status?: string };
+  const organizationId = tenantId(req);
 
-  let rows = await db.select().from(procurementTable);
-  if (projectId) rows = rows.filter(p => p.projectId !== null && p.projectId === parseInt(projectId, 10));
-  if (status) rows = rows.filter(p => p.status === status);
+  const filters = [eq(procurementTable.organizationId, organizationId)];
+  if (projectId) filters.push(eq(procurementTable.projectId, parseInt(projectId, 10)));
+  if (status) filters.push(eq(procurementTable.status, status));
+  const rows = await db.select().from(procurementTable).where(and(...filters));
 
-  const projects = await db.select().from(projectsTable);
+  const projects = await db.select().from(projectsTable).where(eq(projectsTable.organizationId, organizationId));
   const projMap = new Map(projects.map(p => [p.id, p.name]));
 
   res.json(rows.map(p => ({
@@ -38,6 +41,9 @@ router.post("/procurement", requirePermission("procurement.create"), async (req,
   const parsed = CreateProcurementOrderBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const d = parsed.data;
+  const organizationId = tenantId(req);
+  const project = await ownedProject(req, d.projectId);
+  if (!project) { res.status(404).json({ error: "Project not found" }); return; }
 
   const [row] = await db.insert(procurementTable).values({
     title: d.title,
@@ -45,17 +51,16 @@ router.post("/procurement", requirePermission("procurement.create"), async (req,
     totalAmount: d.totalAmount.toString(),
     status: d.status ?? "draft",
     projectId: d.projectId,
+    organizationId,
     requestedBy: d.requestedBy,
     deliveryDate: d.deliveryDate,
     notes: d.notes,
   }).returning();
 
-  const [proj] = row.projectId == null ? [] : await db.select().from(projectsTable).where(eq(projectsTable.id, row.projectId));
-
   res.status(201).json({
     ...row,
     totalAmount: parseFloat(row.totalAmount as string),
-    projectName: proj?.name ?? "Unknown",
+    projectName: project.name,
     createdAt: row.createdAt.toISOString(),
   });
 });
@@ -67,6 +72,9 @@ router.patch("/procurement/:id", requirePermission("procurement.update"), async 
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
   const d = parsed.data;
+  const organizationId = tenantId(req);
+  const [current] = await db.select().from(procurementTable).where(and(eq(procurementTable.id, id), eq(procurementTable.organizationId, organizationId)));
+  if (!current) { res.status(404).json({ error: "Not found" }); return; }
   const updates: Record<string, unknown> = {};
   if (d.title !== undefined) updates.title = d.title;
   if (d.supplier !== undefined) updates.supplier = d.supplier;
@@ -76,10 +84,10 @@ router.patch("/procurement/:id", requirePermission("procurement.update"), async 
   if (d.deliveryDate !== undefined) updates.deliveryDate = d.deliveryDate;
   if (d.notes !== undefined) updates.notes = d.notes;
 
-  const [row] = await db.update(procurementTable).set(updates).where(eq(procurementTable.id, id)).returning();
+  const [row] = await db.update(procurementTable).set(updates).where(and(eq(procurementTable.id, id), eq(procurementTable.organizationId, organizationId))).returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
 
-  const [proj] = row.projectId == null ? [] : await db.select().from(projectsTable).where(eq(projectsTable.id, row.projectId));
+  const [proj] = row.projectId == null ? [] : await db.select().from(projectsTable).where(and(eq(projectsTable.id, row.projectId), eq(projectsTable.organizationId, organizationId)));
 
   res.json({
     ...row,
