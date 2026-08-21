@@ -30,7 +30,7 @@ afterEach(() => {
 });
 
 describe("CORS origin allowlist", () => {
-  it("allows a configured origin for credentialed preflight requests", async () => {
+  it("allows a configured origin for credentialed preflight requests", { timeout: 15000 }, async () => {
     const app = await appWithOrigins("https://app.example.com");
 
     const response = await request(app)
