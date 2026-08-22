@@ -17,16 +17,12 @@ const normalizedApi = api.replaceAll("zod.instanceof(File)", "zod.any()");
 await writeFile(apiPath, normalizedApi, "utf8");
 
 // Orval emits operation-body TypeScript interfaces in `generated/types` and
-// Zod schemas with the same names in `generated/api`. Alias only the three
-// collisions so the package barrel can continue exporting both collections.
+// Zod schemas with the same names in `generated/api`. Alias only real
+// operation-body collisions so the package barrel can continue exporting both collections.
 const aliases = new Map([
   [
     "export * from './postAiAssistantBody';",
     "export type { PostAiAssistantBody as PostAiAssistantBodyType } from './postAiAssistantBody';",
-  ],
-  [
-    "export * from './postWorkflowRunsIdDecisionBody';",
-    "export type { PostWorkflowRunsIdDecisionBody as PostWorkflowRunsIdDecisionBodyType } from './postWorkflowRunsIdDecisionBody';",
   ],
   [
     "export * from './updatePreferencesBody';",

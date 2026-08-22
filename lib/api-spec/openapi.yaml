@@ -1048,6 +1048,12 @@ paths:
       tags: [phase2]
       parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
       responses: { "200": { description: Client, content: { application/json: { schema: { $ref: "#/components/schemas/Client" } } } } }
+    patch:
+      operationId: updateClient
+      tags: [phase2]
+      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/ClientUpdate" } } } }
+      responses: { "200": { description: Updated client, content: { application/json: { schema: { $ref: "#/components/schemas/Client" } } } } }
   /settings/profile:
     get:
       operationId: getProfile
@@ -1136,6 +1142,11 @@ paths:
         schema: { type: integer }
     post:
       summary: Start an approval workflow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WorkflowRunInput' }
       responses: { '201': { description: Created } }
   /workflow-runs/{id}/decision:
     parameters:
@@ -1149,8 +1160,84 @@ paths:
         required: true
         content:
           application/json:
-            schema: { type: object, required: [decision], properties: { decision: { type: string, enum: [approve, reject] } } }
+            schema: { $ref: '#/components/schemas/WorkflowDecisionInput' }
       responses: { '200': { description: Updated workflow run } }
+  /forms/templates:
+    get:
+      summary: List tenant form templates
+      responses: { '200': { description: OK } }
+    post:
+      summary: Create a form template draft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FormTemplateInput' }
+      responses: { '201': { description: Created } }
+  /forms/templates/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
+    get:
+      summary: Get a tenant form template
+      responses: { '200': { description: OK } }
+    patch:
+      summary: Update a draft form template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FormTemplateUpdate' }
+      responses: { '200': { description: Updated } }
+  /forms/templates/{id}/publish:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
+    post:
+      summary: Publish a form template version
+      responses: { '200': { description: Published } }
+  /form-submissions:
+    get:
+      summary: List tenant form submissions
+      responses: { '200': { description: OK } }
+    post:
+      summary: Create a form submission draft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FormSubmissionInput' }
+      responses: { '201': { description: Created } }
+  /form-submissions/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
+    get:
+      summary: Get a tenant form submission
+      responses: { '200': { description: OK } }
+    patch:
+      summary: Update a draft or revision-requested submission
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FormSubmissionUpdate' }
+      responses: { '200': { description: Updated } }
+  /form-submissions/{id}/submit:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
+    post:
+      summary: Submit a form response for approval
+      responses: { '200': { description: Submitted } }
   /documents/upload:
     post:
       summary: Upload a document to local storage
@@ -1172,6 +1259,61 @@ paths:
 
 components:
   schemas:
+
+    FormField:
+      type: object
+      required: [id, label, type, required]
+      properties:
+        id: { type: string, minLength: 1, maxLength: 128 }
+        label: { type: string, minLength: 1, maxLength: 256 }
+        type: { type: string, enum: [text, number, date, select, checkbox] }
+        required: { type: boolean }
+        placeholder: { type: string, maxLength: 512 }
+        options:
+          type: array
+          maxItems: 100
+          items: { type: string, minLength: 1, maxLength: 256 }
+    FormDefinition:
+      type: object
+      required: [fields]
+      properties:
+        fields:
+          type: array
+          minItems: 1
+          maxItems: 200
+          items: { $ref: '#/components/schemas/FormField' }
+    FormTemplateInput:
+      type: object
+      required: [name, definition]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 256 }
+        description: { type: string, maxLength: 4000 }
+        projectId: { type: integer, minimum: 1 }
+        workflowId: { type: integer, minimum: 1 }
+        definition: { $ref: '#/components/schemas/FormDefinition' }
+    FormTemplateUpdate:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 256 }
+        description: { type: string, maxLength: 4000, nullable: true }
+        projectId: { type: integer, minimum: 1, nullable: true }
+        workflowId: { type: integer, minimum: 1, nullable: true }
+        definition: { $ref: '#/components/schemas/FormDefinition' }
+    FormSubmissionInput:
+      type: object
+      required: [templateId, answers]
+      properties:
+        templateId: { type: integer, minimum: 1 }
+        answers:
+          type: object
+          additionalProperties: true
+    FormSubmissionUpdate:
+      type: object
+      required: [answers]
+      properties:
+        answers:
+          type: object
+          additionalProperties: true
 
     PhaseInput:
       type: object
@@ -1196,12 +1338,25 @@ components:
         entityType: { type: string, example: expense }
         steps:
           type: array
+          minItems: 1
           items:
             type: object
             required: [name, requiredPermission]
             properties:
               name: { type: string }
               requiredPermission: { type: string }
+    WorkflowRunInput:
+      type: object
+      required: [entityId]
+      properties:
+        entityId: { type: integer, minimum: 1 }
+        payload: { type: object, additionalProperties: true }
+    WorkflowDecisionInput:
+      type: object
+      required: [decision]
+      properties:
+        decision: { type: string, enum: [approve, reject, request_revision] }
+        comment: { type: string, minLength: 1, maxLength: 4000 }
     DocumentUpload:
       type: object
       required: [file, projectId]
@@ -2002,6 +2157,17 @@ components:
         type: { type: string }
         status: { type: string }
         notes: { type: [string, "null"] }
+    ClientUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        name: { type: string }
+        company: { type: string, nullable: true }
+        email: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+        type: { type: string }
+        status: { type: string }
+        notes: { type: string, nullable: true }
     ClientInput:
       type: object
       required: [name]

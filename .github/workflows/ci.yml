@@ -10,6 +10,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -31,15 +34,15 @@ jobs:
       PORT: 5000
       CLERK_PUBLISHABLE_KEY: pk_test_placeholder
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 10
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
@@ -62,7 +65,7 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "ALTER ROLE vetra_app WITH PASSWORD 'vetra_app'"
       - name: Apply database migrations
         run: |
-          for migration in lib/db/drizzle/000{0_nervous_mathemanic,1_phase3,2_quality,3_tenant_isolation,4_audit_rls,5_db_roles}.sql; do
+          for migration in lib/db/drizzle/000{0_nervous_mathemanic,1_phase3,2_quality,3_tenant_isolation,4_audit_rls,5_db_roles,6_forms,7_workflow_hardening}.sql; do
             psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$migration"
           done
       - name: Test
@@ -73,7 +76,7 @@ jobs:
     needs: verify
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Build API Server Docker Image
         run: docker build -t vetra-api-server -f artifacts/api-server/Dockerfile .
