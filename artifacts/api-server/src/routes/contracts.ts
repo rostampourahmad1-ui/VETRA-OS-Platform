@@ -4,6 +4,7 @@ import { db, contractsTable, projectsTable } from "@workspace/db";
 import { CreateContractBody, UpdateContractBody } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requirePermission } from "../middlewares/permissions";
+import { audit } from "../lib/audit";
 import { ownedProject, tenantId } from "../middlewares/tenant";
 
 const router = Router();
@@ -28,6 +29,7 @@ router.post("/contracts", requirePermission("contracts.create"), async (req, res
   const [row] = await db.insert(contractsTable).values({ name: d.name, contractor: d.contractor, value: d.value.toString(), status: d.status ?? "draft", type: d.type, projectId: d.projectId, organizationId: tenantId(req), startDate: d.startDate, endDate: d.endDate, signedDate: d.signedDate }).returning();
   const [project] = await db.select().from(projectsTable).where(and(eq(projectsTable.id, row.projectId), eq(projectsTable.organizationId, tenantId(req))));
   res.status(201).json(serialize(row, project?.name ?? null));
+  audit(req, "contract.created", "contract", { resourceId: row.id, newValues: { name: row.name, status: row.status, type: row.type, value: row.value } });
 });
 
 router.get("/contracts/:id", requirePermission("contracts.read"), async (req, res): Promise<void> => {
@@ -46,9 +48,13 @@ router.patch("/contracts/:id", requirePermission("contracts.update"), async (req
   const updates: Record<string, unknown> = {};
   for (const key of ["name", "contractor", "status", "type", "startDate", "endDate", "signedDate"] as const) if (d[key] !== undefined) updates[key] = d[key];
   if (d.value !== undefined) updates.value = d.value.toString();
+  // VETRA-SEC-06: Capture old values for audit before update
+  const oldValues = { name: current.name, status: current.status, type: current.type, value: current.value };
+  const contractId = current.id;
   const [row] = await db.update(contractsTable).set(updates).where(and(eq(contractsTable.id, current.id), eq(contractsTable.organizationId, tenantId(req)))).returning();
   const [project] = await db.select().from(projectsTable).where(and(eq(projectsTable.id, row.projectId), eq(projectsTable.organizationId, tenantId(req))));
   res.json(serialize(row, project?.name ?? null));
+  audit(req, "contract.updated", "contract", { resourceId: contractId, oldValues, newValues: { name: row.name, status: row.status, type: row.type, value: row.value } });
 });
 
 export default router;

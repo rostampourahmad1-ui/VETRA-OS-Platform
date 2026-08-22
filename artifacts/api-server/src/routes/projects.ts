@@ -3,6 +3,7 @@ import { and, eq, ilike } from "drizzle-orm";
 import { db, projectsTable, usersTable, tasksTable, documentsTable, contractsTable, meetingsTable, dailyReportsTable, equipmentTable } from "@workspace/db";
 import { CreateProjectBody, UpdateProjectBody } from "@workspace/api-zod";
 import { requirePermission } from "../middlewares/permissions";
+import { audit } from "../lib/audit";
 import { tenantId } from "../middlewares/tenant";
 
 const router = Router();
@@ -34,6 +35,7 @@ router.post("/projects", requirePermission("projects.create"), async (req, res):
     phase: d.phase, status: d.status ?? "planning",
   }).returning();
   const [manager] = await db.select().from(usersTable).where(and(eq(usersTable.id, row.managerId), eq(usersTable.organizationId, tenantId(req))));
+  audit(req, "project.created", "project", { resourceId: row.id, newValues: { name: row.name, status: row.status, phase: row.phase } });
   res.status(201).json(serialize(row, manager?.name));
 });
 
@@ -53,15 +55,25 @@ router.patch("/projects/:id", requirePermission("projects.update"), async (req, 
   const updates: Record<string, unknown> = {};
   for (const key of ["name", "description", "status", "client", "location", "startDate", "endDate", "managerId", "priority", "phase"] as const) if (d[key] !== undefined) updates[key] = d[key];
   for (const key of ["progress", "budget", "spent"] as const) if (d[key] !== undefined) updates[key] = d[key]!.toString();
+  // VETRA-SEC-06: Capture old values for audit before update
+  const [old] = await db.select({ name: projectsTable.name, status: projectsTable.status, phase: projectsTable.phase, budget: projectsTable.budget })
+    .from(projectsTable).where(and(eq(projectsTable.id, id), eq(projectsTable.organizationId, tenantId(req))));
+  if (!old) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+  const oldValues = { name: old.name, status: old.status, phase: old.phase, budget: old.budget };
   const [row] = await db.update(projectsTable).set(updates).where(and(eq(projectsTable.id, id), eq(projectsTable.organizationId, tenantId(req)))).returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
   res.json(serialize(row));
+  audit(req, "project.updated", "project", { resourceId: row.id, oldValues, newValues: { name: row.name, status: row.status, phase: row.phase, budget: row.budget } });
 });
 
 router.delete("/projects/:id", requirePermission("projects.delete"), async (req, res): Promise<void> => {
   const result = await db.delete(projectsTable).where(and(eq(projectsTable.id, Number(req.params.id)), eq(projectsTable.organizationId, tenantId(req))));
   if (!result.rowCount) { res.status(404).json({ error: "Not found" }); return; }
   res.status(204).send();
+  audit(req, "project.deleted", "project", { resourceId: Number(req.params.id) });
 });
 
 router.get("/projects/:id/stats", requirePermission("projects.read"), async (req, res): Promise<void> => {

@@ -60,6 +60,8 @@ router.post("/webhooks/clerk", rawBodyCapture, async (req: Request, res: Respons
 
     if (!verifySvixSignature(rawBody, svixHeaders, secret)) {
       res.status(401).json({ error: "Invalid webhook signature" });
+      // VETRA-SEC-06: Log invalid signature (no tenant context, no DB audit)
+      logger.warn({ svixId: svixHeaders["svix-id"], timestamp: svixHeaders["svix-timestamp"] }, "Webhook signature verification failed");
       return;
     }
 
@@ -69,11 +71,14 @@ router.post("/webhooks/clerk", rawBodyCapture, async (req: Request, res: Respons
       event = JSON.parse(rawBody);
     } catch {
       res.status(400).json({ error: "Invalid JSON payload" });
+      // VETRA-SEC-06: Log invalid payload (no tenant context, no DB audit)
+      logger.warn({ svixId: svixHeaders["svix-id"] }, "Webhook payload is not valid JSON");
       return;
     }
 
     const handled = await processClerkWebhookEvent(event as any);
     res.status(200).json({ received: true, handled });
+    // VETRA-SEC-06: Audit is handled inside processClerkWebhookEvent per event type
   } catch (error) {
     logger.error({ err: error }, "Webhook processing error");
     res.status(500).json({ error: "Internal webhook processing error" });

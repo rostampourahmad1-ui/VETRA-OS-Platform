@@ -13,6 +13,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { db, usersTable, organizationsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { writeAuditLog } from "./audit";
 import { logger } from "./logger";
 
 // ─── Svix / Clerk Webhook Signature Verification ───────────────────────────
@@ -222,6 +223,17 @@ async function handleUserCreated(evt: ClerkUserEvent): Promise<void> {
   });
 
   logger.info({ clerkUserId: evt.data.id, name, organizationId }, "user.created: user provisioned successfully");
+
+  // VETRA-SEC-06: Audit
+  writeAuditLog({
+    action: "user.created",
+    resource: "user",
+    resourceId: evt.data.id,
+    newValues: { name, email, role: "Worker", organizationId },
+    organizationId,
+    actorClerkId: evt.data.id,
+    metadata: { source: "clerk_webhook" },
+  });
 }
 
 /**
@@ -232,7 +244,7 @@ async function handleUserCreated(evt: ClerkUserEvent): Promise<void> {
  */
 async function handleUserUpdated(evt: ClerkUserEvent): Promise<void> {
   const [user] = await db
-    .select({ id: usersTable.id, name: usersTable.name, email: usersTable.email })
+    .select({ id: usersTable.id, name: usersTable.name, email: usersTable.email, organizationId: usersTable.organizationId })
     .from(usersTable)
     .where(eq(usersTable.clerkUserId, evt.data.id));
 
@@ -261,6 +273,17 @@ async function handleUserUpdated(evt: ClerkUserEvent): Promise<void> {
     .where(eq(usersTable.clerkUserId, evt.data.id));
 
   logger.info({ clerkUserId: evt.data.id, updates }, "user.updated: user synced");
+
+  // VETRA-SEC-06: Audit
+  writeAuditLog({
+    action: "user.updated",
+    resource: "user",
+    resourceId: evt.data.id,
+    oldValues: { name: user.name, email: user.email },
+    newValues: updates,
+    organizationId: user.organizationId,
+    metadata: { source: "clerk_webhook" },
+  });
 }
 
 /**
@@ -271,7 +294,7 @@ async function handleUserUpdated(evt: ClerkUserEvent): Promise<void> {
  */
 async function handleUserDeleted(evt: ClerkUserEvent): Promise<void> {
   const [user] = await db
-    .select({ id: usersTable.id, active: usersTable.active })
+    .select({ id: usersTable.id, active: usersTable.active, organizationId: usersTable.organizationId })
     .from(usersTable)
     .where(eq(usersTable.clerkUserId, evt.data.id));
 
@@ -291,6 +314,17 @@ async function handleUserDeleted(evt: ClerkUserEvent): Promise<void> {
     .where(eq(usersTable.clerkUserId, evt.data.id));
 
   logger.info({ clerkUserId: evt.data.id, vetraUserId: user.id }, "user.deleted: user deactivated");
+
+  // VETRA-SEC-06: Audit
+  writeAuditLog({
+    action: "user.deleted",
+    resource: "user",
+    resourceId: evt.data.id,
+    oldValues: { active: true },
+    newValues: { active: false },
+    organizationId: user.organizationId,
+    metadata: { source: "clerk_webhook", vetraUserId: user.id },
+  });
 }
 
 // ─── Event Router ──────────────────────────────────────────────────────────

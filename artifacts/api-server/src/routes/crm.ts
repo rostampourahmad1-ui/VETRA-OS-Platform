@@ -5,6 +5,7 @@ import { Router } from 'express';
 import { db, clientsTable } from '@workspace/db';
 import { and, eq, ilike, or } from 'drizzle-orm';
 import { UpdateClientBody } from '@workspace/api-zod';
+import { audit } from '../lib/audit';
 import { logger } from '../lib/logger';
 
 const router = Router();
@@ -27,6 +28,7 @@ router.post('/crm/clients', requirePermission("crm.create"), async (req, res): P
   if (!name) { res.status(400).json({ error: 'name is required' }); return; }
   const [row] = await db.insert(clientsTable).values({ organizationId, name, company, email, phone, type, status, notes }).returning();
   res.status(201).json(row);
+  audit(req, 'crm.client.created', 'client', { resourceId: row.id, newValues: { name: row.name, company: row.company, type: row.type, status: row.status } });
 });
 router.patch('/crm/clients/:id', requirePermission("crm.update"), async (req, res): Promise<void> => {
   const id = Number(req.params.id);
@@ -42,6 +44,8 @@ router.patch('/crm/clients/:id', requirePermission("crm.update"), async (req, re
   for (const [key, value] of Object.entries(allowed as Record<string, unknown>)) {
     if (value !== undefined) updates[key] = value;
   }
+  // VETRA-SEC-06: Capture old values for audit before update
+  const [oldClient] = await db.select({ name: clientsTable.name, company: clientsTable.company, type: clientsTable.type, status: clientsTable.status }).from(clientsTable).where(and(eq(clientsTable.id, id), eq(clientsTable.organizationId, orgId)));
   const [row] = await db.update(clientsTable).set(updates).where(and(eq(clientsTable.id, id), eq(clientsTable.organizationId, orgId))).returning();
   if (!row) {
     logger.warn({ userId: req.vetraUser?.id, orgId, clientId: id }, 'CRM PATCH target not found (404)');
@@ -49,6 +53,7 @@ router.patch('/crm/clients/:id', requirePermission("crm.update"), async (req, re
     return;
   }
   logger.info({ userId: req.vetraUser?.id, orgId, clientId: id, updatedFields: Object.keys(updates) }, 'CRM client updated');
+  audit(req, 'crm.client.updated', 'client', { resourceId: row.id, oldValues: oldClient ? { name: oldClient.name, company: oldClient.company, type: oldClient.type, status: oldClient.status } : undefined, newValues: { name: row.name, company: row.company, type: row.type, status: row.status } });
   res.json(row);
 });
 export default router;
