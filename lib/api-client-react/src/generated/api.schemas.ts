@@ -91,6 +91,189 @@ export interface FormSubmissionUpdate {
   answers: FormSubmissionUpdateAnswers;
 }
 
+export type InspectionInputType = typeof InspectionInputType[keyof typeof InspectionInputType];
+
+
+export const InspectionInputType = {
+  routine: 'routine',
+  material: 'material',
+  site: 'site',
+  final: 'final',
+} as const;
+
+export type InspectionInputStatus = typeof InspectionInputStatus[keyof typeof InspectionInputStatus];
+
+
+export const InspectionInputStatus = {
+  planned: 'planned',
+} as const;
+
+export interface InspectionInput {
+  /** @minimum 1 */
+  projectId: number;
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  title: string;
+  type: InspectionInputType;
+  status?: InspectionInputStatus;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  inspector: string;
+  date: string;
+  /** @maxLength 10000 */
+  findings?: string | null;
+}
+
+export type InspectionUpdateType = typeof InspectionUpdateType[keyof typeof InspectionUpdateType];
+
+
+export const InspectionUpdateType = {
+  routine: 'routine',
+  material: 'material',
+  site: 'site',
+  final: 'final',
+} as const;
+
+export interface InspectionUpdate {
+  /** @minimum 1 */
+  projectId?: number;
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  title?: string;
+  type?: InspectionUpdateType;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  inspector?: string;
+  date?: string;
+  /** @maxLength 10000 */
+  findings?: string | null;
+}
+
+export type InspectionTransitionInputStatus = typeof InspectionTransitionInputStatus[keyof typeof InspectionTransitionInputStatus];
+
+
+export const InspectionTransitionInputStatus = {
+  planned: 'planned',
+  in_progress: 'in_progress',
+  completed: 'completed',
+  cancelled: 'cancelled',
+} as const;
+
+export interface InspectionTransitionInput {
+  status: InspectionTransitionInputStatus;
+  /**
+     * @minLength 1
+     * @maxLength 2000
+     */
+  reason?: string;
+}
+
+export type NcrInputSeverity = typeof NcrInputSeverity[keyof typeof NcrInputSeverity];
+
+
+export const NcrInputSeverity = {
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+  critical: 'critical',
+} as const;
+
+export type NcrInputStatus = typeof NcrInputStatus[keyof typeof NcrInputStatus];
+
+
+export const NcrInputStatus = {
+  open: 'open',
+} as const;
+
+export interface NcrInput {
+  /** @minimum 1 */
+  projectId: number;
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  title: string;
+  severity: NcrInputSeverity;
+  status?: NcrInputStatus;
+  /**
+     * @minLength 1
+     * @maxLength 10000
+     */
+  description: string;
+  /** @maxLength 10000 */
+  correctiveAction?: string | null;
+  /** @maxLength 200 */
+  assignedTo?: string | null;
+  dueDate?: string | null;
+}
+
+export type NcrUpdateSeverity = typeof NcrUpdateSeverity[keyof typeof NcrUpdateSeverity];
+
+
+export const NcrUpdateSeverity = {
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+  critical: 'critical',
+} as const;
+
+export interface NcrUpdate {
+  /** @minimum 1 */
+  projectId?: number;
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  title?: string;
+  severity?: NcrUpdateSeverity;
+  /**
+     * @minLength 1
+     * @maxLength 10000
+     */
+  description?: string;
+  /** @maxLength 10000 */
+  correctiveAction?: string | null;
+  /** @maxLength 200 */
+  assignedTo?: string | null;
+  dueDate?: string | null;
+}
+
+export type NcrTransitionInputStatus = typeof NcrTransitionInputStatus[keyof typeof NcrTransitionInputStatus];
+
+
+export const NcrTransitionInputStatus = {
+  open: 'open',
+  in_progress: 'in_progress',
+  resolved: 'resolved',
+  awaiting_approval: 'awaiting_approval',
+  closed: 'closed',
+} as const;
+
+export interface NcrTransitionInput {
+  status: NcrTransitionInputStatus;
+  /**
+     * @minLength 1
+     * @maxLength 2000
+     */
+  reason?: string;
+}
+
+export type NcrWorkflowRunInputPayload = { [key: string]: unknown };
+
+export interface NcrWorkflowRunInput {
+  /** @minimum 1 */
+  workflowId: number;
+  payload?: NcrWorkflowRunInputPayload;
+}
+
 export interface PhaseInput {
   name: string;
   startDate: string;

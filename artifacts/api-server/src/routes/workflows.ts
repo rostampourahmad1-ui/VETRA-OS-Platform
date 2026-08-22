@@ -3,6 +3,8 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 import {
   db,
   formSubmissionsTable,
+  nonConformanceReportsTable,
+  qualityEventsTable,
   workflowRunEventsTable,
   workflowRunsTable,
   workflowStepsTable,
@@ -135,6 +137,17 @@ router.post("/workflow-runs/:id/decision", requirePermission("workflows.approve"
   if (!run) { res.status(404).json({ error: "Workflow run not found" }); return; }
   if (run.status !== "pending") { res.status(409).json({ error: "Workflow run is not pending" }); return; }
 
+  const [linkedNcr] = run.entityType === "non_conformance_report"
+    ? await db.select().from(nonConformanceReportsTable).where(and(
+      eq(nonConformanceReportsTable.workflowRunId, run.id),
+      eq(nonConformanceReportsTable.organizationId, tenantId(req)),
+      isNull(nonConformanceReportsTable.deletedAt),
+    ))
+    : [undefined];
+  if (run.entityType === "non_conformance_report" && !linkedNcr) {
+    res.status(409).json({ error: "Workflow run is not linked to an active NCR" }); return;
+  }
+
   const [step] = await db.select().from(workflowStepsTable).where(and(
     eq(workflowStepsTable.workflowId, run.workflowId),
     eq(workflowStepsTable.stepOrder, run.currentStep),
@@ -183,6 +196,42 @@ router.post("/workflow-runs/:id/decision", requirePermission("workflows.approve"
       eq(formSubmissionsTable.workflowRunId, run.id),
       eq(formSubmissionsTable.organizationId, tenantId(req)),
     ));
+  } else if (run.entityType === "non_conformance_report" && linkedNcr) {
+    const ncrStatus = decision === "approve"
+      ? (isFinalApproval ? "closed" : "awaiting_approval")
+      : "in_progress";
+    const qualityEventType = decision === "approve"
+      ? "workflow_approved"
+      : decision === "reject" ? "workflow_rejected" : "workflow_revision_requested";
+    const [updatedNcr] = await db.update(nonConformanceReportsTable).set({
+      status: ncrStatus,
+      updatedBy: req.vetraUser!.id,
+      updatedAt: new Date(),
+    }).where(and(
+      eq(nonConformanceReportsTable.id, linkedNcr.id),
+      eq(nonConformanceReportsTable.organizationId, tenantId(req)),
+      eq(nonConformanceReportsTable.workflowRunId, run.id),
+      isNull(nonConformanceReportsTable.deletedAt),
+    )).returning();
+    if (!updatedNcr) { res.status(409).json({ error: "Linked NCR changed concurrently; retry the decision" }); return; }
+    await db.insert(qualityEventsTable).values({
+      organizationId: tenantId(req),
+      projectId: updatedNcr.projectId,
+      entityType: "non_conformance_report",
+      entityId: updatedNcr.id,
+      eventType: qualityEventType,
+      previousStatus: linkedNcr.status,
+      nextStatus: updatedNcr.status,
+      reason: comment ?? null,
+      snapshot: { workflowRunId: run.id, workflowStatus: updated.status, currentStep: updated.currentStep },
+      actorId: req.vetraUser!.id,
+    });
+    audit(req, `ncr.${qualityEventType}`, "non_conformance_report", {
+      resourceId: updatedNcr.id,
+      oldValues: { status: linkedNcr.status, workflowRunId: run.id },
+      newValues: { status: updatedNcr.status, workflowRunId: run.id },
+      metadata: comment ? { comment } : undefined,
+    });
   }
 
   audit(req, `workflow_run.${decision}`, "workflow_run", {
