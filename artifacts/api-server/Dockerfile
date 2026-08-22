@@ -11,7 +11,7 @@ RUN corepack enable && corepack prepare pnpm@10 --activate
 WORKDIR /app
 
 # Copy workspace configuration and lockfile
-COPY pnpm-workspace.yaml pnpm-lock.yaml package.json tsconfig.json ./
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json tsconfig.json tsconfig.base.json ./
 
 # Copy library packages (needed for build)
 COPY lib/db/package.json lib/db/tsconfig.json lib/db/
