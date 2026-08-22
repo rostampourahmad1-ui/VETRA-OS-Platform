@@ -68,8 +68,8 @@ function toDraft(template: FormTemplateResponse): FormDraft {
 }
 
 const initialDraft: FormDraft = {
-  name: 'Daily Site Inspection',
-  description: 'Capture site observations, progress, and follow-up actions.',
+  name: 'بازرسی روزانه کارگاه',
+  description: 'ثبت مشاهدات کارگاه، پیشرفت و اقدامات پیگیری.',
   fields: [
     { id: 'project', label: 'Project', type: 'select', required: true, options: ['North Tower', 'West Campus', 'River Bridge'] },
     { id: 'inspection-date', label: 'Inspection date', type: 'date', required: true },
@@ -78,11 +78,11 @@ const initialDraft: FormDraft = {
 };
 
 const fieldTypes: Array<{ type: FieldType; label: string; icon: typeof Type }> = [
-  { type: 'text', label: 'Text field', icon: Type },
-  { type: 'number', label: 'Number', icon: Hash },
-  { type: 'date', label: 'Date', icon: CalendarDays },
-  { type: 'select', label: 'Dropdown', icon: List },
-  { type: 'checkbox', label: 'Checkbox', icon: ToggleLeft },
+  { type: 'text', label: 'متن', icon: Type },
+  { type: 'number', label: 'عدد', icon: Hash },
+  { type: 'date', label: 'تاریخ', icon: CalendarDays },
+  { type: 'select', label: 'فهرست انتخاب', icon: List },
+  { type: 'checkbox', label: 'تأیید', icon: ToggleLeft },
 ];
 
 function makeId() {
@@ -91,11 +91,11 @@ function makeId() {
 
 function createField(type: FieldType): FormField {
   const labels: Record<FieldType, string> = {
-    text: 'New text field',
-    number: 'New number field',
-    date: 'New date field',
-    select: 'New dropdown field',
-    checkbox: 'New confirmation field',
+    text: 'فیلد متنی جدید',
+    number: 'فیلد عددی جدید',
+    date: 'فیلد تاریخ جدید',
+    select: 'فهرست انتخاب جدید',
+    checkbox: 'فیلد تأیید جدید',
   };
   return {
     id: makeId(),
@@ -199,25 +199,25 @@ export default function FormsBuilder() {
   };
 
   return (
-    <div className="space-y-6 pb-10">
+    <div dir="rtl" lang="fa" className="space-y-6 pb-10">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="mb-2 flex items-center gap-2 text-xs font-mono uppercase tracking-[0.18em] text-primary">
-            <Sparkles className="h-3.5 w-3.5" /> Forms workspace
+            <Sparkles className="h-3.5 w-3.5" /> فضای کاری فرم‌ها
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">Forms Builder</h1>
-          <p className="mt-1 max-w-2xl text-muted-foreground">Create reusable field-based forms for inspections, daily reports, approvals, and project workflows.</p>
+          <h1 className="text-3xl font-bold tracking-tight">فرم‌ساز</h1>
+          <p className="mt-1 max-w-2xl text-muted-foreground">فرم‌های قابل استفادهٔ مجدد برای بازرسی، گزارش روزانه، تأیید و گردش کار پروژه بسازید.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant={mode === 'build' ? 'default' : 'outline'} onClick={() => setMode('build')} className="gap-2"><Settings2 className="h-4 w-4" /> Build</Button>
-          <Button variant={mode === 'preview' ? 'default' : 'outline'} onClick={() => setMode('preview')} className="gap-2"><Eye className="h-4 w-4" /> Preview</Button>
-          <Button disabled={saving || loading} onClick={() => void saveDraft()} className="gap-2"><Save className="h-4 w-4" /> {saving ? 'Saving…' : 'Save draft'}</Button>
-          {draft.id && draft.status === 'draft' && <Button disabled={saving || loading} variant="outline" onClick={() => void publishDraft()}>Publish</Button>}
+          <Button variant={mode === 'build' ? 'default' : 'outline'} onClick={() => setMode('build')} className="gap-2"><Settings2 className="h-4 w-4" /> ساخت</Button>
+          <Button variant={mode === 'preview' ? 'default' : 'outline'} onClick={() => setMode('preview')} className="gap-2"><Eye className="h-4 w-4" /> پیش‌نمایش</Button>
+          <Button disabled={saving || loading} onClick={() => void saveDraft()} className="gap-2"><Save className="h-4 w-4" /> {saving ? 'در حال ذخیره…' : 'ذخیرهٔ پیش‌نویس'}</Button>
+          {draft.id && draft.status === 'draft' && <Button disabled={saving || loading} variant="outline" onClick={() => void publishDraft()}>انتشار</Button>}
         </div>
       </div>
 
       {error && <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>}
-      {loading && <div className="rounded-lg border border-dashed px-4 py-3 text-sm text-muted-foreground">Loading saved forms…</div>}
+      {loading && <div className="rounded-lg border border-dashed px-4 py-3 text-sm text-muted-foreground">در حال بارگذاری فرم‌های ذخیره‌شده…</div>}
 
       <div className="grid gap-6 xl:grid-cols-[240px_minmax(0,1fr)_300px]">
         {mode === 'build' && (

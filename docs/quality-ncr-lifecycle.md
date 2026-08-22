@@ -1,7 +1,7 @@
 # قرارداد دامنهٔ Quality/NCR Lifecycle
 
-**دامنه:** Inspection و Non-Conformance Report (NCR)  
-**مالک داده:** سازمان و پروژه  
+**دامنه:** Inspection و Non-Conformance Report (NCR)
+**مالک داده:** سازمان و پروژه
 **مبنای زمان:** تاریخ‌های کسب‌وکاری در PostgreSQL به‌صورت Gregorian/ISO نگهداری می‌شوند؛ نمایش شمسی صرفاً در UI انجام می‌شود.
 
 ## هدف
