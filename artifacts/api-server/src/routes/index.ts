@@ -19,6 +19,7 @@ import searchRouter from "./search";
 import phase2Router from "./phase2";
 import planningRouter from "./planning";
 import workflowsRouter from "./workflows";
+import formsRouter from "./forms";
 import aiRouter from "./ai";
 import qualityRouter from "./quality";
 import { attachTenant } from "../middlewares/tenant";
@@ -46,6 +47,7 @@ router.use(searchRouter);
 router.use(phase2Router);
 router.use(planningRouter);
 router.use(workflowsRouter);
+router.use(formsRouter);
 router.use(aiRouter);
 router.use(qualityRouter);
 

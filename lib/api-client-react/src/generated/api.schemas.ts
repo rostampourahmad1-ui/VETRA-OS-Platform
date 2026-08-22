@@ -5,6 +5,92 @@
  * VETRA Platform API
  * OpenAPI spec version: 0.1.0
  */
+export type FormFieldType = typeof FormFieldType[keyof typeof FormFieldType];
+
+
+export const FormFieldType = {
+  text: 'text',
+  number: 'number',
+  date: 'date',
+  select: 'select',
+  checkbox: 'checkbox',
+} as const;
+
+export interface FormField {
+  /**
+     * @minLength 1
+     * @maxLength 128
+     */
+  id: string;
+  /**
+     * @minLength 1
+     * @maxLength 256
+     */
+  label: string;
+  type: FormFieldType;
+  required: boolean;
+  /** @maxLength 512 */
+  placeholder?: string;
+  /**
+     * @maxItems 100
+     * @items.minLength 1
+     * @items.maxLength 256
+     */
+  options?: string[];
+}
+
+export interface FormDefinition {
+  /**
+     * @minItems 1
+     * @maxItems 200
+     */
+  fields: FormField[];
+}
+
+export interface FormTemplateInput {
+  /**
+     * @minLength 1
+     * @maxLength 256
+     */
+  name: string;
+  /** @maxLength 4000 */
+  description?: string;
+  /** @minimum 1 */
+  projectId?: number;
+  /** @minimum 1 */
+  workflowId?: number;
+  definition: FormDefinition;
+}
+
+export interface FormTemplateUpdate {
+  /**
+     * @minLength 1
+     * @maxLength 256
+     */
+  name?: string;
+  /** @maxLength 4000 */
+  description?: string | null;
+  /** @minimum 1 */
+  projectId?: number | null;
+  /** @minimum 1 */
+  workflowId?: number | null;
+  definition?: FormDefinition;
+}
+
+export type FormSubmissionInputAnswers = { [key: string]: unknown };
+
+export interface FormSubmissionInput {
+  /** @minimum 1 */
+  templateId: number;
+  answers: FormSubmissionInputAnswers;
+}
+
+export type FormSubmissionUpdateAnswers = { [key: string]: unknown };
+
+export interface FormSubmissionUpdate {
+  answers: FormSubmissionUpdateAnswers;
+}
+
 export interface PhaseInput {
   name: string;
   startDate: string;
@@ -30,7 +116,34 @@ export type WorkflowInputStepsItem = {
 export interface WorkflowInput {
   name: string;
   entityType: string;
+  /** @minItems 1 */
   steps: WorkflowInputStepsItem[];
+}
+
+export type WorkflowRunInputPayload = { [key: string]: unknown };
+
+export interface WorkflowRunInput {
+  /** @minimum 1 */
+  entityId: number;
+  payload?: WorkflowRunInputPayload;
+}
+
+export type WorkflowDecisionInputDecision = typeof WorkflowDecisionInputDecision[keyof typeof WorkflowDecisionInputDecision];
+
+
+export const WorkflowDecisionInputDecision = {
+  approve: 'approve',
+  reject: 'reject',
+  request_revision: 'request_revision',
+} as const;
+
+export interface WorkflowDecisionInput {
+  decision: WorkflowDecisionInputDecision;
+  /**
+     * @minLength 1
+     * @maxLength 4000
+     */
+  comment?: string;
 }
 
 export interface DocumentUpload {
@@ -606,6 +719,16 @@ export interface Client {
   notes?: string | null;
 }
 
+export interface ClientUpdate {
+  name?: string;
+  company?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  type?: string;
+  status?: string;
+  notes?: string | null;
+}
+
 export interface ClientInput {
   organizationId?: number;
   name: string;
@@ -716,18 +839,6 @@ search?: string;
 export type UpdatePreferencesBody = { [key: string]: unknown };
 
 export type UpdatePreferences200 = { [key: string]: unknown };
-
-export type PostWorkflowRunsIdDecisionBodyDecision = typeof PostWorkflowRunsIdDecisionBodyDecision[keyof typeof PostWorkflowRunsIdDecisionBodyDecision];
-
-
-export const PostWorkflowRunsIdDecisionBodyDecision = {
-  approve: 'approve',
-  reject: 'reject',
-} as const;
-
-export type PostWorkflowRunsIdDecisionBody = {
-  decision: PostWorkflowRunsIdDecisionBodyDecision;
-};
 
 export type PostAiAssistantBody = {
   query: string;

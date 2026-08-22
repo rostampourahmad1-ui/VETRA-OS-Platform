@@ -1371,24 +1371,39 @@ export const CreateClientResponse = zod.object({
   "notes": zod.string().nullish()
 })
 
-/**
- * @summary Update a client (PATCH) — strict; server-side fields rejected
- */
-export const UpdateClientBody = zod.object({
-  "name": zod.string().optional(),
-  "company": zod.string().nullable().optional(),
-  "email": zod.string().nullable().optional(),
-  "phone": zod.string().nullable().optional(),
-  "type": zod.string().optional(),
-  "status": zod.string().optional(),
-  "notes": zod.string().nullable().optional(),
-}).strict();
 
 export const GetClientParams = zod.object({
   "id": zod.coerce.number().int()
 })
 
 export const GetClientResponse = zod.object({
+  "id": zod.number().int().optional(),
+  "organizationId": zod.number().int().optional(),
+  "name": zod.string().optional(),
+  "company": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "type": zod.string().optional(),
+  "status": zod.string().optional(),
+  "notes": zod.string().nullish()
+})
+
+
+export const UpdateClientParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const UpdateClientBody = zod.object({
+  "name": zod.string().optional(),
+  "company": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "type": zod.string().optional(),
+  "status": zod.string().optional(),
+  "notes": zod.string().nullish()
+})
+
+export const UpdateClientResponse = zod.object({
   "id": zod.number().int().optional(),
   "organizationId": zod.number().int().optional(),
   "name": zod.string().optional(),
@@ -1509,13 +1524,16 @@ export const GetWorkflowsResponse = zod.unknown()
 /**
  * @summary Define an approval workflow
  */
+
+
+
 export const PostWorkflowsBody = zod.object({
   "name": zod.string(),
   "entityType": zod.string(),
   "steps": zod.array(zod.object({
   "name": zod.string(),
   "requiredPermission": zod.string()
-}))
+})).min(1)
 })
 
 export const PostWorkflowsResponse = zod.void()
@@ -1528,6 +1546,14 @@ export const PostWorkflowsIdRunsParams = zod.object({
   "id": zod.coerce.number().int()
 })
 
+
+
+
+export const PostWorkflowsIdRunsBody = zod.object({
+  "entityId": zod.number().int().min(1),
+  "payload": zod.record(zod.string(), zod.unknown()).optional()
+})
+
 export const PostWorkflowsIdRunsResponse = zod.void()
 
 
@@ -1538,11 +1564,186 @@ export const PostWorkflowRunsIdDecisionParams = zod.object({
   "id": zod.coerce.number().int()
 })
 
+export const postWorkflowRunsIdDecisionBodyCommentMax = 4000;
+
+
+
 export const PostWorkflowRunsIdDecisionBody = zod.object({
-  "decision": zod.enum(['approve', 'reject'])
+  "decision": zod.enum(['approve', 'reject', 'request_revision']),
+  "comment": zod.string().min(1).max(postWorkflowRunsIdDecisionBodyCommentMax).optional()
 })
 
 export const PostWorkflowRunsIdDecisionResponse = zod.unknown()
+
+
+/**
+ * @summary List tenant form templates
+ */
+export const GetFormsTemplatesResponse = zod.unknown()
+
+
+/**
+ * @summary Create a form template draft
+ */
+export const postFormsTemplatesBodyNameMax = 256;
+
+export const postFormsTemplatesBodyDescriptionMax = 4000;
+
+
+
+export const postFormsTemplatesBodyDefinitionFieldsItemIdMax = 128;
+
+export const postFormsTemplatesBodyDefinitionFieldsItemLabelMax = 256;
+
+export const postFormsTemplatesBodyDefinitionFieldsItemPlaceholderMax = 512;
+
+export const postFormsTemplatesBodyDefinitionFieldsItemOptionsItemMax = 256;
+
+export const postFormsTemplatesBodyDefinitionFieldsItemOptionsMax = 100;
+
+export const postFormsTemplatesBodyDefinitionFieldsMax = 200;
+
+
+
+export const PostFormsTemplatesBody = zod.object({
+  "name": zod.string().min(1).max(postFormsTemplatesBodyNameMax),
+  "description": zod.string().max(postFormsTemplatesBodyDescriptionMax).optional(),
+  "projectId": zod.number().int().min(1).optional(),
+  "workflowId": zod.number().int().min(1).optional(),
+  "definition": zod.object({
+  "fields": zod.array(zod.object({
+  "id": zod.string().min(1).max(postFormsTemplatesBodyDefinitionFieldsItemIdMax),
+  "label": zod.string().min(1).max(postFormsTemplatesBodyDefinitionFieldsItemLabelMax),
+  "type": zod.enum(['text', 'number', 'date', 'select', 'checkbox']),
+  "required": zod.boolean(),
+  "placeholder": zod.string().max(postFormsTemplatesBodyDefinitionFieldsItemPlaceholderMax).optional(),
+  "options": zod.array(zod.string().min(1).max(postFormsTemplatesBodyDefinitionFieldsItemOptionsItemMax)).max(postFormsTemplatesBodyDefinitionFieldsItemOptionsMax).optional()
+})).min(1).max(postFormsTemplatesBodyDefinitionFieldsMax)
+})
+})
+
+export const PostFormsTemplatesResponse = zod.void()
+
+
+/**
+ * @summary Get a tenant form template
+ */
+export const GetFormsTemplatesIdParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const GetFormsTemplatesIdResponse = zod.unknown()
+
+
+/**
+ * @summary Update a draft form template
+ */
+export const PatchFormsTemplatesIdParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const patchFormsTemplatesIdBodyNameMax = 256;
+
+export const patchFormsTemplatesIdBodyDescriptionMax = 4000;
+
+
+
+export const patchFormsTemplatesIdBodyDefinitionFieldsItemIdMax = 128;
+
+export const patchFormsTemplatesIdBodyDefinitionFieldsItemLabelMax = 256;
+
+export const patchFormsTemplatesIdBodyDefinitionFieldsItemPlaceholderMax = 512;
+
+export const patchFormsTemplatesIdBodyDefinitionFieldsItemOptionsItemMax = 256;
+
+export const patchFormsTemplatesIdBodyDefinitionFieldsItemOptionsMax = 100;
+
+export const patchFormsTemplatesIdBodyDefinitionFieldsMax = 200;
+
+
+
+export const PatchFormsTemplatesIdBody = zod.object({
+  "name": zod.string().min(1).max(patchFormsTemplatesIdBodyNameMax).optional(),
+  "description": zod.string().max(patchFormsTemplatesIdBodyDescriptionMax).nullish(),
+  "projectId": zod.number().int().min(1).nullish(),
+  "workflowId": zod.number().int().min(1).nullish(),
+  "definition": zod.object({
+  "fields": zod.array(zod.object({
+  "id": zod.string().min(1).max(patchFormsTemplatesIdBodyDefinitionFieldsItemIdMax),
+  "label": zod.string().min(1).max(patchFormsTemplatesIdBodyDefinitionFieldsItemLabelMax),
+  "type": zod.enum(['text', 'number', 'date', 'select', 'checkbox']),
+  "required": zod.boolean(),
+  "placeholder": zod.string().max(patchFormsTemplatesIdBodyDefinitionFieldsItemPlaceholderMax).optional(),
+  "options": zod.array(zod.string().min(1).max(patchFormsTemplatesIdBodyDefinitionFieldsItemOptionsItemMax)).max(patchFormsTemplatesIdBodyDefinitionFieldsItemOptionsMax).optional()
+})).min(1).max(patchFormsTemplatesIdBodyDefinitionFieldsMax)
+}).optional()
+})
+
+export const PatchFormsTemplatesIdResponse = zod.unknown()
+
+
+/**
+ * @summary Publish a form template version
+ */
+export const PostFormsTemplatesIdPublishParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const PostFormsTemplatesIdPublishResponse = zod.unknown()
+
+
+/**
+ * @summary List tenant form submissions
+ */
+export const GetFormSubmissionsResponse = zod.unknown()
+
+
+/**
+ * @summary Create a form submission draft
+ */
+
+
+
+export const PostFormSubmissionsBody = zod.object({
+  "templateId": zod.number().int().min(1),
+  "answers": zod.record(zod.string(), zod.unknown())
+})
+
+export const PostFormSubmissionsResponse = zod.void()
+
+
+/**
+ * @summary Get a tenant form submission
+ */
+export const GetFormSubmissionsIdParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const GetFormSubmissionsIdResponse = zod.unknown()
+
+
+/**
+ * @summary Update a draft or revision-requested submission
+ */
+export const PatchFormSubmissionsIdParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const PatchFormSubmissionsIdBody = zod.object({
+  "answers": zod.record(zod.string(), zod.unknown())
+})
+
+export const PatchFormSubmissionsIdResponse = zod.unknown()
+
+
+/**
+ * @summary Submit a form response for approval
+ */
+export const PostFormSubmissionsIdSubmitParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const PostFormSubmissionsIdSubmitResponse = zod.unknown()
 
 
 /**
