@@ -8,7 +8,8 @@
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
     "lint": "pnpm -r --if-present run lint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "validate:final": "node scripts/final-validation.mjs"
   },
   "private": true,
   "dependencies": {},
