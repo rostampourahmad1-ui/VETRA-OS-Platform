@@ -107,7 +107,7 @@ BEGIN
     WHERE policyname = policy_name AND tablename = target_table
   ) THEN
     EXECUTE format(
-      'CREATE POLICY %I ON %I FOR SELECT USING (
+      'CREATE POLICY %I ON public.%I FOR SELECT USING (
         %I = NULLIF(current_setting(''app.current_organization_id'', true), '''')::integer
       )',
       policy_name, target_table, target_column
@@ -121,7 +121,7 @@ BEGIN
     WHERE policyname = policy_name AND tablename = target_table
   ) THEN
     EXECUTE format(
-      'CREATE POLICY %I ON %I FOR INSERT WITH CHECK (
+      'CREATE POLICY %I ON public.%I FOR INSERT WITH CHECK (
         %I = NULLIF(current_setting(''app.current_organization_id'', true), '''')::integer
       )',
       policy_name, target_table, target_column
@@ -135,7 +135,7 @@ BEGIN
     WHERE policyname = policy_name AND tablename = target_table
   ) THEN
     EXECUTE format(
-      'CREATE POLICY %I ON %I FOR UPDATE USING (
+      'CREATE POLICY %I ON public.%I FOR UPDATE USING (
         %I = NULLIF(current_setting(''app.current_organization_id'', true), '''')::integer
       ) WITH CHECK (
         %I = NULLIF(current_setting(''app.current_organization_id'', true), '''')::integer
@@ -151,7 +151,7 @@ BEGIN
     WHERE policyname = policy_name AND tablename = target_table
   ) THEN
     EXECUTE format(
-      'CREATE POLICY %I ON %I FOR DELETE USING (
+      'CREATE POLICY %I ON public.%I FOR DELETE USING (
         %I = NULLIF(current_setting(''app.current_organization_id'', true), '''')::integer
       )',
       policy_name, target_table, target_column
