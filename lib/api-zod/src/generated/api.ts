@@ -1577,6 +1577,248 @@ export const PostWorkflowRunsIdDecisionResponse = zod.unknown()
 
 
 /**
+ * @summary List tenant inspections
+ */
+export const GetQualityInspectionsResponse = zod.unknown()
+
+
+/**
+ * @summary Create a planned inspection
+ */
+
+export const postQualityInspectionsBodyTitleMax = 300;
+
+export const postQualityInspectionsBodyStatusDefault = `planned`;
+export const postQualityInspectionsBodyInspectorMax = 200;
+
+export const postQualityInspectionsBodyFindingsMax = 10000;
+
+
+
+export const PostQualityInspectionsBody = zod.object({
+  "projectId": zod.number().int().min(1),
+  "title": zod.string().min(1).max(postQualityInspectionsBodyTitleMax),
+  "type": zod.enum(['routine', 'material', 'site', 'final']),
+  "status": zod.enum(['planned']).default(postQualityInspectionsBodyStatusDefault),
+  "inspector": zod.string().min(1).max(postQualityInspectionsBodyInspectorMax),
+  "date": zod.coerce.date(),
+  "findings": zod.string().max(postQualityInspectionsBodyFindingsMax).nullish()
+})
+
+export const PostQualityInspectionsResponse = zod.void()
+
+
+/**
+ * @summary Get an active inspection
+ */
+export const GetQualityInspectionsIdParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const GetQualityInspectionsIdResponse = zod.unknown()
+
+
+/**
+ * @summary Update inspection attributes without changing lifecycle status
+ */
+export const PatchQualityInspectionsIdParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+
+export const patchQualityInspectionsIdBodyTitleMax = 300;
+
+export const patchQualityInspectionsIdBodyInspectorMax = 200;
+
+export const patchQualityInspectionsIdBodyFindingsMax = 10000;
+
+
+
+export const PatchQualityInspectionsIdBody = zod.object({
+  "projectId": zod.number().int().min(1).optional(),
+  "title": zod.string().min(1).max(patchQualityInspectionsIdBodyTitleMax).optional(),
+  "type": zod.enum(['routine', 'material', 'site', 'final']).optional(),
+  "inspector": zod.string().min(1).max(patchQualityInspectionsIdBodyInspectorMax).optional(),
+  "date": zod.coerce.date().optional(),
+  "findings": zod.string().max(patchQualityInspectionsIdBodyFindingsMax).nullish()
+})
+
+export const PatchQualityInspectionsIdResponse = zod.unknown()
+
+
+/**
+ * @summary Soft-delete an inspection
+ */
+export const DeleteQualityInspectionsIdParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const DeleteQualityInspectionsIdResponse = zod.void()
+
+
+/**
+ * @summary Apply a controlled inspection lifecycle transition
+ */
+export const PostQualityInspectionsIdTransitionParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const postQualityInspectionsIdTransitionBodyReasonMax = 2000;
+
+
+
+export const PostQualityInspectionsIdTransitionBody = zod.object({
+  "status": zod.enum(['planned', 'in_progress', 'completed', 'cancelled']),
+  "reason": zod.string().min(1).max(postQualityInspectionsIdTransitionBodyReasonMax).optional()
+})
+
+export const PostQualityInspectionsIdTransitionResponse = zod.unknown()
+
+
+/**
+ * @summary List immutable inspection lifecycle events
+ */
+export const GetQualityInspectionsIdEventsParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const GetQualityInspectionsIdEventsResponse = zod.unknown()
+
+
+/**
+ * @summary List tenant non-conformance reports
+ */
+export const GetQualityNonConformanceReportsResponse = zod.unknown()
+
+
+/**
+ * @summary Create an open non-conformance report
+ */
+
+export const postQualityNonConformanceReportsBodyTitleMax = 300;
+
+export const postQualityNonConformanceReportsBodyStatusDefault = `open`;
+export const postQualityNonConformanceReportsBodyDescriptionMax = 10000;
+
+export const postQualityNonConformanceReportsBodyCorrectiveActionMax = 10000;
+
+export const postQualityNonConformanceReportsBodyAssignedToMax = 200;
+
+
+
+export const PostQualityNonConformanceReportsBody = zod.object({
+  "projectId": zod.number().int().min(1),
+  "title": zod.string().min(1).max(postQualityNonConformanceReportsBodyTitleMax),
+  "severity": zod.enum(['low', 'medium', 'high', 'critical']),
+  "status": zod.enum(['open']).default(postQualityNonConformanceReportsBodyStatusDefault),
+  "description": zod.string().min(1).max(postQualityNonConformanceReportsBodyDescriptionMax),
+  "correctiveAction": zod.string().max(postQualityNonConformanceReportsBodyCorrectiveActionMax).nullish(),
+  "assignedTo": zod.string().max(postQualityNonConformanceReportsBodyAssignedToMax).nullish(),
+  "dueDate": zod.coerce.date().nullish()
+})
+
+export const PostQualityNonConformanceReportsResponse = zod.void()
+
+
+/**
+ * @summary Get an active non-conformance report
+ */
+export const GetQualityNonConformanceReportsIdParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const GetQualityNonConformanceReportsIdResponse = zod.unknown()
+
+
+/**
+ * @summary Update NCR attributes without changing lifecycle status
+ */
+export const PatchQualityNonConformanceReportsIdParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+
+export const patchQualityNonConformanceReportsIdBodyTitleMax = 300;
+
+export const patchQualityNonConformanceReportsIdBodyDescriptionMax = 10000;
+
+export const patchQualityNonConformanceReportsIdBodyCorrectiveActionMax = 10000;
+
+export const patchQualityNonConformanceReportsIdBodyAssignedToMax = 200;
+
+
+
+export const PatchQualityNonConformanceReportsIdBody = zod.object({
+  "projectId": zod.number().int().min(1).optional(),
+  "title": zod.string().min(1).max(patchQualityNonConformanceReportsIdBodyTitleMax).optional(),
+  "severity": zod.enum(['low', 'medium', 'high', 'critical']).optional(),
+  "description": zod.string().min(1).max(patchQualityNonConformanceReportsIdBodyDescriptionMax).optional(),
+  "correctiveAction": zod.string().max(patchQualityNonConformanceReportsIdBodyCorrectiveActionMax).nullish(),
+  "assignedTo": zod.string().max(patchQualityNonConformanceReportsIdBodyAssignedToMax).nullish(),
+  "dueDate": zod.coerce.date().nullish()
+})
+
+export const PatchQualityNonConformanceReportsIdResponse = zod.unknown()
+
+
+/**
+ * @summary Soft-delete a non-conformance report
+ */
+export const DeleteQualityNonConformanceReportsIdParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const DeleteQualityNonConformanceReportsIdResponse = zod.void()
+
+
+/**
+ * @summary Apply a controlled NCR lifecycle transition
+ */
+export const PostQualityNonConformanceReportsIdTransitionParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const postQualityNonConformanceReportsIdTransitionBodyReasonMax = 2000;
+
+
+
+export const PostQualityNonConformanceReportsIdTransitionBody = zod.object({
+  "status": zod.enum(['open', 'in_progress', 'resolved', 'awaiting_approval', 'closed']),
+  "reason": zod.string().min(1).max(postQualityNonConformanceReportsIdTransitionBodyReasonMax).optional()
+})
+
+export const PostQualityNonConformanceReportsIdTransitionResponse = zod.unknown()
+
+
+/**
+ * @summary Start a dedicated approval workflow for a resolved NCR
+ */
+export const PostQualityNonConformanceReportsIdWorkflowRunsParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+
+
+
+export const PostQualityNonConformanceReportsIdWorkflowRunsBody = zod.object({
+  "workflowId": zod.number().int().min(1),
+  "payload": zod.record(zod.string(), zod.unknown()).optional()
+})
+
+export const PostQualityNonConformanceReportsIdWorkflowRunsResponse = zod.void()
+
+
+/**
+ * @summary List immutable NCR lifecycle events
+ */
+export const GetQualityNonConformanceReportsIdEventsParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const GetQualityNonConformanceReportsIdEventsResponse = zod.unknown()
+
+
+/**
  * @summary List tenant form templates
  */
 export const GetFormsTemplatesResponse = zod.unknown()
