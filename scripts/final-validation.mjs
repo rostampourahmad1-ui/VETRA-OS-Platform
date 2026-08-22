@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
 
-const executable = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+const executable = "pnpm";
 const hasDatabaseTestUrl = Boolean(process.env.DATABASE_TEST_APP_URL);
 const nodeMajor = Number.parseInt(process.versions.node.split(".")[0] ?? "0", 10);
 
