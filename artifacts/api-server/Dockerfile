@@ -24,9 +24,9 @@ COPY artifacts/api-server/package.json artifacts/api-server/tsconfig.json artifa
 COPY artifacts/api-server/build.mjs artifacts/api-server/
 COPY artifacts/api-server/src artifacts/api-server/src/
 
-# Install dependencies and build
+# Install dependencies and build only the API workspace and its copied dependencies.
 RUN pnpm install --frozen-lockfile
-RUN pnpm run build
+RUN pnpm --filter @workspace/api-server run build
 
 # Stage 2: Production
 FROM node:22-alpine
