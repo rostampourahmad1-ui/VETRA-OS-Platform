@@ -5,6 +5,7 @@ import { Plus, Search, Filter, CheckCircle2, Circle, Clock, AlertCircle } from '
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { formatJalali } from '@/lib/jalali';
 
 export default function TaskList() {
   const [search, setSearch] = useState('');
@@ -127,7 +128,7 @@ export default function TaskList() {
                       {task.assigneeName || 'Unassigned'}
                     </td>
                     <td className="py-3 px-4 text-right font-mono text-xs">
-                      {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '-'}
+                      {task.dueDate ? formatJalali(task.dueDate) : '-'}
                     </td>
                   </tr>
                 ))}

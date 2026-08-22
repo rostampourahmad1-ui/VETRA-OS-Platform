@@ -7,6 +7,7 @@ import { db, documentsTable, projectsTable } from "@workspace/db";
 import { CreateDocumentBody } from "@workspace/api-zod";
 import { requirePermission } from "../middlewares/permissions";
 import { tenantId } from "../middlewares/tenant";
+import { audit } from "../lib/audit";
 
 const router = Router();
 const uploadDir = path.resolve(process.cwd(), "uploads");
@@ -26,6 +27,7 @@ router.post("/documents", requirePermission("documents.create"), async (req, res
   if (!project) { res.status(404).json({ error: "Project not found" }); return; }
   const [row] = await db.insert(documentsTable).values({ name: d.name, type: d.type, size: d.size, projectId: d.projectId, organizationId: tenantId(req), uploadedBy: d.uploadedBy, url: d.url }).returning();
   res.status(201).json({ ...row, projectName: project.name, createdAt: row.createdAt.toISOString() });
+  audit(req, "document.created", "document", { resourceId: row.id, newValues: { name: row.name, type: row.type, projectId: row.projectId } });
 });
 
 router.post("/documents/upload", requirePermission("documents.create"), upload.single("file"), async (req, res): Promise<void> => {
@@ -34,7 +36,16 @@ router.post("/documents/upload", requirePermission("documents.create"), upload.s
   await fs.mkdir(uploadDir, { recursive: true }); const safeName = `${Date.now()}-${req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_")}`; const storagePath = path.join(uploadDir, safeName); await fs.writeFile(storagePath, req.file.buffer);
   const [row] = await db.insert(documentsTable).values({ name: req.file.originalname, type: req.file.mimetype, size: req.file.size, projectId, organizationId: tenantId(req), uploadedBy: String(req.vetraUser?.id ?? "system"), url: `/uploads/${safeName}`, storagePath }).returning();
   res.status(201).json(row);
+  audit(req, "document.uploaded", "document", { resourceId: row.id, newValues: { name: row.name, type: row.type, size: row.size } });
 });
 
 router.delete("/documents/:id", requirePermission("documents.delete"), async (req, res): Promise<void> => { const [row] = await db.select().from(documentsTable).where(and(eq(documentsTable.id, Number(req.params.id)), eq(documentsTable.organizationId, tenantId(req)))); if (!row) { res.status(404).json({ error: "Not found" }); return; } if (row.storagePath) await fs.rm(row.storagePath, { force: true }).catch(() => undefined); await db.delete(documentsTable).where(eq(documentsTable.id, row.id)); res.status(204).send(); });
+router.delete("/documents/:id", requirePermission("documents.delete"), async (req, res): Promise<void> => {
+  const [row] = await db.select().from(documentsTable).where(and(eq(documentsTable.id, Number(req.params.id)), eq(documentsTable.organizationId, tenantId(req))));
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
+  if (row.storagePath) await fs.rm(row.storagePath, { force: true }).catch(() => undefined);
+  await db.delete(documentsTable).where(eq(documentsTable.id, row.id));
+  audit(req, "document.deleted", "document", { resourceId: row.id });
+  res.status(204).send();
+});
 export default router;

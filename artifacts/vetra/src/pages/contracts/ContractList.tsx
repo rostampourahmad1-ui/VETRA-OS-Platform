@@ -6,12 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Link } from 'wouter';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { formatCurrency, formatJalali } from '@/lib/jalali';
 
 export default function ContractList() {
   const [search, setSearch] = useState('');
   const { data: contracts, isLoading } = useListContracts();
-
-  const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -89,11 +88,11 @@ export default function ContractList() {
 
                 <div className="flex justify-between items-center text-xs text-muted-foreground bg-muted/50 p-2 rounded">
                   <div className="flex items-center gap-1.5 font-mono">
-                    {new Date(contract.startDate).toLocaleDateString()}
+                    {formatJalali(contract.startDate)}
                   </div>
                   <span>→</span>
                   <div className="flex items-center gap-1.5 font-mono">
-                    {new Date(contract.endDate).toLocaleDateString()}
+                    {formatJalali(contract.endDate)}
                   </div>
                 </div>
               </CardContent>

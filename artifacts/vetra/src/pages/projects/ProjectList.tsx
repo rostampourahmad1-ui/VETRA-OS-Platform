@@ -16,16 +16,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { formatCurrency } from '@/lib/jalali';
 
 export default function ProjectList() {
   const [search, setSearch] = useState('');
   const [_, setLocation] = useLocation();
   const { data: projects, isLoading } = useListProjects({ search });
 
-  const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val);
-
   return (
-    <div className="space-y-6">
+   <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Projects</h1>

@@ -3,8 +3,7 @@ import { useGetDashboardSummary, useGetDashboardProjectHealth } from '@workspace
 import { Link } from 'wouter';
 import { Card, CardContent } from '@/components/ui/card';
 import { GlassContainer } from '@/components/ui/glass-container';
-
-const formatCurrency = (value: number) => new Intl.NumberFormat('fa-IR', { style: 'currency', currency: 'IRR', maximumFractionDigits: 0 }).format(value);
+import { formatCurrency } from '@/lib/jalali';
 
 export default function Dashboard() {
   const { data: summary, isLoading } = useGetDashboardSummary();

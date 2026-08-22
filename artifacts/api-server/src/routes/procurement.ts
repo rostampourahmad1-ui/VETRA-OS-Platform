@@ -5,6 +5,7 @@ import { db, procurementTable, projectsTable } from "@workspace/db";
 import { and, eq } from "drizzle-orm";
 import { CreateProcurementOrderBody, UpdateProcurementOrderBody } from "@workspace/api-zod";
 import { ownedProject, tenantId } from "../middlewares/tenant";
+import { audit } from "../lib/audit";
 
 const router = Router();
 router.use(requireAuth);
@@ -63,6 +64,7 @@ router.post("/procurement", requirePermission("procurement.create"), async (req,
     projectName: project.name,
     createdAt: row.createdAt.toISOString(),
   });
+  audit(req, "procurement.created", "procurement_order", { resourceId: row.id, newValues: { title: row.title, supplier: row.supplier, status: row.status } });
 });
 
 router.patch("/procurement/:id", requirePermission("procurement.update"), async (req, res): Promise<void> => {
@@ -95,6 +97,7 @@ router.patch("/procurement/:id", requirePermission("procurement.update"), async 
     projectName: proj?.name ?? "Unknown",
     createdAt: row.createdAt.toISOString(),
   });
+  audit(req, "procurement.updated", "procurement_order", { resourceId: id, oldValues: { title: current.title }, newValues: { title: row.title, status: row.status } });
 });
 
 export default router;

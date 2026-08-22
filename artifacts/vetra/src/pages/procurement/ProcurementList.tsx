@@ -6,12 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Link } from 'wouter';
+import { formatCurrency } from '@/lib/jalali';
 
 export default function ProcurementList() {
   const [search, setSearch] = useState('');
   const { data: orders, isLoading } = useListProcurementOrders();
-
-  const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
 
   const getStatusColor = (status: string) => {
     switch (status) {

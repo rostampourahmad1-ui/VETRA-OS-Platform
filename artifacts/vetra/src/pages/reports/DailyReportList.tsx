@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Link } from 'wouter';
 import { Badge } from '@/components/ui/badge';
+import { formatJalali } from '@/lib/jalali';
 
 export default function DailyReportList() {
   const { data: reports, isLoading } = useListDailyReports();
@@ -48,7 +49,7 @@ export default function DailyReportList() {
                 {reports?.map((report) => (
                   <tr key={report.id} className="group hover:bg-muted/50 transition-colors cursor-pointer">
                     <td className="py-3 px-4 font-medium font-mono text-xs">
-                      {new Date(report.date).toLocaleDateString()}
+                      {formatJalali(report.date)}
                     </td>
                     <td className="py-3 px-4">
                       <Link href={`/projects/${report.projectId}`} className="text-primary hover:underline font-medium">

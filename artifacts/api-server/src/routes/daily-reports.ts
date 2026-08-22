@@ -5,6 +5,7 @@ import { db, dailyReportsTable, projectsTable } from "@workspace/db";
 import { and, eq, sql } from "drizzle-orm";
 import { CreateDailyReportBody } from "@workspace/api-zod";
 import { ownedProject, tenantId } from "../middlewares/tenant";
+import { audit } from "../lib/audit";
 
 const router = Router();
 router.use(requireAuth);
@@ -64,6 +65,7 @@ router.post("/daily-reports", requirePermission("daily-reports.create"), async (
     projectName: project.name,
     createdAt: row.createdAt.toISOString(),
   });
+  audit(req, "dailyreport.created", "daily_report", { resourceId: row.id, newValues: { projectId: row.projectId, progress: row.progress } });
 });
 
 router.get("/daily-reports/:id", requirePermission("daily-reports.read"), async (req, res): Promise<void> => {

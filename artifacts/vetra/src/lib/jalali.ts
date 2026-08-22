@@ -22,3 +22,10 @@ export function formatRelativeJalali(value: string | Date | null | undefined): s
 
 export const persianNumber = (value: string | number): string =>
   String(value).replace(/\d/g, (digit) => '۰۱۲۳۴۵۶۷۸۹'[Number(digit)]);
+
+/**
+ * Format a number as currency using the Persian locale (fa-IR, IRR).
+ * Consistent across all pages: "IRR ۱,۲۳۴,۵۶۷"
+ */
+export const formatCurrency = (value: number): string =>
+  new Intl.NumberFormat('fa-IR', { style: 'currency', currency: 'IRR', maximumFractionDigits: 0 }).format(value);

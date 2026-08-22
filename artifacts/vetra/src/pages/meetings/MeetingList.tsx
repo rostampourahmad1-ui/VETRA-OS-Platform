@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Link } from 'wouter';
+import { formatJalali } from '@/lib/jalali';
 
 export default function MeetingList() {
   const { data: meetings, isLoading } = useListMeetings();
@@ -58,7 +59,7 @@ export default function MeetingList() {
                 <div className="space-y-2 text-sm text-muted-foreground pt-4 border-t border-border">
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
-                    <span className="font-mono text-xs">{new Date(meeting.date).toLocaleDateString()}</span>
+                    <span className="font-mono text-xs">{formatJalali(meeting.date)}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4" />

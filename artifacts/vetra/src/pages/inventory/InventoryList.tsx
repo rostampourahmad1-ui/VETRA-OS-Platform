@@ -5,12 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'wouter';
+import { formatCurrency } from '@/lib/jalali';
 
 export default function InventoryList() {
   const [search, setSearch] = useState('');
   const { data: inventory, isLoading } = useListInventory();
-
-  const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
 
   return (
     <div className="space-y-6">

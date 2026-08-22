@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { formatCurrency, formatJalali } from '@/lib/jalali';
 
 export default function ProjectDetail() {
   const params = useParams();
@@ -142,11 +143,11 @@ export default function ProjectDetail() {
                   </div>
                   <div className="grid grid-cols-3 gap-4 border-b pb-3">
                     <dt className="text-muted-foreground font-medium">Start Date</dt>
-                    <dd className="col-span-2 font-mono">{new Date(project.startDate).toLocaleDateString()}</dd>
+                    <dd className="col-span-2 font-mono">{formatJalali(project.startDate)}</dd>
                   </div>
                   <div className="grid grid-cols-3 gap-4 border-b pb-3">
                     <dt className="text-muted-foreground font-medium">End Date</dt>
-                    <dd className="col-span-2 font-mono">{new Date(project.endDate).toLocaleDateString()}</dd>
+                    <dd className="col-span-2 font-mono">{formatJalali(project.endDate)}</dd>
                   </div>
                 </dl>
               </CardContent>

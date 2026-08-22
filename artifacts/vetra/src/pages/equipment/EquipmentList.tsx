@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Link } from 'wouter';
+import { formatJalali } from '@/lib/jalali';
 
 export default function EquipmentList() {
   const { data: equipment, isLoading } = useListEquipment();
@@ -84,7 +85,7 @@ export default function EquipmentList() {
                       <span>Next Maint.</span>
                     </div>
                     <span className="font-mono">
-                      {item.nextMaintenance ? new Date(item.nextMaintenance).toLocaleDateString() : '-'}
+                      {item.nextMaintenance ? formatJalali(item.nextMaintenance) : '-'}
                     </span>
                   </div>
                 </div>

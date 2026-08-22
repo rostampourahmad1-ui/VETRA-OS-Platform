@@ -5,6 +5,7 @@ import { db, meetingsTable, projectsTable } from "@workspace/db";
 import { and, eq, sql } from "drizzle-orm";
 import { CreateMeetingBody, UpdateMeetingBody } from "@workspace/api-zod";
 import { ownedProject, tenantId } from "../middlewares/tenant";
+import { audit } from "../lib/audit";
 
 const router = Router();
 router.use(requireAuth);
@@ -63,6 +64,7 @@ router.post("/meetings", requirePermission("meetings.create"), async (req, res):
     projectName: project.name,
     createdAt: row.createdAt.toISOString(),
   });
+  audit(req, "meeting.created", "meeting", { resourceId: row.id, newValues: { title: row.title, status: row.status } });
 });
 
 router.get("/meetings/:id", requirePermission("meetings.read"), async (req, res): Promise<void> => {
@@ -111,6 +113,7 @@ router.patch("/meetings/:id", requirePermission("meetings.update"), async (req, 
     projectName: proj?.name ?? "Unknown",
     createdAt: row.createdAt.toISOString(),
   });
+  audit(req, "meeting.updated", "meeting", { resourceId: id, oldValues: { title: current.title }, newValues: { title: row.title, status: row.status } });
 });
 
 export default router;

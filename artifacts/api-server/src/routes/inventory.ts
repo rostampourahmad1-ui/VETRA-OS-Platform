@@ -5,6 +5,7 @@ import { db, inventoryTable, projectsTable } from "@workspace/db";
 import { and, eq } from "drizzle-orm";
 import { CreateInventoryItemBody, UpdateInventoryItemBody } from "@workspace/api-zod";
 import { ownedProject, tenantId } from "../middlewares/tenant";
+import { audit } from "../lib/audit";
 
 const router = Router();
 router.use(requireAuth);
@@ -64,6 +65,7 @@ router.post("/inventory", requirePermission("inventory.create"), async (req, res
     projectName: project?.name ?? null,
     createdAt: row.createdAt.toISOString(),
   });
+  audit(req, "inventory.created", "inventory_item", { resourceId: row.id, newValues: { name: row.name, category: row.category, quantity: row.quantity } });
 });
 
 router.patch("/inventory/:id", requirePermission("inventory.update"), async (req, res): Promise<void> => {
@@ -103,6 +105,7 @@ router.patch("/inventory/:id", requirePermission("inventory.update"), async (req
     projectName: proj[0]?.name ?? null,
     createdAt: row.createdAt.toISOString(),
   });
+  audit(req, "inventory.updated", "inventory_item", { resourceId: id, oldValues: { name: current.name }, newValues: { name: row.name, category: row.category } });
 });
 
 export default router;
