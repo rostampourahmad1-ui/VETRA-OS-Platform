@@ -1,6 +1,21 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { createHmac } from "node:crypto";
 
+// ─── Test-only secret generation ───────────────────────────────────────────
+
+/**
+ * Generates a random test-only webhook signing secret.
+ * Follows the Svix whsec_<base64> format but is NOT a real secret.
+ * Generated at runtime so no secrets are hardcoded in the repository.
+ */
+function generateTestSecret(): string {
+  const bytes = Buffer.alloc(32);
+  for (let i = 0; i < 32; i++) {
+    bytes[i] = Math.floor(Math.random() * 256);
+  }
+  return "whsec_" + bytes.toString("base64").replace(/=+$/, "");
+}
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 /**
@@ -49,7 +64,8 @@ describe("VETRA-SEC-03: Webhook Signature Verification", () => {
   // We test the algorithm manually since the module has DB dependencies
   // This validates the Svix signature verification logic
 
-  const VALID_SECRET = "whsec_CdFJqYtF0pB3vK7xM2nR5sW8zA1bD4eG6hI9jL0kN=";
+  // Test secret generated at runtime — NOT a real Stripe/Svix/Clerk secret
+  const VALID_SECRET = generateTestSecret();
 
   function verifySignature(
     rawBody: string,
@@ -106,7 +122,7 @@ describe("VETRA-SEC-03: Webhook Signature Verification", () => {
   it("P0-2: Wrong secret fails verification", () => {
     const payload = JSON.stringify({ type: "user.created", data: { id: "user_123" } });
     const headers = generateSvixHeaders(payload, VALID_SECRET);
-    const wrongSecret = "whsec_Z9yX8wV7uT6sR5qP4oN3mL2k1jI0hG9fE8dC7bA6a=";
+    const wrongSecret = generateTestSecret();
     const result = verifySignature(
       payload,
       headers["svix-id"],
