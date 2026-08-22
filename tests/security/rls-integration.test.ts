@@ -7,7 +7,7 @@
  *
  * PREREQUISITES:
  *   - A PostgreSQL database must be accessible at DATABASE_URL
- *   - Migrations 0000, 0003, 0004, and 0005 must have been applied
+ *   - Migrations 0000 through 0008 must have been applied
  *   - The vetra_app and vetra_migration roles must exist (run init scripts)
  *
  * If PostgreSQL is not available, all tests are skipped with a clear message.
@@ -75,6 +75,9 @@ afterAll(async () => {
   // Clean up test data
   if (postgresAvailable && adminPool) {
     try {
+      await adminPool.query("DELETE FROM quality_events WHERE organization_id IN ($1, $2)", [TENANT_A, TENANT_B]);
+      await adminPool.query("DELETE FROM non_conformance_reports WHERE organization_id IN ($1, $2)", [TENANT_A, TENANT_B]);
+      await adminPool.query("DELETE FROM inspections WHERE organization_id IN ($1, $2)", [TENANT_A, TENANT_B]);
       await adminPool.query("DELETE FROM workflow_run_events WHERE organization_id IN ($1, $2)", [TENANT_A, TENANT_B]);
       await adminPool.query("DELETE FROM form_submissions WHERE organization_id IN ($1, $2)", [TENANT_A, TENANT_B]);
       await adminPool.query("DELETE FROM form_template_versions WHERE organization_id IN ($1, $2)", [TENANT_A, TENANT_B]);
@@ -105,7 +108,7 @@ afterAll(async () => {
 
    // Create test users in each org
    await adminPool.query(
-     "INSERT INTO users (id, name, email, organization_id, role) VALUES ($1, 'User A', 'user_a@test.local', $2, 'Worker'), ($3, 'User B', 'user_b@test.local', $4, 'Worker') ON CONFLICT DO NOTHING",
+     "INSERT INTO users (id, name, email, clerk_user_id, organization_id, role) VALUES ($1, 'User A', 'user_a@test.local', 'clerk_test_user_a', $2, 'Worker'), ($3, 'User B', 'user_b@test.local', 'clerk_test_user_b', $4, 'Worker') ON CONFLICT DO NOTHING",
      [10001, TENANT_A, 10002, TENANT_B]
    );
 
@@ -151,6 +154,7 @@ afterAll(async () => {
        "activity", "documents", "audit_logs", "roles",
        "form_templates", "form_template_versions", "form_submissions",
        "workflows", "workflow_steps", "workflow_runs", "workflow_run_events",
+       "inspections", "non_conformance_reports", "quality_events",
      ];
      const result = await adminPool.query(
        `SELECT tablename FROM pg_tables
@@ -176,6 +180,7 @@ afterAll(async () => {
        "activity", "documents", "audit_logs", "roles",
        "form_templates", "form_template_versions", "form_submissions",
        "workflows", "workflow_steps", "workflow_runs", "workflow_run_events",
+       "inspections", "non_conformance_reports", "quality_events",
      ];
      const result = await adminPool.query(
        `SELECT c.relname AS tablename
@@ -387,6 +392,48 @@ afterAll(async () => {
    }, TEST_TIMEOUT);
  });
 
+ // ─── Test Suite: Request-Scoped RLS Context ────────────────────────────────
+
+ describe("VETRA-SEC-06: Request-Scoped RLS Context", () => {
+   beforeAll(async () => {
+     if (postgresAvailable) await setupTestData();
+   }, TEST_TIMEOUT);
+
+   it("P1-8: Clerk bootstrap may resolve only the authenticated active user", async () => {
+     if (!postgresAvailable) { console.warn("SKIPPED: PostgreSQL not available"); return; }
+     await clearOrg();
+     await appClient.query("BEGIN");
+     try {
+       await appClient.query("SELECT set_request_clerk_user_context($1)", ["clerk_test_user_a"]);
+       const result = await appClient.query(
+         "SELECT id, organization_id, clerk_user_id FROM users WHERE clerk_user_id IN ($1, $2) ORDER BY id",
+         ["clerk_test_user_a", "clerk_test_user_b"],
+       );
+       expect(result.rows).toEqual([
+         { id: 10001, organization_id: TENANT_A, clerk_user_id: "clerk_test_user_a" },
+       ]);
+     } finally {
+       await appClient.query("ROLLBACK");
+     }
+   }, TEST_TIMEOUT);
+
+   it("P1-9: organization context is cleared when a request transaction commits", async () => {
+     if (!postgresAvailable) { console.warn("SKIPPED: PostgreSQL not available"); return; }
+     await clearOrg();
+     await appClient.query("BEGIN");
+     try {
+       await appClient.query("SELECT set_request_organization_context($1)", [TENANT_A]);
+       const scoped = await appClient.query("SELECT organization_id FROM projects ORDER BY id");
+       expect(scoped.rows.every((row: { organization_id: number }) => row.organization_id === TENANT_A)).toBe(true);
+     } finally {
+       await appClient.query("COMMIT");
+     }
+
+     const afterCommit = await appClient.query("SELECT organization_id FROM projects");
+     expect(afterCommit.rows).toEqual([]);
+   }, TEST_TIMEOUT);
+ });
+
  // ─── Test Suite: RLS Policy Count ──────────────────────────────────────────
 
  describe("VETRA-TEST-02: RLS Policy Count", () => {
@@ -405,6 +452,21 @@ afterAll(async () => {
      for (const row of result.rows) {
        expect(Number(row.policy_count)).toBe(4);
      }
+   }, TEST_TIMEOUT);
+ });
+
+ // ─── Test Suite: Quality Event Append-Only ─────────────────────────────────
+
+ describe("VETRA-QUALITY-01: Quality event immutability", () => {
+   it("P1-10: quality_events rejects UPDATE and DELETE operations", async () => {
+     if (!postgresAvailable) { console.warn("SKIPPED: PostgreSQL not available"); return; }
+     await setupTestData();
+     await adminPool.query(
+       "INSERT INTO quality_events (id, organization_id, project_id, entity_type, entity_id, event_type, actor_id) VALUES ($1, $2, $3, 'inspection', $4, 'created', $5) ON CONFLICT DO NOTHING",
+       [71001, TENANT_A, 20001, 81001, 10001],
+     );
+     await expect(adminPool.query("UPDATE quality_events SET event_type = 'updated' WHERE id = 71001")).rejects.toThrow();
+     await expect(adminPool.query("DELETE FROM quality_events WHERE id = 71001")).rejects.toThrow();
    }, TEST_TIMEOUT);
  });
 

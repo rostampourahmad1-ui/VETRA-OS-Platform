@@ -1162,6 +1162,130 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/WorkflowDecisionInput' }
       responses: { '200': { description: Updated workflow run } }
+  /quality/inspections:
+    get:
+      summary: List tenant inspections
+      responses: { '200': { description: OK } }
+    post:
+      summary: Create a planned inspection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InspectionInput' }
+      responses: { '201': { description: Created } }
+  /quality/inspections/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
+    get:
+      summary: Get an active inspection
+      responses: { '200': { description: OK } }
+    patch:
+      summary: Update inspection attributes without changing lifecycle status
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InspectionUpdate' }
+      responses: { '200': { description: Updated } }
+    delete:
+      summary: Soft-delete an inspection
+      responses: { '204': { description: Deleted } }
+  /quality/inspections/{id}/transition:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
+    post:
+      summary: Apply a controlled inspection lifecycle transition
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InspectionTransitionInput' }
+      responses: { '200': { description: Transitioned } }
+  /quality/inspections/{id}/events:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
+    get:
+      summary: List immutable inspection lifecycle events
+      responses: { '200': { description: OK } }
+  /quality/non-conformance-reports:
+    get:
+      summary: List tenant non-conformance reports
+      responses: { '200': { description: OK } }
+    post:
+      summary: Create an open non-conformance report
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NcrInput' }
+      responses: { '201': { description: Created } }
+  /quality/non-conformance-reports/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
+    get:
+      summary: Get an active non-conformance report
+      responses: { '200': { description: OK } }
+    patch:
+      summary: Update NCR attributes without changing lifecycle status
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NcrUpdate' }
+      responses: { '200': { description: Updated } }
+    delete:
+      summary: Soft-delete a non-conformance report
+      responses: { '204': { description: Deleted } }
+  /quality/non-conformance-reports/{id}/transition:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
+    post:
+      summary: Apply a controlled NCR lifecycle transition
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NcrTransitionInput' }
+      responses: { '200': { description: Transitioned } }
+  /quality/non-conformance-reports/{id}/workflow-runs:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
+    post:
+      summary: Start a dedicated approval workflow for a resolved NCR
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NcrWorkflowRunInput' }
+      responses: { '201': { description: Created } }
+  /quality/non-conformance-reports/{id}/events:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
+    get:
+      summary: List immutable NCR lifecycle events
+      responses: { '200': { description: OK } }
   /forms/templates:
     get:
       summary: List tenant form templates
@@ -1315,6 +1439,66 @@ components:
           type: object
           additionalProperties: true
 
+    InspectionInput:
+      type: object
+      required: [projectId, title, type, inspector, date]
+      properties:
+        projectId: { type: integer, minimum: 1 }
+        title: { type: string, minLength: 1, maxLength: 300 }
+        type: { type: string, enum: [routine, material, site, final] }
+        status: { type: string, enum: [planned], default: planned }
+        inspector: { type: string, minLength: 1, maxLength: 200 }
+        date: { type: string, format: date }
+        findings: { type: string, maxLength: 10000, nullable: true }
+    InspectionUpdate:
+      type: object
+      properties:
+        projectId: { type: integer, minimum: 1 }
+        title: { type: string, minLength: 1, maxLength: 300 }
+        type: { type: string, enum: [routine, material, site, final] }
+        inspector: { type: string, minLength: 1, maxLength: 200 }
+        date: { type: string, format: date }
+        findings: { type: string, maxLength: 10000, nullable: true }
+    InspectionTransitionInput:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [planned, in_progress, completed, cancelled] }
+        reason: { type: string, minLength: 1, maxLength: 2000 }
+    NcrInput:
+      type: object
+      required: [projectId, title, severity, description]
+      properties:
+        projectId: { type: integer, minimum: 1 }
+        title: { type: string, minLength: 1, maxLength: 300 }
+        severity: { type: string, enum: [low, medium, high, critical] }
+        status: { type: string, enum: [open], default: open }
+        description: { type: string, minLength: 1, maxLength: 10000 }
+        correctiveAction: { type: string, maxLength: 10000, nullable: true }
+        assignedTo: { type: string, maxLength: 200, nullable: true }
+        dueDate: { type: string, format: date, nullable: true }
+    NcrUpdate:
+      type: object
+      properties:
+        projectId: { type: integer, minimum: 1 }
+        title: { type: string, minLength: 1, maxLength: 300 }
+        severity: { type: string, enum: [low, medium, high, critical] }
+        description: { type: string, minLength: 1, maxLength: 10000 }
+        correctiveAction: { type: string, maxLength: 10000, nullable: true }
+        assignedTo: { type: string, maxLength: 200, nullable: true }
+        dueDate: { type: string, format: date, nullable: true }
+    NcrTransitionInput:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [open, in_progress, resolved, awaiting_approval, closed] }
+        reason: { type: string, minLength: 1, maxLength: 2000 }
+    NcrWorkflowRunInput:
+      type: object
+      required: [workflowId]
+      properties:
+        workflowId: { type: integer, minimum: 1 }
+        payload: { type: object, additionalProperties: true }
     PhaseInput:
       type: object
       required: [name, startDate, endDate]
