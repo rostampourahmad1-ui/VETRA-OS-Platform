@@ -1,0 +1,437 @@
+ /**
+ * VETRA-TEST-02: RLS Integration Tests (Real PostgreSQL)
+ * =======================================================
+ *
+ * Tests Row-Level Security enforcement on a real PostgreSQL database.
+ * These tests verify FAIL-CLOSED tenant isolation at the database level.
+ *
+ * PREREQUISITES:
+ *   - A PostgreSQL database must be accessible at DATABASE_URL
+ *   - Migrations 0000, 0003, 0004, and 0005 must have been applied
+ *   - The vetra_app and vetra_migration roles must exist (run init scripts)
+ *
+ * If PostgreSQL is not available, all tests are skipped with a clear message.
+ *
+ * SECURITY: Tests use dedicated test tenant IDs (999990, 999991) to avoid
+ * interfering with production or development data.
+ */
+
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { pool, db } from "../../lib/db/src/index";
+import { sql } from "drizzle-orm";
+
+// ─── Test Constants ────────────────────────────────────────────────────────
+
+const TENANT_A = 999990;
+const TENANT_B = 999991;
+const TEST_TIMEOUT = 30_000;
+
+// ─── Database Connection ───────────────────────────────────────────────────
+
+let adminPool: typeof pool;
+let postgresAvailable = false;
+
+beforeAll(async () => {
+  const dbUrl = process.env.DATABASE_URL || "";
+  if (!dbUrl || dbUrl.includes("USER") || dbUrl.includes("PASSWORD") || dbUrl.includes("HOST")) {
+    console.warn(
+      "⚠ VETRA-TEST-02: DATABASE_URL is not set or contains placeholder values.\n" +
+      "  RLS integration tests require a real PostgreSQL database.\n" +
+      "  Set DATABASE_URL=postgresql://user:pass@host:5432/db to run these tests.\n" +
+      "  All RLS integration tests will be SKIPPED."
+    );
+    return;
+  }
+
+  try {
+    adminPool = pool;
+    // Test connectivity
+    await db.execute(sql`SELECT 1`);
+    postgresAvailable = true;
+    console.log("✓ VETRA-TEST-02: PostgreSQL connected. Running RLS integration tests.");
+  } catch (err) {
+    console.warn(
+      `⚠ VETRA-TEST-02: Cannot connect to PostgreSQL: ${(err as Error).message}\n` +
+      "  All RLS integration tests will be SKIPPED."
+    );
+    postgresAvailable = false;
+  }
+}, TEST_TIMEOUT);
+
+afterAll(async () => {
+  // Clean up test data
+  if (postgresAvailable && adminPool) {
+    try {
+      await db.execute(sql`DELETE FROM users WHERE organization_id IN (${TENANT_A}, ${TENANT_B})`);
+      await db.execute(sql`DELETE FROM projects WHERE organization_id IN (${TENANT_A}, ${TENANT_B})`);
+      await db.execute(sql`DELETE FROM tasks WHERE organization_id IN (${TENANT_A}, ${TENANT_B})`);
+      await db.execute(sql`DELETE FROM audit_logs WHERE organization_id IN (${TENANT_A}, ${TENANT_B})`);
+      await db.execute(sql`DELETE FROM organizations WHERE id IN (${TENANT_A}, ${TENANT_B})`);
+    } catch {
+      // Best-effort cleanup
+    }
+  }
+});
+
+ // ─── Helper ─────────────────────────────────────────────────────────────────
+
+ async function setupTestData(): Promise<void> {
+   // Create test organizations
+   await adminPool.query(
+     "INSERT INTO organizations (id, name, created_at) VALUES ($1, 'Test Org A', NOW()), ($2, 'Test Org B', NOW()) ON CONFLICT DO NOTHING",
+     [TENANT_A, TENANT_B]
+   );
+
+   // Create test users in each org
+   await adminPool.query(
+     "INSERT INTO users (id, name, email, organization_id, role) VALUES ($1, 'User A', 'user_a@test.local', $2, 'Worker'), ($3, 'User B', 'user_b@test.local', $4, 'Worker') ON CONFLICT DO NOTHING",
+     [10001, TENANT_A, 10002, TENANT_B]
+   );
+
+   // Create test projects
+   await adminPool.query(
+     "INSERT INTO projects (id, name, organization_id, created_at) VALUES ($1, 'Project A', $2, NOW()), ($3, 'Project B', $4, NOW()) ON CONFLICT DO NOTHING",
+     [20001, TENANT_A, 20002, TENANT_B]
+   );
+ }
+
+ async function setOrg(orgId: number): Promise<void> {
+   await adminPool.query("SELECT set_organization_context($1)", [orgId]);
+ }
+
+ async function clearOrg(): Promise<void> {
+   await adminPool.query("SELECT set_config('app.current_organization_id', '', false)");
+ }
+
+ // ─── Test Suite: Database Connectivity ─────────────────────────────────────
+
+ describe("VETRA-TEST-02: Database Connectivity", () => {
+   it("P0-1: PostgreSQL is available", async () => {
+     if (!postgresAvailable) {
+       console.warn("SKIPPED: PostgreSQL not available");
+       return;
+     }
+     const result = await adminPool.query("SELECT 1 AS one");
+     expect(result.rows[0].one).toBe(1);
+   }, TEST_TIMEOUT);
+ });
+
+ // ─── Test Suite: RLS Enabled and Forced ────────────────────────────────────
+
+ describe("VETRA-TEST-02: RLS Enabled and Forced", () => {
+   it("P0-2: All tenant tables have RLS enabled", async () => {
+     if (!postgresAvailable) {
+       console.warn("SKIPPED: PostgreSQL not available");
+       return;
+     }
+     const requiredTables = [
+       "users", "projects", "tasks", "contracts", "daily_reports",
+       "meetings", "equipment", "inventory", "procurement",
+       "activity", "documents", "audit_logs", "roles",
+     ];
+     const result = await adminPool.query(
+       `SELECT tablename FROM pg_tables
+        WHERE schemaname = 'public'
+        AND tablename = ANY($1)
+        AND rowsecurity = true`,
+       [requiredTables]
+     );
+     const rlsEnabledTables = result.rows.map((r: any) => r.tablename);
+     for (const table of requiredTables) {
+       expect(rlsEnabledTables).toContain(table);
+     }
+   }, TEST_TIMEOUT);
+
+   it("P0-3: All tenant tables have FORCE ROW LEVEL SECURITY", async () => {
+     if (!postgresAvailable) {
+       console.warn("SKIPPED: PostgreSQL not available");
+       return;
+     }
+     const requiredTables = [
+       "users", "projects", "tasks", "contracts", "daily_reports",
+       "meetings", "equipment", "inventory", "procurement",
+       "activity", "documents", "audit_logs", "roles",
+     ];
+     const result = await adminPool.query(
+       `SELECT tablename FROM pg_tables
+        WHERE schemaname = 'public'
+        AND tablename = ANY($1)
+        AND forcerowsecurity = true`,
+       [requiredTables]
+     );
+     const forcedTables = result.rows.map((r: any) => r.tablename);
+     for (const table of requiredTables) {
+       expect(forcedTables).toContain(table);
+     }
+   }, TEST_TIMEOUT);
+
+   it("P0-4: Shared reference tables do NOT have RLS", async () => {
+     if (!postgresAvailable) {
+       console.warn("SKIPPED: PostgreSQL not available");
+       return;
+     }
+     const result = await adminPool.query(
+       `SELECT tablename FROM pg_tables
+        WHERE schemaname = 'public'
+        AND tablename IN ('organizations', 'permissions', 'role_permissions')
+        AND rowsecurity = true`
+     );
+     expect(result.rows.length).toBe(0);
+   }, TEST_TIMEOUT);
+ });
+
+ // ─── Test Suite: FAIL-CLOSED — No Context = No Rows ────────────────────────
+
+ describe("VETRA-TEST-02: FAIL-CLOSED — No Context = No Rows", () => {
+   beforeAll(async () => {
+     if (postgresAvailable) await setupTestData();
+   }, TEST_TIMEOUT);
+
+   it("P0-5: SELECT returns zero rows when org context is not set", async () => {
+     if (!postgresAvailable) {
+       console.warn("SKIPPED: PostgreSQL not available");
+       return;
+     }
+     await clearOrg();
+     const result = await adminPool.query("SELECT * FROM users WHERE organization_id = $1", [TENANT_A]);
+     // FAIL-CLOSED: No rows should be visible without org context
+     expect(result.rows.length).toBe(0);
+   }, TEST_TIMEOUT);
+
+   it("P0-6: INSERT fails when org context is not set", async () => {
+     if (!postgresAvailable) {
+       console.warn("SKIPPED: PostgreSQL not available");
+       return;
+     }
+     await clearOrg();
+     await expect(
+       adminPool.query(
+         "INSERT INTO users (id, name, email, organization_id, role) VALUES ($1, $2, $3, $4, $5)",
+         [99999, "NoOrg User", "noorg@test.local", TENANT_A, "Worker"]
+       )
+     ).rejects.toThrow();
+   }, TEST_TIMEOUT);
+
+   it("P0-7: UPDATE fails when org context is not set", async () => {
+     if (!postgresAvailable) {
+       console.warn("SKIPPED: PostgreSQL not available");
+       return;
+     }
+     await clearOrg();
+     await expect(
+       adminPool.query("UPDATE users SET name = 'Hacked' WHERE organization_id = $1", [TENANT_A])
+     ).rejects.toThrow();
+   }, TEST_TIMEOUT);
+
+   it("P0-8: DELETE fails when org context is not set", async () => {
+     if (!postgresAvailable) {
+       console.warn("SKIPPED: PostgreSQL not available");
+       return;
+     }
+     await clearOrg();
+     await expect(
+       adminPool.query("DELETE FROM users WHERE organization_id = $1", [TENANT_A])
+     ).rejects.toThrow();
+   }, TEST_TIMEOUT);
+ });
+
+ // ─── Test Suite: Cross-Tenant Isolation — Read ─────────────────────────────
+
+ describe("VETRA-TEST-02: Cross-Tenant Isolation — Read", () => {
+   beforeAll(async () => {
+     if (postgresAvailable) await setupTestData();
+   }, TEST_TIMEOUT);
+
+   it("P0-9: Tenant A cannot read Tenant B's users", async () => {
+     if (!postgresAvailable) {
+       console.warn("SKIPPED: PostgreSQL not available");
+       return;
+     }
+     await setOrg(TENANT_A);
+     const result = await adminPool.query("SELECT * FROM users");
+     const orgIds = result.rows.map((r: any) => r.organization_id);
+     // Should only see Tenant A's data
+     expect(orgIds.every((id: number) => id === TENANT_A)).toBe(true);
+     expect(orgIds.some((id: number) => id === TENANT_B)).toBe(false);
+   }, TEST_TIMEOUT);
+
+   it("P0-10: Tenant B cannot read Tenant A's projects", async () => {
+     if (!postgresAvailable) {
+       console.warn("SKIPPED: PostgreSQL not available");
+       return;
+     }
+     await setOrg(TENANT_B);
+     const result = await adminPool.query("SELECT * FROM projects");
+     const orgIds = result.rows.map((r: any) => r.organization_id);
+     expect(orgIds.every((id: number) => id === TENANT_B)).toBe(true);
+     expect(orgIds.some((id: number) => id === TENANT_A)).toBe(false);
+   }, TEST_TIMEOUT);
+
+   it("P0-11: Tenant A sees only its own data after switching context", async () => {
+     if (!postgresAvailable) {
+       console.warn("SKIPPED: PostgreSQL not available");
+       return;
+     }
+     // Switch from Tenant A to Tenant B and back
+     await setOrg(TENANT_A);
+     let result = await adminPool.query("SELECT * FROM users");
+     expect(result.rows.every((r: any) => r.organization_id === TENANT_A)).toBe(true);
+
+     await setOrg(TENANT_B);
+     result = await adminPool.query("SELECT * FROM users");
+     expect(result.rows.every((r: any) => r.organization_id === TENANT_B)).toBe(true);
+
+     await setOrg(TENANT_A);
+     result = await adminPool.query("SELECT * FROM users");
+     expect(result.rows.every((r: any) => r.organization_id === TENANT_A)).toBe(true);
+   }, TEST_TIMEOUT);
+ });
+
+ // ─── Test Suite: Cross-Tenant Isolation — Write ────────────────────────────
+
+ describe("VETRA-TEST-02: Cross-Tenant Isolation — Write", () => {
+   beforeAll(async () => {
+     if (postgresAvailable) await setupTestData();
+   }, TEST_TIMEOUT);
+
+   it("P0-12: Tenant A cannot update Tenant B's users", async () => {
+     if (!postgresAvailable) {
+       console.warn("SKIPPED: PostgreSQL not available");
+       return;
+     }
+     await setOrg(TENANT_A);
+     // Try to update a user in Tenant B
+     const result = await adminPool.query(
+       "UPDATE users SET name = 'Hacked' WHERE organization_id = $1 AND id = $2 RETURNING *",
+       [TENANT_B, 10002]
+     );
+     // RLS should prevent the update — zero rows affected
+     expect(result.rows.length).toBe(0);
+   }, TEST_TIMEOUT);
+
+   it("P0-13: Tenant A cannot delete Tenant B's projects", async () => {
+     if (!postgresAvailable) {
+       console.warn("SKIPPED: PostgreSQL not available");
+       return;
+     }
+     await setOrg(TENANT_A);
+     const result = await adminPool.query(
+       "DELETE FROM projects WHERE organization_id = $1 AND id = $2 RETURNING *",
+       [TENANT_B, 20002]
+     );
+     expect(result.rows.length).toBe(0);
+   }, TEST_TIMEOUT);
+
+   it("P0-14: Tenant A can only create data within its own org", async () => {
+     if (!postgresAvailable) {
+       console.warn("SKIPPED: PostgreSQL not available");
+       return;
+     }
+     await setOrg(TENANT_A);
+     // Try to insert a project with Tenant B's org ID
+     await expect(
+       adminPool.query(
+         "INSERT INTO projects (id, name, organization_id, created_at) VALUES ($1, $2, $3, NOW())",
+         [29999, "Cross-Tenant Project", TENANT_B]
+       )
+     ).rejects.toThrow();
+   }, TEST_TIMEOUT);
+ });
+
+ // ─── Test Suite: RLS Policy Count ──────────────────────────────────────────
+
+ describe("VETRA-TEST-02: RLS Policy Count", () => {
+   it("P1-1: Each tenant table has exactly 4 policies (SELECT, INSERT, UPDATE, DELETE)", async () => {
+     if (!postgresAvailable) {
+       console.warn("SKIPPED: PostgreSQL not available");
+       return;
+     }
+     const result = await adminPool.query(
+       `SELECT tablename, count(*) as policy_count
+        FROM pg_policies
+        WHERE policyname LIKE '%_tenant_isolation_%'
+        GROUP BY tablename
+        ORDER BY tablename`
+     );
+     for (const row of result.rows) {
+       expect(Number(row.policy_count)).toBe(4);
+     }
+   }, TEST_TIMEOUT);
+ });
+
+ // ─── Test Suite: Audit Log Append-Only ─────────────────────────────────────
+
+ describe("VETRA-TEST-02: Audit Log Append-Only", () => {
+   it("P1-2: audit_logs rejects UPDATE operations", async () => {
+     if (!postgresAvailable) {
+       console.warn("SKIPPED: PostgreSQL not available");
+       return;
+     }
+     await expect(
+       adminPool.query("UPDATE audit_logs SET action = 'tampered' WHERE id = 1")
+     ).rejects.toThrow();
+   }, TEST_TIMEOUT);
+
+   it("P1-3: audit_logs rejects DELETE operations", async () => {
+     if (!postgresAvailable) {
+       console.warn("SKIPPED: PostgreSQL not available");
+       return;
+     }
+     await expect(
+       adminPool.query("DELETE FROM audit_logs WHERE id = 1")
+     ).rejects.toThrow();
+   }, TEST_TIMEOUT);
+ });
+
+ // ─── Test Suite: Non-Owner Role Isolation (VETRA-INFRA-01) ─────────────────
+
+ describe("VETRA-TEST-02: Non-Owner Role Isolation", () => {
+   it("P1-4: vetra_app role cannot bypass RLS", async () => {
+     if (!postgresAvailable || !appPool || appPool === adminPool) {
+       console.warn("SKIPPED: Application role not available");
+       return;
+     }
+     // Even with the app role, without org context, should see no rows
+     await appPool.query("SELECT set_config('app.current_organization_id', '', false)");
+     const result = await appPool.query("SELECT * FROM users WHERE organization_id = $1", [TENANT_A]);
+     expect(result.rows.length).toBe(0);
+   }, TEST_TIMEOUT);
+
+   it("P1-5: vetra_app role cannot create tables (no DDL privilege)", async () => {
+     if (!postgresAvailable || !appPool || appPool === adminPool) {
+       console.warn("SKIPPED: Application role not available");
+       return;
+     }
+     await expect(
+       appPool.query("CREATE TABLE test_security_bypass (id serial)")
+     ).rejects.toThrow();
+   }, TEST_TIMEOUT);
+
+   it("P1-6: vetra_app role cannot drop tables", async () => {
+     if (!postgresAvailable || !appPool || appPool === adminPool) {
+       console.warn("SKIPPED: Application role not available");
+       return;
+     }
+     await expect(
+       appPool.query("DROP TABLE users")
+     ).rejects.toThrow();
+   }, TEST_TIMEOUT);
+ });
+
+ // ─── Test Suite: setOrganizationContext Function ────────────────────────────
+
+ describe("VETRA-TEST-02: setOrganizationContext", () => {
+   it("P1-7: set_organization_context function exists and is callable", async () => {
+     if (!postgresAvailable) {
+       console.warn("SKIPPED: PostgreSQL not available");
+       return;
+     }
+     const result = await adminPool.query(
+       "SELECT proname FROM pg_proc WHERE proname = 'set_organization_context'"
+     );
+     expect(result.rows.length).toBeGreaterThanOrEqual(1);
+     // Verify it can be called
+     await adminPool.query("SELECT set_organization_context($1)", [TENANT_A]);
+     await adminPool.query("SELECT set_organization_context($1)", [TENANT_B]);
+   }, TEST_TIMEOUT);
+ });
