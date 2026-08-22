@@ -65,7 +65,7 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "ALTER ROLE vetra_app WITH PASSWORD 'vetra_app'"
       - name: Apply database migrations
         run: |
-          for migration in lib/db/drizzle/000{0_nervous_mathemanic,1_phase3,2_quality,3_tenant_isolation,4_audit_rls,5_db_roles,6_forms,7_workflow_hardening,8_request_scoped_rls,9_quality_lifecycle}.sql; do
+          for migration in lib/db/drizzle/0000_nervous_mathemanic.sql lib/db/drizzle/0001_phase3.sql lib/db/drizzle/0002_quality.sql lib/db/drizzle/0003_tenant_isolation.sql lib/db/drizzle/0004_audit_rls.sql lib/db/drizzle/0005_db_roles.sql lib/db/drizzle/0006_forms.sql lib/db/drizzle/0007_workflow_hardening.sql lib/db/drizzle/0008_request_scoped_rls.sql lib/db/drizzle/0009_quality_lifecycle.sql lib/db/drizzle/0010_planning_wbs.sql; do
             psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$migration"
           done
       - name: Test
