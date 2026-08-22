@@ -75,6 +75,9 @@ afterAll(async () => {
   // Clean up test data
   if (postgresAvailable && adminPool) {
     try {
+      await adminPool.query("DELETE FROM quality_events WHERE organization_id IN ($1, $2)", [TENANT_A, TENANT_B]);
+      await adminPool.query("DELETE FROM non_conformance_reports WHERE organization_id IN ($1, $2)", [TENANT_A, TENANT_B]);
+      await adminPool.query("DELETE FROM inspections WHERE organization_id IN ($1, $2)", [TENANT_A, TENANT_B]);
       await adminPool.query("DELETE FROM workflow_run_events WHERE organization_id IN ($1, $2)", [TENANT_A, TENANT_B]);
       await adminPool.query("DELETE FROM form_submissions WHERE organization_id IN ($1, $2)", [TENANT_A, TENANT_B]);
       await adminPool.query("DELETE FROM form_template_versions WHERE organization_id IN ($1, $2)", [TENANT_A, TENANT_B]);
@@ -151,6 +154,7 @@ afterAll(async () => {
        "activity", "documents", "audit_logs", "roles",
        "form_templates", "form_template_versions", "form_submissions",
        "workflows", "workflow_steps", "workflow_runs", "workflow_run_events",
+       "inspections", "non_conformance_reports", "quality_events",
      ];
      const result = await adminPool.query(
        `SELECT tablename FROM pg_tables
@@ -176,6 +180,7 @@ afterAll(async () => {
        "activity", "documents", "audit_logs", "roles",
        "form_templates", "form_template_versions", "form_submissions",
        "workflows", "workflow_steps", "workflow_runs", "workflow_run_events",
+       "inspections", "non_conformance_reports", "quality_events",
      ];
      const result = await adminPool.query(
        `SELECT c.relname AS tablename
@@ -447,6 +452,21 @@ afterAll(async () => {
      for (const row of result.rows) {
        expect(Number(row.policy_count)).toBe(4);
      }
+   }, TEST_TIMEOUT);
+ });
+
+ // ─── Test Suite: Quality Event Append-Only ─────────────────────────────────
+
+ describe("VETRA-QUALITY-01: Quality event immutability", () => {
+   it("P1-10: quality_events rejects UPDATE and DELETE operations", async () => {
+     if (!postgresAvailable) { console.warn("SKIPPED: PostgreSQL not available"); return; }
+     await setupTestData();
+     await adminPool.query(
+       "INSERT INTO quality_events (id, organization_id, project_id, entity_type, entity_id, event_type, actor_id) VALUES ($1, $2, $3, 'inspection', $4, 'created', $5) ON CONFLICT DO NOTHING",
+       [71001, TENANT_A, 20001, 81001, 10001],
+     );
+     await expect(adminPool.query("UPDATE quality_events SET event_type = 'updated' WHERE id = 71001")).rejects.toThrow();
+     await expect(adminPool.query("DELETE FROM quality_events WHERE id = 71001")).rejects.toThrow();
    }, TEST_TIMEOUT);
  });
 
