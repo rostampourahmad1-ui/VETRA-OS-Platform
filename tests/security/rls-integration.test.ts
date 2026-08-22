@@ -7,7 +7,7 @@
  *
  * PREREQUISITES:
  *   - A PostgreSQL database must be accessible at DATABASE_URL
- *   - Migrations 0000, 0003, 0004, and 0005 must have been applied
+ *   - Migrations 0000 through 0008 must have been applied
  *   - The vetra_app and vetra_migration roles must exist (run init scripts)
  *
  * If PostgreSQL is not available, all tests are skipped with a clear message.
@@ -105,7 +105,7 @@ afterAll(async () => {
 
    // Create test users in each org
    await adminPool.query(
-     "INSERT INTO users (id, name, email, organization_id, role) VALUES ($1, 'User A', 'user_a@test.local', $2, 'Worker'), ($3, 'User B', 'user_b@test.local', $4, 'Worker') ON CONFLICT DO NOTHING",
+     "INSERT INTO users (id, name, email, clerk_user_id, organization_id, role) VALUES ($1, 'User A', 'user_a@test.local', 'clerk_test_user_a', $2, 'Worker'), ($3, 'User B', 'user_b@test.local', 'clerk_test_user_b', $4, 'Worker') ON CONFLICT DO NOTHING",
      [10001, TENANT_A, 10002, TENANT_B]
    );
 
@@ -384,6 +384,48 @@ afterAll(async () => {
          [29999, "Cross-Tenant Project", "Test Client", "Test Location", 10001, TENANT_B]
        )
      ).rejects.toThrow();
+   }, TEST_TIMEOUT);
+ });
+
+ // ─── Test Suite: Request-Scoped RLS Context ────────────────────────────────
+
+ describe("VETRA-SEC-06: Request-Scoped RLS Context", () => {
+   beforeAll(async () => {
+     if (postgresAvailable) await setupTestData();
+   }, TEST_TIMEOUT);
+
+   it("P1-8: Clerk bootstrap may resolve only the authenticated active user", async () => {
+     if (!postgresAvailable) { console.warn("SKIPPED: PostgreSQL not available"); return; }
+     await clearOrg();
+     await appClient.query("BEGIN");
+     try {
+       await appClient.query("SELECT set_request_clerk_user_context($1)", ["clerk_test_user_a"]);
+       const result = await appClient.query(
+         "SELECT id, organization_id, clerk_user_id FROM users WHERE clerk_user_id IN ($1, $2) ORDER BY id",
+         ["clerk_test_user_a", "clerk_test_user_b"],
+       );
+       expect(result.rows).toEqual([
+         { id: 10001, organization_id: TENANT_A, clerk_user_id: "clerk_test_user_a" },
+       ]);
+     } finally {
+       await appClient.query("ROLLBACK");
+     }
+   }, TEST_TIMEOUT);
+
+   it("P1-9: organization context is cleared when a request transaction commits", async () => {
+     if (!postgresAvailable) { console.warn("SKIPPED: PostgreSQL not available"); return; }
+     await clearOrg();
+     await appClient.query("BEGIN");
+     try {
+       await appClient.query("SELECT set_request_organization_context($1)", [TENANT_A]);
+       const scoped = await appClient.query("SELECT organization_id FROM projects ORDER BY id");
+       expect(scoped.rows.every((row: { organization_id: number }) => row.organization_id === TENANT_A)).toBe(true);
+     } finally {
+       await appClient.query("COMMIT");
+     }
+
+     const afterCommit = await appClient.query("SELECT organization_id FROM projects");
+     expect(afterCommit.rows).toEqual([]);
    }, TEST_TIMEOUT);
  });
 

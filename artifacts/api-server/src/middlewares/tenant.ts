@@ -1,85 +1,97 @@
 import type { NextFunction, Request, Response } from "express";
 import { getAuth } from "@clerk/express";
 import { and, eq } from "drizzle-orm";
-import { db, usersTable, projectsTable, setOrganizationContext } from "@workspace/db";
+import {
+  createOrganizationDatabaseSession,
+  db,
+  projectsTable,
+  resolveActiveUserByClerkId,
+  runWithRequestDatabaseContext,
+  type OrganizationDatabaseSession,
+} from "@workspace/db";
 
 declare global {
   namespace Express {
     interface Request {
       vetraUser?: { id: number; organizationId: number; role: string; clerkUserId?: string | null };
       organizationId?: number;
+      organizationDatabaseSession?: OrganizationDatabaseSession;
     }
   }
 }
 
 /**
- * VETRA-SEC-03: attachTenant Middleware
+ * VETRA-SEC-03 and VETRA-SEC-06: attachTenant Middleware
  *
- * Resolves the VETRA user from the database using the Clerk userId.
- * Only processes users marked as active.
- * Rejects with 403 if the Clerk user is not mapped to a VETRA organization.
- *
- * Security: organizationId is always derived from the database, never
- * from the client. This prevents tenant-ID spoofing.
+ * Resolves an active VETRA user from the authenticated Clerk identity, then
+ * checks out one PostgreSQL client for the request. Every downstream `db` call
+ * is bound to that client and runs with a transaction-local organization RLS
+ * setting. The setting is cleared on COMMIT or ROLLBACK before release.
  */
 export async function attachTenant(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    if (req.vetraUser) {
-      req.organizationId = req.vetraUser.organizationId;
-      // VETRA-SEC-05: Set RLS context for database session
-      await setOrganizationContext(req.vetraUser.organizationId);
-      next();
-      return;
-    }
-    const clerkUserId = getAuth(req)?.userId;
-    if (!clerkUserId) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-    // VETRA-SEC-03: Also check Clerk orgId for additional safety
-    const clerkOrgId = getAuth(req)?.orgId;
-    if (!clerkOrgId) {
-      res.status(403).json({ error: "Forbidden: no organization assigned in session" });
-      return;
-    }
-    const [user] = await db.select({ id: usersTable.id, organizationId: usersTable.organizationId, role: usersTable.role, clerkUserId: usersTable.clerkUserId })
-      .from(usersTable).where(and(eq(usersTable.clerkUserId, clerkUserId), eq(usersTable.active, true)));
+    let user = req.vetraUser;
+
     if (!user) {
-      res.status(403).json({ error: "Authenticated user is not mapped to a VETRA organization" });
-      return;
+      const clerkUserId = getAuth(req)?.userId;
+      if (!clerkUserId) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
+      // Require a Clerk organization as an additional session-level guard.
+      if (!getAuth(req)?.orgId) {
+        res.status(403).json({ error: "Forbidden: no organization assigned in session" });
+        return;
+      }
+
+      user = await resolveActiveUserByClerkId(clerkUserId);
+      if (!user) {
+        res.status(403).json({ error: "Authenticated user is not mapped to a VETRA organization" });
+        return;
+      }
+      req.vetraUser = user;
     }
-    req.vetraUser = user;
+
     req.organizationId = user.organizationId;
-    // VETRA-SEC-05: Set RLS context for database session
-    await setOrganizationContext(user.organizationId);
-    next();
+    const session = await createOrganizationDatabaseSession(user.organizationId);
+    req.organizationDatabaseSession = session;
+    let closed = false;
+
+    const closeSession = async (commit: boolean): Promise<void> => {
+      if (closed) return;
+      closed = true;
+      await session.close(commit);
+    };
+
+    // A normal completed response commits the bounded request transaction.
+    res.once("finish", () => {
+      void closeSession(res.statusCode < 400).catch(next);
+    });
+    // An interrupted response must never return the client with tenant context.
+    res.once("close", () => {
+      if (!res.writableEnded) void closeSession(false).catch(next);
+    });
+
+    runWithRequestDatabaseContext(session.db, () => next());
   } catch (error) {
     next(error);
   }
 }
 
 /**
- * VETRA-SEC-03: tenantId
- *
  * Returns the organizationId from the request context.
- * Throws if the tenant context is missing - this is a
- * programming error, not a runtime auth failure.
- * Use `requireTenant` middleware for request-level enforcement.
+ * Throws if the tenant context is missing: this is a programming error, not a
+ * runtime authorization fallback. Use `requireTenant` before protected routes.
  */
 export function tenantId(req: Request): number {
   if (!req.organizationId) throw new Error("Tenant context is missing");
   return req.organizationId;
 }
 
-/**
- * VETRA-SEC-03: requireTenant Middleware
- *
- * Ensures that organizationId is present on the request.
- * Returns 403 if the tenant context is not established.
- * Use this as a guard before operations that require tenant isolation.
- */
+/** Ensures a route is executing with an authenticated tenant context. */
 export function requireTenant(req: Request, res: Response, next: NextFunction): void {
-  if (!req.organizationId) {
+  if (!req.organizationId || !req.organizationDatabaseSession) {
     res.status(403).json({ error: "Forbidden: tenant context is required" });
     return;
   }
