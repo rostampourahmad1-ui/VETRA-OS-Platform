@@ -27,6 +27,13 @@ const mocks = vi.hoisted(() => {
     procurementTable: makeTable("procurement", ["id", "title", "supplier", "totalAmount", "status", "projectId", "organizationId", "requestedBy", "approvedBy", "deliveryDate", "notes", "createdAt"]),
     expensesTable: makeTable("expenses", ["id", "organizationId", "projectId", "amount", "description", "createdAt"]),
     organizationsTable: makeTable("organizations", ["id", "name"]),
+    formTemplatesTable: makeTable("formTemplates", ["id", "organizationId", "projectId", "workflowId", "name", "description", "status", "definition", "createdBy", "updatedBy", "createdAt", "updatedAt", "deletedAt"]),
+    formTemplateVersionsTable: makeTable("formTemplateVersions", ["id", "organizationId", "templateId", "version", "definition", "publishedBy", "createdAt"]),
+    formSubmissionsTable: makeTable("formSubmissions", ["id", "organizationId", "projectId", "templateId", "templateVersionId", "workflowRunId", "status", "answers", "submittedBy", "submittedAt", "createdAt", "updatedAt", "deletedAt"]),
+    workflowsTable: makeTable("workflows", ["id", "organizationId", "name", "entityType", "active", "createdBy", "updatedBy", "createdAt", "updatedAt", "deletedAt"]),
+    workflowStepsTable: makeTable("workflowSteps", ["id", "workflowId", "stepOrder", "name", "requiredPermission", "status"]),
+    workflowRunsTable: makeTable("workflowRuns", ["id", "organizationId", "workflowId", "entityType", "entityId", "currentStep", "status", "submittedBy", "updatedBy", "payload", "createdAt", "updatedAt", "completedAt"]),
+    workflowRunEventsTable: makeTable("workflowRunEvents", ["id", "organizationId", "workflowRunId", "workflowStepId", "action", "comment", "actorId", "createdAt"]),
   };
 
   const rows = new Map<Table, Row[]>();
@@ -388,3 +395,4 @@ describe("cross-tenant isolation", () => {
     expect(response.status).toBe(404);
   });
 });
+
