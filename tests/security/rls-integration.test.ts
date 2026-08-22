@@ -75,6 +75,13 @@ afterAll(async () => {
   // Clean up test data
   if (postgresAvailable && adminPool) {
     try {
+      await adminPool.query("DELETE FROM workflow_run_events WHERE organization_id IN ($1, $2)", [TENANT_A, TENANT_B]);
+      await adminPool.query("DELETE FROM form_submissions WHERE organization_id IN ($1, $2)", [TENANT_A, TENANT_B]);
+      await adminPool.query("DELETE FROM form_template_versions WHERE organization_id IN ($1, $2)", [TENANT_A, TENANT_B]);
+      await adminPool.query("DELETE FROM form_templates WHERE organization_id IN ($1, $2)", [TENANT_A, TENANT_B]);
+      await adminPool.query("DELETE FROM workflow_steps WHERE workflow_id IN (SELECT id FROM workflows WHERE organization_id IN ($1, $2))", [TENANT_A, TENANT_B]);
+      await adminPool.query("DELETE FROM workflow_runs WHERE organization_id IN ($1, $2)", [TENANT_A, TENANT_B]);
+      await adminPool.query("DELETE FROM workflows WHERE organization_id IN ($1, $2)", [TENANT_A, TENANT_B]);
       await adminPool.query("DELETE FROM projects WHERE organization_id IN ($1, $2)", [TENANT_A, TENANT_B]);
       await adminPool.query("DELETE FROM users WHERE organization_id IN ($1, $2)", [TENANT_A, TENANT_B]);
       await adminPool.query("DELETE FROM organizations WHERE id IN ($1, $2)", [TENANT_A, TENANT_B]);
@@ -142,6 +149,8 @@ afterAll(async () => {
        "users", "projects", "tasks", "contracts", "daily_reports",
        "meetings", "equipment", "inventory", "procurement",
        "activity", "documents", "audit_logs", "roles",
+       "form_templates", "form_template_versions", "form_submissions",
+       "workflows", "workflow_steps", "workflow_runs", "workflow_run_events",
      ];
      const result = await adminPool.query(
        `SELECT tablename FROM pg_tables
@@ -165,6 +174,8 @@ afterAll(async () => {
        "users", "projects", "tasks", "contracts", "daily_reports",
        "meetings", "equipment", "inventory", "procurement",
        "activity", "documents", "audit_logs", "roles",
+       "form_templates", "form_template_versions", "form_submissions",
+       "workflows", "workflow_steps", "workflow_runs", "workflow_run_events",
      ];
      const result = await adminPool.query(
        `SELECT c.relname AS tablename
@@ -193,6 +204,24 @@ afterAll(async () => {
         AND rowsecurity = true`
      );
      expect(result.rows.length).toBe(0);
+   }, TEST_TIMEOUT);
+ });
+
+ describe("VETRA-FORM-01: Forms RLS Isolation", () => {
+   beforeAll(async () => {
+     if (!postgresAvailable) return;
+     await setupTestData();
+     await adminPool.query(
+       "INSERT INTO form_templates (id, organization_id, name, status, definition, created_by, updated_by) VALUES ($1, $2, 'Org A form', 'draft', '{\"fields\":[]}'::jsonb, $3, $3), ($4, $5, 'Org B form', 'draft', '{\"fields\":[]}'::jsonb, $6, $6) ON CONFLICT DO NOTHING",
+       [61001, TENANT_A, 10001, 61002, TENANT_B, 10002],
+     );
+   }, TEST_TIMEOUT);
+
+   it("P1-FORM-1: tenant A cannot read tenant B form templates", async () => {
+     if (!postgresAvailable) { console.warn("SKIPPED: PostgreSQL not available"); return; }
+     await setOrg(TENANT_A);
+     const result = await appClient.query("SELECT id FROM form_templates ORDER BY id");
+     expect(result.rows.map((row: { id: number }) => row.id)).toEqual([61001]);
    }, TEST_TIMEOUT);
  });
 

@@ -22,8 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-
-const STORAGE_KEY = 'vetra-forms-builder-draft';
+import { get, patch, post } from '@/lib/phase2-api';
 
 type FieldType = 'text' | 'number' | 'date' | 'select' | 'checkbox';
 
@@ -37,10 +36,36 @@ type FormField = {
 };
 
 type FormDraft = {
+  id?: number;
   name: string;
   description: string;
   fields: FormField[];
+  status?: 'draft' | 'published' | 'archived';
+  projectId?: number | null;
+  workflowId?: number | null;
 };
+
+type FormTemplateResponse = {
+  id: number;
+  name: string;
+  description: string | null;
+  definition: { fields: FormField[] };
+  status: 'draft' | 'published' | 'archived';
+  projectId: number | null;
+  workflowId: number | null;
+};
+
+function toDraft(template: FormTemplateResponse): FormDraft {
+  return {
+    id: template.id,
+    name: template.name,
+    description: template.description ?? '',
+    fields: template.definition.fields,
+    status: template.status,
+    projectId: template.projectId,
+    workflowId: template.workflowId,
+  };
+}
 
 const initialDraft: FormDraft = {
   name: 'Daily Site Inspection',
@@ -88,17 +113,12 @@ function FieldIcon({ type }: { type: FieldType }) {
 }
 
 export default function FormsBuilder() {
-  const [draft, setDraft] = useState<FormDraft>(() => {
-    try {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      return stored ? (JSON.parse(stored) as FormDraft) : initialDraft;
-    } catch {
-      return initialDraft;
-    }
-  });
+  const [draft, setDraft] = useState<FormDraft>(initialDraft);
   const [selectedId, setSelectedId] = useState(draft.fields[0]?.id ?? '');
   const [mode, setMode] = useState<'build' | 'preview'>('build');
-  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const selectedField = useMemo(
     () => draft.fields.find((field) => field.id === selectedId) ?? draft.fields[0],
@@ -132,10 +152,50 @@ export default function FormsBuilder() {
     setSelectedId(fields[0]?.id ?? '');
   };
 
-  const saveDraft = () => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 1800);
+  useEffect(() => {
+    let active = true;
+    void get<FormTemplateResponse[]>('/forms/templates')
+      .then((templates) => {
+        const template = templates.find((item) => item.status === 'draft') ?? templates[0];
+        if (active && template) setDraft(toDraft(template));
+      })
+      .catch((cause) => {
+        if (active) setError(cause instanceof Error ? cause.message : 'Unable to load forms.');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => { active = false; };
+  }, []);
+
+  const saveDraft = async () => {
+    setSaving(true);
+    setError('');
+    const payload = { name: draft.name, description: draft.description || undefined, definition: { fields: draft.fields } };
+    try {
+      const saved = draft.id
+        ? await patch<FormTemplateResponse>(`/forms/templates/${draft.id}`, payload)
+        : await post<FormTemplateResponse>('/forms/templates', payload);
+      setDraft(toDraft(saved));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Unable to save form draft.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const publishDraft = async () => {
+    if (!draft.id) return;
+    setSaving(true);
+    setError('');
+    try {
+      const result = await post<{ template: FormTemplateResponse }>(`/forms/templates/${draft.id}/publish`, {});
+      setDraft(toDraft(result.template));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Unable to publish form.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -151,9 +211,13 @@ export default function FormsBuilder() {
         <div className="flex flex-wrap gap-2">
           <Button variant={mode === 'build' ? 'default' : 'outline'} onClick={() => setMode('build')} className="gap-2"><Settings2 className="h-4 w-4" /> Build</Button>
           <Button variant={mode === 'preview' ? 'default' : 'outline'} onClick={() => setMode('preview')} className="gap-2"><Eye className="h-4 w-4" /> Preview</Button>
-          <Button onClick={saveDraft} className="gap-2"><Save className="h-4 w-4" /> {saved ? 'Saved' : 'Save draft'}</Button>
+          <Button disabled={saving || loading} onClick={() => void saveDraft()} className="gap-2"><Save className="h-4 w-4" /> {saving ? 'Saving…' : 'Save draft'}</Button>
+          {draft.id && draft.status === 'draft' && <Button disabled={saving || loading} variant="outline" onClick={() => void publishDraft()}>Publish</Button>}
         </div>
       </div>
+
+      {error && <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>}
+      {loading && <div className="rounded-lg border border-dashed px-4 py-3 text-sm text-muted-foreground">Loading saved forms…</div>}
 
       <div className="grid gap-6 xl:grid-cols-[240px_minmax(0,1fr)_300px]">
         {mode === 'build' && (
@@ -179,7 +243,7 @@ export default function FormsBuilder() {
                 <Input value={draft.name} onChange={(event) => updateDraft({ name: event.target.value })} className="h-9 max-w-lg border-0 bg-transparent px-0 text-xl font-semibold shadow-none focus-visible:ring-0" aria-label="Form name" />
                 <Textarea value={draft.description} onChange={(event) => updateDraft({ description: event.target.value })} className="min-h-12 max-w-xl resize-none border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0" aria-label="Form description" />
               </div>
-              <Badge variant="secondary" className="shrink-0 gap-1"><LayoutTemplate className="h-3 w-3" /> Draft</Badge>
+              <Badge variant="secondary" className="shrink-0 gap-1"><LayoutTemplate className="h-3 w-3" /> {draft.status ?? 'draft'}</Badge>
             </div>
           </CardHeader>
           <CardContent className="space-y-4 p-5">
