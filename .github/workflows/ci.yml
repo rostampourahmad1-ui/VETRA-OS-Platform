@@ -41,22 +41,22 @@ jobs:
           node-version: 22
           cache: pnpm
 
-    - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile
 
-    - name: Security Audit (dependencies)
-      run: pnpm audit --audit-level=critical
+      - name: Security Audit (dependencies)
+        run: pnpm audit --audit-level=critical
 
-    - name: Typecheck
-      run: pnpm typecheck
+      - name: Typecheck
+        run: pnpm typecheck
 
-    - name: Lint
-      run: pnpm lint
+      - name: Lint
+        run: pnpm lint
 
-    - name: Build
-      run: pnpm build
+      - name: Build
+        run: pnpm build
 
-    - name: Test
-      run: pnpm test
+      - name: Test
+        run: pnpm test
 
   docker-build:
     runs-on: ubuntu-latest
