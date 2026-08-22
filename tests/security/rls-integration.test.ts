@@ -17,8 +17,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { pool, db } from "../../lib/db/src/index";
-import { sql } from "drizzle-orm";
+import { createDatabasePool, pool } from "../../lib/db/src/index";
 
 // ─── Test Constants ────────────────────────────────────────────────────────
 
@@ -28,7 +27,9 @@ const TEST_TIMEOUT = 30_000;
 
 // ─── Database Connection ───────────────────────────────────────────────────
 
-let adminPool: typeof pool;
+let adminPool: Awaited<ReturnType<typeof pool.connect>>;
+let appPool: typeof pool | undefined;
+let appClient: Awaited<ReturnType<typeof pool.connect>>;
 let postgresAvailable = false;
 
 beforeAll(async () => {
@@ -43,10 +44,22 @@ beforeAll(async () => {
     return;
   }
 
+  const appDbUrl = process.env.DATABASE_TEST_APP_URL;
+  if (!appDbUrl) {
+    console.warn(
+      "⚠ VETRA-TEST-02: DATABASE_TEST_APP_URL is not set.\n" +
+      "  RLS integration tests require a non-owner application role.\n" +
+      "  All RLS integration tests will be SKIPPED."
+    );
+    return;
+  }
+
   try {
-    adminPool = pool;
-    // Test connectivity
-    await db.execute(sql`SELECT 1`);
+    adminPool = await pool.connect();
+    await adminPool.query("SELECT 1");
+    appPool = createDatabasePool(appDbUrl);
+    appClient = await appPool.connect();
+    await appClient.query("SELECT 1");
     postgresAvailable = true;
     console.log("✓ VETRA-TEST-02: PostgreSQL connected. Running RLS integration tests.");
   } catch (err) {
@@ -62,15 +75,16 @@ afterAll(async () => {
   // Clean up test data
   if (postgresAvailable && adminPool) {
     try {
-      await db.execute(sql`DELETE FROM users WHERE organization_id IN (${TENANT_A}, ${TENANT_B})`);
-      await db.execute(sql`DELETE FROM projects WHERE organization_id IN (${TENANT_A}, ${TENANT_B})`);
-      await db.execute(sql`DELETE FROM tasks WHERE organization_id IN (${TENANT_A}, ${TENANT_B})`);
-      await db.execute(sql`DELETE FROM audit_logs WHERE organization_id IN (${TENANT_A}, ${TENANT_B})`);
-      await db.execute(sql`DELETE FROM organizations WHERE id IN (${TENANT_A}, ${TENANT_B})`);
+      await adminPool.query("DELETE FROM projects WHERE organization_id IN ($1, $2)", [TENANT_A, TENANT_B]);
+      await adminPool.query("DELETE FROM users WHERE organization_id IN ($1, $2)", [TENANT_A, TENANT_B]);
+      await adminPool.query("DELETE FROM organizations WHERE id IN ($1, $2)", [TENANT_A, TENANT_B]);
     } catch {
       // Best-effort cleanup
     }
   }
+  appClient?.release();
+  await appPool?.end();
+  adminPool?.release();
 });
 
  // ─── Helper ─────────────────────────────────────────────────────────────────
@@ -89,18 +103,18 @@ afterAll(async () => {
    );
 
    // Create test projects
-   await adminPool.query(
-     "INSERT INTO projects (id, name, organization_id, created_at) VALUES ($1, 'Project A', $2, NOW()), ($3, 'Project B', $4, NOW()) ON CONFLICT DO NOTHING",
-     [20001, TENANT_A, 20002, TENANT_B]
-   );
+  await adminPool.query(
+    "INSERT INTO projects (id, name, client, location, start_date, end_date, manager_id, organization_id, created_at) VALUES ($1, 'Project A', 'Test Client', 'Test Location', CURRENT_DATE, CURRENT_DATE + 1, $2, $3, NOW()), ($4, 'Project B', 'Test Client', 'Test Location', CURRENT_DATE, CURRENT_DATE + 1, $5, $6, NOW()) ON CONFLICT DO NOTHING",
+    [20001, 10001, TENANT_A, 20002, 10002, TENANT_B]
+  );
  }
 
  async function setOrg(orgId: number): Promise<void> {
-   await adminPool.query("SELECT set_organization_context($1)", [orgId]);
+   await appClient.query("SELECT set_organization_context($1)", [orgId]);
  }
 
  async function clearOrg(): Promise<void> {
-   await adminPool.query("SELECT set_config('app.current_organization_id', '', false)");
+   await appClient.query("SELECT set_config('app.current_organization_id', '', false)");
  }
 
  // ─── Test Suite: Database Connectivity ─────────────────────────────────────
@@ -153,10 +167,12 @@ afterAll(async () => {
        "activity", "documents", "audit_logs", "roles",
      ];
      const result = await adminPool.query(
-       `SELECT tablename FROM pg_tables
-        WHERE schemaname = 'public'
-        AND tablename = ANY($1)
-        AND forcerowsecurity = true`,
+       `SELECT c.relname AS tablename
+        FROM pg_class AS c
+        INNER JOIN pg_namespace AS n ON n.oid = c.relnamespace
+        WHERE n.nspname = 'public'
+        AND c.relname = ANY($1)
+        AND c.relforcerowsecurity = true`,
        [requiredTables]
      );
      const forcedTables = result.rows.map((r: any) => r.tablename);
@@ -193,7 +209,7 @@ afterAll(async () => {
        return;
      }
      await clearOrg();
-     const result = await adminPool.query("SELECT * FROM users WHERE organization_id = $1", [TENANT_A]);
+     const result = await appClient.query("SELECT * FROM users WHERE organization_id = $1", [TENANT_A]);
      // FAIL-CLOSED: No rows should be visible without org context
      expect(result.rows.length).toBe(0);
    }, TEST_TIMEOUT);
@@ -205,33 +221,37 @@ afterAll(async () => {
      }
      await clearOrg();
      await expect(
-       adminPool.query(
+       appClient.query(
          "INSERT INTO users (id, name, email, organization_id, role) VALUES ($1, $2, $3, $4, $5)",
          [99999, "NoOrg User", "noorg@test.local", TENANT_A, "Worker"]
        )
      ).rejects.toThrow();
    }, TEST_TIMEOUT);
 
-   it("P0-7: UPDATE fails when org context is not set", async () => {
+   it("P0-7: UPDATE affects zero rows when org context is not set", async () => {
      if (!postgresAvailable) {
        console.warn("SKIPPED: PostgreSQL not available");
        return;
      }
      await clearOrg();
-     await expect(
-       adminPool.query("UPDATE users SET name = 'Hacked' WHERE organization_id = $1", [TENANT_A])
-     ).rejects.toThrow();
+     const result = await appClient.query(
+       "UPDATE users SET name = 'Hacked' WHERE organization_id = $1",
+       [TENANT_A]
+     );
+     expect(result.rowCount).toBe(0);
    }, TEST_TIMEOUT);
 
-   it("P0-8: DELETE fails when org context is not set", async () => {
+   it("P0-8: DELETE affects zero rows when org context is not set", async () => {
      if (!postgresAvailable) {
        console.warn("SKIPPED: PostgreSQL not available");
        return;
      }
      await clearOrg();
-     await expect(
-       adminPool.query("DELETE FROM users WHERE organization_id = $1", [TENANT_A])
-     ).rejects.toThrow();
+     const result = await appClient.query(
+       "DELETE FROM users WHERE organization_id = $1",
+       [TENANT_A]
+     );
+     expect(result.rowCount).toBe(0);
    }, TEST_TIMEOUT);
  });
 
@@ -248,7 +268,7 @@ afterAll(async () => {
        return;
      }
      await setOrg(TENANT_A);
-     const result = await adminPool.query("SELECT * FROM users");
+     const result = await appClient.query("SELECT * FROM users");
      const orgIds = result.rows.map((r: any) => r.organization_id);
      // Should only see Tenant A's data
      expect(orgIds.every((id: number) => id === TENANT_A)).toBe(true);
@@ -261,7 +281,7 @@ afterAll(async () => {
        return;
      }
      await setOrg(TENANT_B);
-     const result = await adminPool.query("SELECT * FROM projects");
+     const result = await appClient.query("SELECT * FROM projects");
      const orgIds = result.rows.map((r: any) => r.organization_id);
      expect(orgIds.every((id: number) => id === TENANT_B)).toBe(true);
      expect(orgIds.some((id: number) => id === TENANT_A)).toBe(false);
@@ -274,15 +294,15 @@ afterAll(async () => {
      }
      // Switch from Tenant A to Tenant B and back
      await setOrg(TENANT_A);
-     let result = await adminPool.query("SELECT * FROM users");
+     let result = await appClient.query("SELECT * FROM users");
      expect(result.rows.every((r: any) => r.organization_id === TENANT_A)).toBe(true);
 
      await setOrg(TENANT_B);
-     result = await adminPool.query("SELECT * FROM users");
+     result = await appClient.query("SELECT * FROM users");
      expect(result.rows.every((r: any) => r.organization_id === TENANT_B)).toBe(true);
 
      await setOrg(TENANT_A);
-     result = await adminPool.query("SELECT * FROM users");
+     result = await appClient.query("SELECT * FROM users");
      expect(result.rows.every((r: any) => r.organization_id === TENANT_A)).toBe(true);
    }, TEST_TIMEOUT);
  });
@@ -301,7 +321,7 @@ afterAll(async () => {
      }
      await setOrg(TENANT_A);
      // Try to update a user in Tenant B
-     const result = await adminPool.query(
+     const result = await appClient.query(
        "UPDATE users SET name = 'Hacked' WHERE organization_id = $1 AND id = $2 RETURNING *",
        [TENANT_B, 10002]
      );
@@ -315,7 +335,7 @@ afterAll(async () => {
        return;
      }
      await setOrg(TENANT_A);
-     const result = await adminPool.query(
+     const result = await appClient.query(
        "DELETE FROM projects WHERE organization_id = $1 AND id = $2 RETURNING *",
        [TENANT_B, 20002]
      );
@@ -330,9 +350,9 @@ afterAll(async () => {
      await setOrg(TENANT_A);
      // Try to insert a project with Tenant B's org ID
      await expect(
-       adminPool.query(
-         "INSERT INTO projects (id, name, organization_id, created_at) VALUES ($1, $2, $3, NOW())",
-         [29999, "Cross-Tenant Project", TENANT_B]
+       appClient.query(
+         "INSERT INTO projects (id, name, client, location, start_date, end_date, manager_id, organization_id, created_at) VALUES ($1, $2, $3, $4, CURRENT_DATE, CURRENT_DATE + 1, $5, $6, NOW())",
+         [29999, "Cross-Tenant Project", "Test Client", "Test Location", 10001, TENANT_B]
        )
      ).rejects.toThrow();
    }, TEST_TIMEOUT);
@@ -387,33 +407,32 @@ afterAll(async () => {
 
  describe("VETRA-TEST-02: Non-Owner Role Isolation", () => {
    it("P1-4: vetra_app role cannot bypass RLS", async () => {
-     if (!postgresAvailable || !appPool || appPool === adminPool) {
-       console.warn("SKIPPED: Application role not available");
+     if (!postgresAvailable) {
+       console.warn("SKIPPED: PostgreSQL not available");
        return;
      }
-     // Even with the app role, without org context, should see no rows
-     await appPool.query("SELECT set_config('app.current_organization_id', '', false)");
-     const result = await appPool.query("SELECT * FROM users WHERE organization_id = $1", [TENANT_A]);
+     await clearOrg();
+     const result = await appClient.query("SELECT * FROM users WHERE organization_id = $1", [TENANT_A]);
      expect(result.rows.length).toBe(0);
    }, TEST_TIMEOUT);
 
    it("P1-5: vetra_app role cannot create tables (no DDL privilege)", async () => {
-     if (!postgresAvailable || !appPool || appPool === adminPool) {
-       console.warn("SKIPPED: Application role not available");
+     if (!postgresAvailable) {
+       console.warn("SKIPPED: PostgreSQL not available");
        return;
      }
      await expect(
-       appPool.query("CREATE TABLE test_security_bypass (id serial)")
+       appClient.query("CREATE TABLE test_security_bypass (id serial)")
      ).rejects.toThrow();
    }, TEST_TIMEOUT);
 
    it("P1-6: vetra_app role cannot drop tables", async () => {
-     if (!postgresAvailable || !appPool || appPool === adminPool) {
-       console.warn("SKIPPED: Application role not available");
+     if (!postgresAvailable) {
+       console.warn("SKIPPED: PostgreSQL not available");
        return;
      }
      await expect(
-       appPool.query("DROP TABLE users")
+       appClient.query("DROP TABLE users")
      ).rejects.toThrow();
    }, TEST_TIMEOUT);
  });

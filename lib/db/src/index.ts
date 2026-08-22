@@ -27,6 +27,14 @@ export const pool = new Pool({ connectionString });
 export const db = drizzle(pool, { schema });
 
 /**
+ * Creates a dedicated PostgreSQL pool for controlled test or worker contexts.
+ * Callers must provide a connection string for the intended database role.
+ */
+export function createDatabasePool(connectionString: string): pg.Pool {
+  return new Pool({ connectionString });
+}
+
+/**
  * VETRA-SEC-05: Sets the PostgreSQL RLS organization context
  * for the current database session. Must be called before any
  * query that operates on tenant-scoped tables.

@@ -27,6 +27,7 @@ jobs:
           --health-interval 10s --health-timeout 5s --health-retries 5
     env:
       DATABASE_URL: postgresql://vetra:vetra@localhost:5432/vetra_ci
+      DATABASE_TEST_APP_URL: postgresql://vetra_app:vetra_app@localhost:5432/vetra_ci
       PORT: 5000
       CLERK_PUBLISHABLE_KEY: pk_test_placeholder
     steps:
@@ -55,6 +56,15 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Bootstrap database roles
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f infra/db/init/01-roles.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "ALTER ROLE vetra_app WITH PASSWORD 'vetra_app'"
+      - name: Apply database migrations
+        run: |
+          for migration in lib/db/drizzle/000{0_nervous_mathemanic,1_phase3,2_quality,3_tenant_isolation,4_audit_rls,5_db_roles}.sql; do
+            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$migration"
+          done
       - name: Test
         run: pnpm test
 
