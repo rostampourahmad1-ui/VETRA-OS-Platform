@@ -160,16 +160,51 @@ router.post("/workflow-runs/:id/decision", requirePermission("workflows.approve"
     return;
   }
 
-  const steps = await db.select().from(workflowStepsTable).where(eq(workflowStepsTable.workflowId, run.workflowId)).orderBy(asc(workflowStepsTable.stepOrder));
-  const isFinalApproval = decision === "approve" && run.currentStep >= steps.length;
-  const nextStep = decision === "approve" && !isFinalApproval ? run.currentStep + 1 : run.currentStep;
-  const nextStatus = decision === "approve" ? (isFinalApproval ? "approved" : "pending") : decision === "reject" ? "rejected" : "revision_requested";
+  // Approval gate: check if enough approvals have been collected
+  let shouldAdvance = true;
+  if (decision === "approve" && step.approvalType === "any" && step.requiredApprovals && step.requiredApprovals > 1) {
+    const approveEvents = await db.select().from(workflowRunEventsTable).where(and(
+      eq(workflowRunEventsTable.workflowRunId, run.id),
+      eq(workflowRunEventsTable.workflowStepId, step.id),
+      eq(workflowRunEventsTable.action, "approve"),
+    ));
+    shouldAdvance = approveEvents.length >= step.requiredApprovals;
+  }
+
+  const steps = await db.select().from(workflowStepsTable).where(and(
+    eq(workflowStepsTable.workflowId, run.workflowId),
+  )).orderBy(asc(workflowStepsTable.stepOrder));
+  const isFinalApproval = decision === "approve" && shouldAdvance && run.currentStep >= steps.length;
+
+  let nextStepVal;
+  let nextStatusVal;
+  let completedAtVal;
+
+  if (decision === "approve" && shouldAdvance) {
+    nextStepVal = isFinalApproval ? run.currentStep : run.currentStep + 1;
+    nextStatusVal = isFinalApproval ? "approved" : "pending";
+    completedAtVal = isFinalApproval ? new Date() : null;
+  } else if (decision === "reject") {
+    nextStepVal = run.currentStep;
+    nextStatusVal = "rejected";
+    completedAtVal = new Date();
+  } else if (decision === "request_revision") {
+    nextStepVal = run.currentStep;
+    nextStatusVal = "revision_requested";
+    completedAtVal = new Date();
+  } else {
+    // Approval gate: not enough approvals yet, stay on same step
+    nextStepVal = run.currentStep;
+    nextStatusVal = "pending";
+    completedAtVal = null;
+  }
+
   const [updated] = await db.update(workflowRunsTable).set({
-    currentStep: nextStep,
-    status: nextStatus,
+    currentStep: nextStepVal,
+    status: nextStatusVal,
     updatedBy: req.vetraUser!.id,
     updatedAt: new Date(),
-    completedAt: isFinalApproval || decision === "reject" ? new Date() : null,
+    completedAt: completedAtVal,
   }).where(and(
     eq(workflowRunsTable.id, run.id),
     eq(workflowRunsTable.organizationId, tenantId(req)),
@@ -187,6 +222,8 @@ router.post("/workflow-runs/:id/decision", requirePermission("workflows.approve"
     actorId: req.vetraUser!.id,
   });
 
+  // Only update the linked entity when the workflow actually transitions
+  if (updated.status !== "pending") {
   if (run.entityType === "form_submission") {
     const submissionStatus = decision === "approve"
       ? (isFinalApproval ? "approved" : "submitted")
@@ -235,6 +272,8 @@ router.post("/workflow-runs/:id/decision", requirePermission("workflows.approve"
       metadata: comment ? { comment } : undefined,
     });
   }
+
+  } // end if (updated.status !== "pending")
 
   audit(req, `workflow_run.${decision}`, "workflow_run", {
     resourceId: run.id,

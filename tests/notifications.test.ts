@@ -3,76 +3,84 @@ import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => {
-  const tables = Object.fromEntries(["notificationsTable"].map((name) => [name, { name }])) as Record<string, any>;
-  const rows = new Map<any, any[]>();
+  type Row = Record<string, any>;
+  type Table = Record<string, any> & { __name: string };
+
+  const makeTable = (name: string, fields: string[]): Table => {
+    const table: Table = { __name: name };
+    for (const field of fields) table[field] = { __table: name, __field: field };
+    return table;
+  };
+
+  const tables = {
+    notificationsTable: makeTable("notifications", ["id", "organizationId", "userId", "title", "message", "type", "read", "link", "createdAt"]),
+  };
+
+  const rows = new Map<Table, Row[]>();
+
+  const valueOf = (column: any, pair: { source: Row; sourceTable: Table }) => {
+    if (!column || !column.__field) return column;
+    if (column.__table === pair.sourceTable.__name) return pair.source[column.__field];
+    return undefined;
+  };
+
+  const evaluate = (expression: any, pair: { source: Row; sourceTable: Table }): boolean => {
+    if (!expression) return true;
+    if (Array.isArray(expression)) {
+      return expression.every((item: any) => evaluate(item, pair));
+    }
+    if (expression.kind === "eq") return valueOf(expression.left, pair) === expression.right;
+    return true;
+  };
+
   const db = {
     select: vi.fn(() => {
-      let table: any;
+      let table: Table;
       let whereClause: any;
       const query: any = {
-        from(value: any) { table = value; return this; },
+        from(value: Table) { table = value; return this; },
         where(clause: any) { whereClause = clause; return this; },
-        orderBy() { return this; },
+        orderBy() { return query; },
         then(resolve: any, reject?: any) {
           let data = rows.get(table) ?? [];
-          // Simulate basic tenant isolation: if where clause has conditions, filter
           if (whereClause) {
-            const conditions = Array.isArray(whereClause) ? whereClause : [whereClause];
-            for (const condition of conditions) {
-              if (condition?.field === "organizationId") {
-                data = data.filter((row: any) => row.organizationId === condition.value);
-              }
-              if (condition?.field === "userId") {
-                data = data.filter((row: any) => row.userId === condition.value);
-              }
-            }
+            data = data.filter((row) => evaluate(whereClause, { source: row, sourceTable: table }));
           }
           return Promise.resolve(data).then(resolve, reject);
         },
       };
       return query;
     }),
-    update: vi.fn(() => {
-      let table: any;
+    update: vi.fn((table: Table) => {
       let setClause: any;
       let whereClause: any;
-      const query: any = {
-        from(value: any) { table = value; return this; },
-        set(clause: any) { setClause = clause; return this; },
-        where(clause: any) { whereClause = clause; return this; },
+      const chain: any = {
+        set(clause: any) { setClause = clause; return chain; },
+        where(clause: any) { whereClause = clause; return chain; },
         returning() {
           let data = rows.get(table) ?? [];
-          // Simulate tenant isolation: filter by id + organizationId + userId
           if (whereClause) {
-            const conditions = Array.isArray(whereClause) ? whereClause : [whereClause];
-            let filtered = [...data];
-            for (const condition of conditions) {
-              if (condition?.field === "id") {
-                filtered = filtered.filter((row: any) => row.id === condition.value);
-              }
-              if (condition?.field === "organizationId") {
-                filtered = filtered.filter((row: any) => row.organizationId === condition.value);
-              }
-              if (condition?.field === "userId") {
-                filtered = filtered.filter((row: any) => row.userId === condition.value);
-              }
-            }
-            if (filtered.length > 0 && setClause?.read === true) {
-              filtered[0].read = true;
-            }
-            return Promise.resolve(filtered.length > 0 ? [filtered[0]] : []);
+            data = data.filter((row) => evaluate(whereClause, { source: row, sourceTable: table }));
           }
-          return Promise.resolve([]);
+          if (data.length > 0 && setClause?.read === true) {
+            data[0].read = true;
+          }
+          return Promise.resolve(data.length > 0 ? [data[0]] : []);
         },
       };
-      return query;
+      return chain;
     }),
   };
+
   return { tables, rows, db };
 });
 const { tables, rows, db } = mocks;
 vi.mock("@workspace/db", () => ({ ...mocks.tables, db: mocks.db }));
-vi.mock("drizzle-orm", () => ({ eq: (field: any, value: any) => ({ field, value }), and: (...args: any[]) => args, sql: (strings: any) => strings }));
+vi.mock("drizzle-orm", () => ({
+  eq: (left: any, right: any) => ({ kind: "eq", left, right }),
+  and: (...args: any[]) => args,
+  sql: (strings: any) => strings,
+}));
 vi.mock("../artifacts/api-server/src/middlewares/permissions", () => ({ requirePermission: () => (_req: any, _res: any, next: any) => next() }));
 vi.mock("../artifacts/api-server/src/middlewares/requireAuth", () => ({ requireAuth: (_req: any, _res: any, next: any) => next() }));
 
