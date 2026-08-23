@@ -1532,7 +1532,9 @@ export const PostWorkflowsBody = zod.object({
   "entityType": zod.string(),
   "steps": zod.array(zod.object({
   "name": zod.string(),
-  "requiredPermission": zod.string()
+  "requiredPermission": zod.string(),
+  "approvalType": zod.enum(["single", "any", "all"]).optional(),
+  "requiredApprovals": zod.number().int().min(1).optional()
 })).min(1)
 })
 

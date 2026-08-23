@@ -369,6 +369,7 @@ router.post("/form-submissions/:id/submit", requirePermission("forms.submit"), a
       action: "submitted",
       actorId: req.vetraUser!.id,
     });
+    audit(req, "workflow_run.submitted", "workflow_run", { resourceId: run.id, newValues: { workflowId: run.workflowId, entityType: run.entityType, entityId: run.entityId } });
     workflowRunId = run.id;
   }
 

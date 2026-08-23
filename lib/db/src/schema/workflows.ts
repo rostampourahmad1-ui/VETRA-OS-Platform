@@ -24,6 +24,8 @@ export const workflowStepsTable = pgTable("workflow_steps", {
   name: text("name").notNull(),
   requiredPermission: text("required_permission").notNull(),
   status: text("status").notNull().default("pending"),
+  approvalType: text("approval_type").notNull().default("single"),
+  requiredApprovals: integer("required_approvals").default(1),
 }, (table) => ({
   workflowOrderIdx: index("workflow_steps_workflow_order_idx").on(table.workflowId, table.stepOrder),
 }));

@@ -1,10 +1,10 @@
 import React from 'react';
 import { Link, useLocation } from 'wouter';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { get } from '@/lib/phase2-api';
 import {
   Building2, LayoutDashboard, FolderKanban, ListTodo, FileText,
-  Briefcase, Activity, Users, Package, Truck, ClipboardList,
+  Briefcase, Activity, Users, Package, Truck, ClipboardList, X,
   Settings, ChevronDown, Bell, Search, Menu,
   Calendar, Wrench, BarChart3, Bot, Calculator, ClipboardCheck,
   UserCircle, LogOut,
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useUser, useClerk } from '@clerk/react';
 
 export function Shell({ children }: { children: React.ReactNode }) {
@@ -165,12 +166,64 @@ function Sidebar() {
 function Topbar() {
   const [, setLocation] = useLocation();
   const [query, setQuery] = useState('');
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [open, setOpen] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const bellRef = useRef<HTMLButtonElement>(null);
   const [results, setResults] = useState<any[]>([]);
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const [list, count] = await Promise.all([
+        get<any[]>('/notifications').catch(() => []),
+        get<{ unread: number }>('/notifications/unread-count').catch(() => ({ unread: 0 })),
+      ]);
+      setNotifications(list ?? []);
+      setUnreadCount(count?.unread ?? 0);
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node) &&
+          bellRef.current && !bellRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [open]);
+
   useEffect(() => {
     if (query.trim().length < 2) { setResults([]); return; }
     const timer = window.setTimeout(() => get<any[]>('/search', { q: query }).then(setResults).catch(() => setResults([])), 250);
     return () => window.clearTimeout(timer);
   }, [query]);
+
+  const handleMarkRead = async (id: number) => {
+    try {
+      await fetch(`/api/notifications/${id}/read`, { method: 'PATCH', credentials: 'include' });
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch { /* ignore */ }
+  };
+
+  const formatTime = (iso: string) => {
+    const d = new Date(iso);
+    const now = new Date();
+    const diff = now.getTime() - d.getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'now';
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
   return (
     <header className="h-16 flex items-center justify-between px-6 border-b bg-card">
       <div className="flex items-center gap-4 flex-1">
@@ -182,10 +235,58 @@ function Topbar() {
         </div>
       </div>
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" className="relative">
+        <Button ref={bellRef} variant="ghost" size="icon" className="relative" onClick={() => setOpen(prev => !prev)}>
           <Bell className="h-5 w-5 text-muted-foreground" />
-          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-accent" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center h-4 min-w-[16px] rounded-full bg-accent text-[10px] font-bold text-accent-foreground px-1">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
         </Button>
+        {open && (
+          <div
+            ref={panelRef}
+            className="absolute top-14 right-6 z-50 w-80 sm:w-96 rounded-lg border bg-card shadow-xl"
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b">
+              <h3 className="font-semibold text-sm">Notifications</h3>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setOpen(false)}>
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+            <div className="max-h-80 overflow-y-auto">
+              {notifications.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">No notifications yet</p>
+              ) : (
+                notifications.map(n => (
+                  <div key={n.id} className={`flex items-start gap-3 px-4 py-3 border-b last:border-0 hover:bg-muted/50 transition-colors ${!n.read ? 'bg-muted/30' : ''}`}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        {!n.read && <span className="h-2 w-2 rounded-full bg-accent shrink-0" />}
+                        <p className={`text-sm truncate ${!n.read ? 'font-semibold' : 'text-muted-foreground'}`}>{n.title}</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] text-muted-foreground">{formatTime(n.createdAt)}</span>
+                        {n.type !== 'info' && (
+                          <Badge variant="outline" className="text-[10px] h-4 px-1.5">{n.type}</Badge>
+                        )}
+                      </div>
+                    </div>
+                    {!n.read && (
+                      <button
+                        onClick={() => handleMarkRead(n.id)}
+                        className="text-[10px] text-primary hover:underline shrink-0 mt-0.5"
+                      >
+                        Mark read
+                      </button>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </header>
   );

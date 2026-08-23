@@ -1,9 +1,13 @@
-import { pgTable, text, serial, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, boolean, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { organizationsTable } from "./organizations";
+import { usersTable } from "./users";
 
 export const notificationsTable = pgTable("notifications", {
   id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizationsTable.id),
+  userId: integer("user_id").notNull().references(() => usersTable.id),
   title: text("title").notNull(),
   message: text("message").notNull(),
   type: text("type").notNull().default("info"),

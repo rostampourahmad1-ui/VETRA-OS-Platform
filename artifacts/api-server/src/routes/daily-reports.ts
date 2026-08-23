@@ -55,7 +55,7 @@ router.post("/daily-reports", requirePermission("daily-reports.create"), async (
     notes: d.notes,
     projectId: d.projectId,
     organizationId,
-    createdBy: d.createdBy,
+    createdBy: String(req.vetraUser!.id),
   }).returning();
 
   res.status(201).json({
