@@ -97,7 +97,10 @@ const mocks = vi.hoisted(() => {
 
   const reset = () => { rows.clear(); nextId = 1000; };
 
-  return { tables, rows, db, reset };
+  const mockAuth = { reject: false, statusCode: 401 };
+  const mockPermission = { reject: false, statusCode: 403, permission: "" };
+
+  return { tables, rows, db, reset, mockAuth, mockPermission };
 });
 
 const { tables, rows } = mocks;
@@ -110,8 +113,25 @@ vi.mock("drizzle-orm", () => ({
   sql: (strings: any) => ({ kind: "sql", strings }),
   sum: (column: any) => ({ kind: "sum", column }),
 }));
-vi.mock("../artifacts/api-server/src/middlewares/permissions", () => ({ requirePermission: () => (_req: any, _res: any, next: any) => next() }));
-vi.mock("../artifacts/api-server/src/middlewares/requireAuth", () => ({ requireAuth: (_req: any, _res: any, next: any) => next() }));
+vi.mock("../artifacts/api-server/src/middlewares/permissions", () => ({
+  requirePermission: () => (req: any, res: any, next: any) => {
+    if (mocks.mockPermission.reject) {
+      res.status(mocks.mockPermission.statusCode).json({ error: "Forbidden", permission: mocks.mockPermission.permission || "hr.read" });
+      return;
+    }
+    next();
+  },
+  hasPermission: () => Promise.resolve(true),
+}));
+vi.mock("../artifacts/api-server/src/middlewares/requireAuth", () => ({
+  requireAuth: (req: any, res: any, next: any) => {
+    if (mocks.mockAuth.reject) {
+      res.status(mocks.mockAuth.statusCode).json({ error: "Unauthorized" });
+      return;
+    }
+    next();
+  },
+}));
 vi.mock("../artifacts/api-server/src/middlewares/tenant", () => ({ tenantId: () => 1, ownedProject: async () => true }));
 vi.mock("../artifacts/api-server/src/lib/audit", () => ({ audit: vi.fn() }));
 
@@ -129,8 +149,16 @@ function appWith(router: any) {
   return app;
 }
 
+function appWithNoAuth(router: any) {
+  const app = express();
+  app.use(express.json());
+  // No vetraUser or organizationId set - simulates unauthenticated request
+  app.use(router);
+  return app;
+}
+
 describe("Attendance API — tenant isolation & jalali date support", () => {
-  beforeEach(() => mocks.reset());
+  beforeEach(() => { mocks.reset(); mocks.mockAuth.reject = false; mocks.mockPermission.reject = false; });
 
   it("creates an attendance record within the tenant scope", async () => {
     rows.set(tables.employeesTable, [
@@ -212,4 +240,100 @@ describe("Attendance API — tenant isolation & jalali date support", () => {
     expect(response.body[0].date).toBe("2026-08-23");
     expect(response.body[0].date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
+
+  describe("Security - authentication & authorization", () => {
+    beforeEach(() => {
+      mocks.mockAuth.reject = false;
+      mocks.mockPermission.reject = false;
+    });
+
+    it("rejects unauthenticated attendance list with 401", async () => {
+      mocks.mockAuth.reject = true;
+      mocks.mockAuth.statusCode = 401;
+      const response = await request(appWithNoAuth(hrRouter)).get("/attendance");
+      expect(response.status).toBe(401);
+      expect(response.body.error).toBe("Unauthorized");
+    });
+
+    it("rejects unauthenticated attendance create with 401", async () => {
+      mocks.mockAuth.reject = true;
+      mocks.mockAuth.statusCode = 401;
+      const response = await request(appWithNoAuth(hrRouter))
+        .post("/attendance")
+        .send({ employeeId: 1, date: "2026-08-23" });
+      expect(response.status).toBe(401);
+      expect(response.body.error).toBe("Unauthorized");
+    });
+
+    it("rejects unauthenticated attendance detail with 401", async () => {
+      mocks.mockAuth.reject = true;
+      mocks.mockAuth.statusCode = 401;
+      const response = await request(appWithNoAuth(hrRouter)).get("/attendance/1");
+      expect(response.status).toBe(401);
+      expect(response.body.error).toBe("Unauthorized");
+    });
+
+    it("rejects attendance list without required permission with 403", async () => {
+      mocks.mockPermission.reject = true;
+      mocks.mockPermission.statusCode = 403;
+      mocks.mockPermission.permission = "hr.read";
+      const response = await request(appWith(hrRouter)).get("/attendance");
+      expect(response.status).toBe(403);
+      expect(response.body.error).toContain("Forbidden");
+    });
+
+    it("rejects attendance create without required permission with 403", async () => {
+      mocks.mockPermission.reject = true;
+      mocks.mockPermission.statusCode = 403;
+      mocks.mockPermission.permission = "hr.create";
+      const response = await request(appWith(hrRouter))
+        .post("/attendance")
+        .send({ employeeId: 1, date: "2026-08-23" });
+      expect(response.status).toBe(403);
+      expect(response.body.error).toContain("Forbidden");
+    });
+  });
+
+  describe("Security - cross-tenant isolation", () => {
+    it("prevents tenant A from reading tenant B attendance via forced organizationId", async () => {
+      rows.set(tables.attendanceTable, [
+        { id: 1, employeeId: 1, organizationId: 1, date: "2026-08-23", checkIn: "08:00", checkOut: "17:00", status: "present", hoursWorked: "9", overtimeHours: "1", notes: null, recordedBy: 7, createdAt: new Date(), updatedAt: new Date() },
+        { id: 2, employeeId: 2, organizationId: 2, date: "2026-08-23", checkIn: "09:00", checkOut: "18:00", status: "present", hoursWorked: "9", overtimeHours: null, notes: null, recordedBy: 8, createdAt: new Date(), updatedAt: new Date() },
+      ]);
+      const response = await request(appWith(hrRouter)).get("/attendance");
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveLength(1);
+      expect(response.body[0].organizationId).toBe(1);
+    });
+
+    it("prevents tenant A from creating attendance for tenant B employee", async () => {
+      rows.set(tables.employeesTable, [
+        { id: 99, organizationId: 2, code: "E099", firstName: "Other", lastName: "Org", phone: "09120000099", position: "engineer", hireDate: "2025-01-01", salary: "10000000", dailyWage: "500000", status: "active", createdBy: 99, createdAt: new Date(), updatedAt: new Date() },
+      ]);
+      const response = await request(appWith(hrRouter))
+        .post("/attendance")
+        .send({ employeeId: 99, date: "2026-08-23", checkIn: "08:00", checkOut: "17:00" });
+      expect(response.status).toBe(404);
+      expect(response.body.error).toContain("Employee not found");
+    });
+
+    it("prevents tenant A from updating tenant B attendance", async () => {
+      rows.set(tables.attendanceTable, [
+        { id: 20, employeeId: 99, organizationId: 2, date: "2026-08-23", status: "present", recordedBy: 99, createdAt: new Date(), updatedAt: new Date() },
+      ]);
+      const response = await request(appWith(hrRouter))
+        .patch("/attendance/20")
+        .send({ status: "absent" });
+      expect(response.status).toBe(404);
+    });
+
+    it("prevents tenant A from deleting tenant B attendance", async () => {
+      rows.set(tables.attendanceTable, [
+        { id: 30, employeeId: 99, organizationId: 2, date: "2026-08-23", status: "present", recordedBy: 99, createdAt: new Date(), updatedAt: new Date() },
+      ]);
+      const response = await request(appWith(hrRouter)).delete("/attendance/30");
+      expect(response.status).toBe(404);
+    });
+  });
+
 });
