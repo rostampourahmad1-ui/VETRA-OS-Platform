@@ -8,6 +8,7 @@ import {
   Settings, ChevronDown, Bell, Search, Menu,
   Calendar, Wrench, BarChart3, Bot, Calculator, ClipboardCheck,
   UserCircle, LogOut,
+  CalendarClock, TrendingUp, Boxes,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -50,7 +51,10 @@ function Sidebar() {
     { name: 'Equipment', href: '/equipment', icon: Wrench },
     { name: 'Inventory', href: '/inventory', icon: Package },
                 { name: 'Procurement', href: '/procurement', icon: Truck },
-            { name: 'Workspace', href: '/workspace', icon: LayoutDashboard },
+           { name: 'Workspace', href: '/workspace', icon: LayoutDashboard },
+    { name: 'Scheduling', href: '/scheduling', icon: CalendarClock },
+    { name: 'Progress', href: '/progress', icon: TrendingUp },
+    { name: 'Resources', href: '/resources', icon: Boxes },
 
   ];
 

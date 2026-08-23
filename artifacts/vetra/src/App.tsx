@@ -39,6 +39,9 @@ const FormsBuilder = lazy(() => import('@/pages/forms/FormsBuilder'));
 const OrgProjectSelector = lazy(() => import('@/pages/onboarding/OrgProjectSelector'));
 const QualityManagement = lazy(() => import('@/pages/quality/QualityManagement'));
 const NotFound = lazy(() => import('@/pages/not-found'));
+const SchedulingPage = lazy(() => import('@/pages/scheduling/SchedulingPage'));
+const ProgressPage = lazy(() => import('@/pages/progress/ProgressPage'));
+const ResourcesPage = lazy(() => import('@/pages/resources/ResourcesPage'));
 // ─── Clerk key resolution ────────────────────────────────────────────────────
 // Must use publishableKeyFromHost — resolves the correct key for the current
 // hostname so the same build works in dev and prod without branching.
@@ -203,6 +206,9 @@ function AppRoutes() {
             <Route path="/reports"><Reports /></Route>
             <Route path="/ai-assistant" component={AIAssistant} />
             <Route path="/settings"><Settings /></Route>
+            <Route path="/scheduling" component={SchedulingPage} />
+            <Route path="/progress" component={ProgressPage} />
+            <Route path="/resources" component={ResourcesPage} />
             <Route component={NotFound} />
           </Switch></Suspense>
           </Shell>
