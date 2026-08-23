@@ -374,7 +374,7 @@ router.post("/projects/:projectId/progress", requirePermission("planning.manage"
   ));
   if (!activity) { res.status(400).json({ error: "Activity not found in this project" }); return; }
   const [row] = await db.insert(actualProgressTable).values({
-    ...parsed.data, projectId: projectId.data, organizationId: orgId,
+    ...parsed.data, projectId: projectId.data, organizationId: orgId, recordedBy: req.vetraUser!.id,
   }).returning();
 
   const newStatus = parsed.data.progressPercent >= 100 ? "completed" : parsed.data.progressPercent > 0 ? "in_progress" : "not_started";
