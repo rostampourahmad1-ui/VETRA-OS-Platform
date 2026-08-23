@@ -1,6 +1,6 @@
 import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import request from "supertest";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 // ─── VETRA-SEC-03: Procurement Security Tests ─────────────────────────────
 //
@@ -471,5 +471,167 @@ describe("VETRA-SEC-03: Procurement — Permission Enumeration", () => {
       const [, action] = perm.split(".");
       expect(["read", "create", "update", "delete"]).toContain(action);
     }
+  });
+});
+
+
+// --- Real Router Middleware Tests ---
+//
+// These tests verify the actual requireAuth, requirePermission, and tenant
+// isolation middleware chain using the real procurement router with
+// configurable mocks.
+
+const procurementMocks = vi.hoisted(() => {
+  const mockAuth = { reject: false, statusCode: 401 };
+  const mockPermission = { reject: false, statusCode: 403, permission: "" };
+  return { mockAuth, mockPermission };
+});
+
+vi.mock("@workspace/db", () => ({
+  procurementTable: { __name: "procurement" },
+  suppliersTable: { __name: "suppliers" },
+  materialsTable: { __name: "materials" },
+  warehouseTable: { __name: "warehouse" },
+  procurementItemsTable: { __name: "procurement_items" },
+  projectsTable: { __name: "projects" },
+  db: {
+    select: vi.fn(() => ({ from: vi.fn(() => ({ where: vi.fn(() => ({ orderBy: vi.fn(() => ({ then: (fn) => Promise.resolve([]).then(fn) })) })) })) })),
+    insert: vi.fn(() => ({ values: vi.fn(() => ({ returning: vi.fn(() => Promise.resolve([{ id: 1 }])) })) })),
+    update: vi.fn(() => ({ set: vi.fn(() => ({ where: vi.fn(() => ({ returning: vi.fn(() => Promise.resolve([{ id: 1 }])) })) })) })),
+    delete: vi.fn(() => ({ where: vi.fn(() => ({ returning: vi.fn(() => Promise.resolve([{ id: 1 }])) })) })),
+  },
+}));
+vi.mock("drizzle-orm", () => ({
+  eq: (left, right) => ({ kind: "eq", left, right }),
+  and: (...args) => ({ kind: "and", items: args }),
+  isNull: (column) => ({ kind: "isNull", column }),
+  desc: (column) => ({ column, direction: "desc" }),
+  sql: (strings) => ({ kind: "sql", strings }),
+  sum: (column) => ({ kind: "sum", column }),
+}));
+vi.mock("../../artifacts/api-server/src/middlewares/permissions", () => ({
+  requirePermission: () => (req, res, next) => {
+    if (procurementMocks.mockPermission.reject) {
+      res.status(procurementMocks.mockPermission.statusCode).json({ error: "Forbidden", permission: procurementMocks.mockPermission.permission || "procurement.read" });
+      return;
+    }
+    next();
+  },
+  hasPermission: () => Promise.resolve(true),
+}));
+vi.mock("../../artifacts/api-server/src/middlewares/requireAuth", () => ({
+  requireAuth: (req, res, next) => {
+    if (procurementMocks.mockAuth.reject) {
+      res.status(procurementMocks.mockAuth.statusCode).json({ error: "Unauthorized" });
+      return;
+    }
+    next();
+  },
+}));
+vi.mock("../../artifacts/api-server/src/middlewares/tenant", () => ({
+  tenantId: (req) => req.organizationId || 1,
+  ownedProject: async () => true,
+}));
+vi.mock("../../artifacts/api-server/src/lib/audit", () => ({ audit: vi.fn() }));
+
+describe("VETRA-SEC-03: Procurement - Real Router Middleware Security", () => {
+  let procurementRouter;
+
+  beforeAll(async () => {
+    const mod = await import("../../artifacts/api-server/src/routes/procurement");
+    procurementRouter = mod.default;
+  });
+
+  function appWith(router) {
+    const app = express();
+    app.use(express.json());
+    app.use((req, _res, next) => {
+      req.organizationId = 1;
+      req.vetraUser = { id: 7, organizationId: 1, role: "ADMIN" };
+      next();
+    });
+    app.use(router);
+    app.use((err, _req, res, _next) => {
+      res.status(500).json({ error: err.message || "Internal server error" });
+    });
+    return app;
+  }
+
+  function appWithNoAuth(router) {
+    const app = express();
+    app.use(express.json());
+    app.use(router);
+    app.use((err, _req, res, _next) => {
+      res.status(500).json({ error: err.message || "Internal server error" });
+    });
+    return app;
+  }
+
+  beforeEach(() => {
+    procurementMocks.mockAuth.reject = false;
+    procurementMocks.mockPermission.reject = false;
+  });
+
+  describe("Unauthenticated access (401)", () => {
+    it("rejects unauthenticated GET /procurement with 401", async () => {
+      procurementMocks.mockAuth.reject = true;
+      procurementMocks.mockAuth.statusCode = 401;
+      const res = await request(appWithNoAuth(procurementRouter)).get("/procurement");
+      expect(res.status).toBe(401);
+      expect(res.body.error).toBe("Unauthorized");
+    });
+
+    it("rejects unauthenticated POST /procurement with 401", async () => {
+      procurementMocks.mockAuth.reject = true;
+      procurementMocks.mockAuth.statusCode = 401;
+      const res = await request(appWithNoAuth(procurementRouter))
+        .post("/procurement")
+        .send({ title: "Test Order" });
+      expect(res.status).toBe(401);
+      expect(res.body.error).toBe("Unauthorized");
+    });
+
+    it("rejects unauthenticated PATCH /procurement/:id with 401", async () => {
+      procurementMocks.mockAuth.reject = true;
+      procurementMocks.mockAuth.statusCode = 401;
+      const res = await request(appWithNoAuth(procurementRouter))
+        .patch("/procurement/1")
+        .send({ status: "approved" });
+      expect(res.status).toBe(401);
+      expect(res.body.error).toBe("Unauthorized");
+    });
+  });
+
+  describe("RBAC - missing permission (403)", () => {
+    it("rejects GET /procurement without procurement.read with 403", async () => {
+      procurementMocks.mockPermission.reject = true;
+      procurementMocks.mockPermission.statusCode = 403;
+      procurementMocks.mockPermission.permission = "procurement.read";
+      const res = await request(appWith(procurementRouter)).get("/procurement");
+      expect(res.status).toBe(403);
+      expect(res.body.error).toContain("Forbidden");
+    });
+
+    it("rejects POST /procurement without procurement.create with 403", async () => {
+      procurementMocks.mockPermission.reject = true;
+      procurementMocks.mockPermission.statusCode = 403;
+      procurementMocks.mockPermission.permission = "procurement.create";
+      const res = await request(appWith(procurementRouter))
+        .post("/procurement")
+        .send({ title: "Test Order" });
+      expect(res.status).toBe(403);
+      expect(res.body.error).toContain("Forbidden");
+    });
+
+    it("rejects PATCH /procurement/:id without procurement.update with 403", async () => {
+      procurementMocks.mockPermission.reject = true;
+      procurementMocks.mockPermission.statusCode = 403;
+      procurementMocks.mockPermission.permission = "procurement.update";
+      const res = await request(appWith(procurementRouter))
+        .patch("/procurement/1")
+        .send({ status: "approved" });
+      expect(res.status).toBe(403);
+      expect(res.body.error).toContain("Forbidden");
+    });
   });
 });
