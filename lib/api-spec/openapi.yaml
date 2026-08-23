@@ -1307,6 +1307,9 @@ paths:
     get:
       summary: Get a tenant form template
       responses: { '200': { description: OK } }
+    delete:
+      summary: Soft-delete a draft form template
+      responses: { '204': { description: Deleted } }
     patch:
       summary: Update a draft form template
       requestBody:
@@ -1324,6 +1327,15 @@ paths:
     post:
       summary: Publish a form template version
       responses: { '200': { description: Published } }
+  /forms/templates/{id}/archive:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
+    post:
+      summary: Archive a published form template
+      responses: { '200': { description: Archived } }
   /form-submissions:
     get:
       summary: List tenant form submissions
@@ -1345,6 +1357,9 @@ paths:
     get:
       summary: Get a tenant form submission
       responses: { '200': { description: OK } }
+    delete:
+      summary: Delete a draft or revision-requested submission (owner only)
+      responses: { '204': { description: Deleted } }
     patch:
       summary: Update a draft or revision-requested submission
       requestBody:

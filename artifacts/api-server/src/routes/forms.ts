@@ -197,6 +197,42 @@ router.post("/forms/templates/:id/publish", requirePermission("forms.manage"), a
   res.json({ template: serialize(updated), version: serialize(version) });
 });
 
+router.delete("/forms/templates/:id", requirePermission("forms.manage"), async (req, res): Promise<void> => {
+  const id = parseId(req.params.id);
+  if (!id) { res.status(400).json({ error: "Invalid template id" }); return; }
+  const template = await findTemplate(req, id);
+  if (!template) { res.status(404).json({ error: "Form template not found" }); return; }
+  if (template.status !== "draft") { res.status(409).json({ error: "Only draft templates can be deleted" }); return; }
+  const [row] = await db.update(formTemplatesTable).set({
+    deletedAt: new Date(),
+    updatedBy: req.vetraUser!.id,
+    updatedAt: new Date(),
+  }).where(and(
+    eq(formTemplatesTable.id, template.id),
+    eq(formTemplatesTable.organizationId, tenantId(req)),
+  )).returning();
+  audit(req, "form_template.deleted", "form_template", { resourceId: row.id, oldValues: { name: template.name, status: template.status } });
+  res.status(204).end();
+});
+
+router.post("/forms/templates/:id/archive", requirePermission("forms.manage"), async (req, res): Promise<void> => {
+  const id = parseId(req.params.id);
+  if (!id) { res.status(400).json({ error: "Invalid template id" }); return; }
+  const template = await findTemplate(req, id);
+  if (!template) { res.status(404).json({ error: "Form template not found" }); return; }
+  if (template.status !== "published") { res.status(409).json({ error: "Only published templates can be archived" }); return; }
+  const [row] = await db.update(formTemplatesTable).set({
+    status: "archived",
+    updatedBy: req.vetraUser!.id,
+    updatedAt: new Date(),
+  }).where(and(
+    eq(formTemplatesTable.id, template.id),
+    eq(formTemplatesTable.organizationId, tenantId(req)),
+  )).returning();
+  audit(req, "form_template.archived", "form_template", { resourceId: row.id, oldValues: { status: template.status }, newValues: { status: row.status } });
+  res.json(serialize(row));
+});
+
 router.get("/form-submissions", requirePermission("forms.read"), async (req, res): Promise<void> => {
   const { projectId, templateId, status } = req.query as { projectId?: string; templateId?: string; status?: string };
   const rows = await db.select().from(formSubmissionsTable).where(and(
@@ -349,5 +385,27 @@ router.post("/form-submissions/:id/submit", requirePermission("forms.submit"), a
   res.json(serialize(row));
 });
 
+
+router.delete("/form-submissions/:id", requirePermission("forms.submit"), async (req, res): Promise<void> => {
+  const id = parseId(req.params.id);
+  if (!id) { res.status(400).json({ error: "Invalid submission id" }); return; }
+  const [submission] = await db.select().from(formSubmissionsTable).where(and(
+    eq(formSubmissionsTable.id, id),
+    eq(formSubmissionsTable.organizationId, tenantId(req)),
+    isNull(formSubmissionsTable.deletedAt),
+  ));
+  if (!submission) { res.status(404).json({ error: "Form submission not found" }); return; }
+  if (submission.submittedBy !== req.vetraUser!.id) { res.status(403).json({ error: "Only the submitter may delete this response" }); return; }
+  if (!["draft", "revision_requested"].includes(submission.status)) { res.status(409).json({ error: "Submission cannot be deleted in its current state" }); return; }
+  const [row] = await db.update(formSubmissionsTable).set({
+    deletedAt: new Date(),
+    updatedAt: new Date(),
+  }).where(and(
+    eq(formSubmissionsTable.id, submission.id),
+    eq(formSubmissionsTable.organizationId, tenantId(req)),
+  )).returning();
+  audit(req, "form_submission.deleted", "form_submission", { resourceId: row.id, oldValues: { status: submission.status } });
+  res.status(204).end();
+});
 export { validateAnswers };
 export default router;
