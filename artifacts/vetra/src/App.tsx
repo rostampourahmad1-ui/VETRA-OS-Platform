@@ -1,5 +1,5 @@
 import { ClerkProvider, SignIn, SignUp, Show, useClerk } from '@clerk/react';
-import { useEffect, useRef } from 'react';
+import { lazy, Suspense, useEffect, useRef } from 'react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { dark } from '@clerk/themes';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -9,34 +9,40 @@ import { Route, Switch, Router as WouterRouter, useLocation, Redirect } from 'wo
 import { useQueryClient } from '@tanstack/react-query';
 
 import { Shell } from '@/components/layout/Shell';
-import LandingPage from '@/pages/landing/LandingPage';
-import Dashboard from '@/pages/dashboard/Dashboard';
-import ProjectList from '@/pages/projects/ProjectList';
-import ProjectDetail from '@/pages/projects/ProjectDetail';
-import ProjectTimeline from '@/pages/planning/ProjectTimeline';
-import AIAssistant from '@/pages/ai/AIAssistant';
-import TaskList from '@/pages/tasks/TaskList';
-import DocumentList from '@/pages/documents/DocumentList';
-import ContractList from '@/pages/contracts/ContractList';
-import DailyReportList from '@/pages/reports/DailyReportList';
-import MeetingList from '@/pages/meetings/MeetingList';
-import UserList from '@/pages/hr/UserList';
-import EquipmentList from '@/pages/equipment/EquipmentList';
-import InventoryList from '@/pages/inventory/InventoryList';
-import ProcurementList from '@/pages/procurement/ProcurementList';
-import PlaceholderPage from '@/pages/placeholders/PlaceholderPage';
-import WorkspaceSelector, { WorkspaceDashboard } from '@/pages/workspace/Workspace';
-import CostControl from '@/pages/cost-control/CostControl';
-import CRM from '@/pages/crm/CRM';
-import Reports from '@/pages/reports/Reports';
-import Settings from '@/pages/settings/Settings';
-import FormsBuilder from '@/pages/forms/FormsBuilder';
-import OrgProjectSelector from '@/pages/onboarding/OrgProjectSelector';
-import ThemeSwitcher from '@/components/theme-switcher';
 import { OrganizationProjectProvider } from '@/contexts/OrganizationProjectContext';
-import QualityManagement from '@/pages/quality/QualityManagement';
-import NotFound from '@/pages/not-found';
+import ThemeSwitcher from '@/components/theme-switcher';
 
+// ─── Lazy-loaded page chunks ──────────────────────────────────────────────────
+const LandingPage = lazy(() => import('@/pages/landing/LandingPage'));
+const Dashboard = lazy(() => import('@/pages/dashboard/Dashboard'));
+const ProjectList = lazy(() => import('@/pages/projects/ProjectList'));
+const ProjectDetail = lazy(() => import('@/pages/projects/ProjectDetail'));
+const ProjectTimeline = lazy(() => import('@/pages/planning/ProjectTimeline'));
+const AIAssistant = lazy(() => import('@/pages/ai/AIAssistant'));
+const TaskList = lazy(() => import('@/pages/tasks/TaskList'));
+const DocumentList = lazy(() => import('@/pages/documents/DocumentList'));
+const ContractList = lazy(() => import('@/pages/contracts/ContractList'));
+const DailyReportList = lazy(() => import('@/pages/reports/DailyReportList'));
+const MeetingList = lazy(() => import('@/pages/meetings/MeetingList'));
+const UserList = lazy(() => import('@/pages/hr/UserList'));
+const AttendanceForm = lazy(() => import('@/pages/hr/AttendanceForm'));
+const EquipmentList = lazy(() => import('@/pages/equipment/EquipmentList'));
+const InventoryList = lazy(() => import('@/pages/inventory/InventoryList'));
+const ProcurementList = lazy(() => import('@/pages/procurement/ProcurementList'));
+const PlaceholderPage = lazy(() => import('@/pages/placeholders/PlaceholderPage'));
+const WorkspacePage = lazy(() => import('@/pages/workspace/Workspace'));
+const WorkspaceDashboard = lazy(() => import('@/pages/workspace/Workspace').then(m => ({ default: m.WorkspaceDashboard })));
+const CostControl = lazy(() => import('@/pages/cost-control/CostControl'));
+const CRM = lazy(() => import('@/pages/crm/CRM'));
+const Reports = lazy(() => import('@/pages/reports/Reports'));
+const Settings = lazy(() => import('@/pages/settings/Settings'));
+const FormsBuilder = lazy(() => import('@/pages/forms/FormsBuilder'));
+const OrgProjectSelector = lazy(() => import('@/pages/onboarding/OrgProjectSelector'));
+const QualityManagement = lazy(() => import('@/pages/quality/QualityManagement'));
+const NotFound = lazy(() => import('@/pages/not-found'));
+const SchedulingPage = lazy(() => import('@/pages/scheduling/SchedulingPage'));
+const ProgressPage = lazy(() => import('@/pages/progress/ProgressPage'));
+const ResourcesPage = lazy(() => import('@/pages/resources/ResourcesPage'));
 // ─── Clerk key resolution ────────────────────────────────────────────────────
 // Must use publishableKeyFromHost — resolves the correct key for the current
 // hostname so the same build works in dev and prod without branching.
@@ -174,7 +180,8 @@ function AppRoutes() {
         <OrganizationProjectProvider>
           <Shell>
             <div className="flex justify-start px-4 pt-4"><ThemeSwitcher /></div>
-          <Switch>
+          <ErrorBoundary fallback={(error, reset) => <ErrorPage error={error} onRetry={reset} />}>
+          <Suspense fallback={<div className="flex items-center justify-center min-h-[60vh]"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500" /></div>}><Switch>
             <Route path="/" component={Dashboard} />
             <Route path="/onboarding" component={OrgProjectSelector} />
             <Route path="/projects" component={ProjectList} />
@@ -188,10 +195,11 @@ function AppRoutes() {
             <Route path="/daily-reports" component={DailyReportList} />
             <Route path="/meetings" component={MeetingList} />
             <Route path="/hr" component={UserList} />
+            <Route path="/hr/attendance" component={AttendanceForm} />
             <Route path="/equipment" component={EquipmentList} />
             <Route path="/inventory" component={InventoryList} />
             <Route path="/procurement" component={ProcurementList} />
-            <Route path="/workspace"><WorkspaceSelector /></Route>
+            <Route path="/workspace"><WorkspacePage /></Route>
             <Route path="/workspace/:role">{(params) => <WorkspaceDashboard role={params.role} />}</Route>
             <Route path="/cost-control"><CostControl /></Route>
             <Route path="/accounting">
@@ -201,8 +209,12 @@ function AppRoutes() {
             <Route path="/reports"><Reports /></Route>
             <Route path="/ai-assistant" component={AIAssistant} />
             <Route path="/settings"><Settings /></Route>
+            <Route path="/scheduling" component={SchedulingPage} />
+            <Route path="/progress" component={ProgressPage} />
+            <Route path="/resources" component={ResourcesPage} />
             <Route component={NotFound} />
-          </Switch>
+          </Switch></Suspense>
+          </ErrorBoundary>
           </Shell>
         </OrganizationProjectProvider>
       </Show>
@@ -275,3 +287,5 @@ function App() {
 }
 
 export default App;
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ErrorPage } from '@/pages/error';

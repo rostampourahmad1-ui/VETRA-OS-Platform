@@ -22,8 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-
-const STORAGE_KEY = 'vetra-forms-builder-draft';
+import { get, patch, post } from '@/lib/phase2-api';
 
 type FieldType = 'text' | 'number' | 'date' | 'select' | 'checkbox';
 
@@ -37,14 +36,40 @@ type FormField = {
 };
 
 type FormDraft = {
+  id?: number;
   name: string;
   description: string;
   fields: FormField[];
+  status?: 'draft' | 'published' | 'archived';
+  projectId?: number | null;
+  workflowId?: number | null;
 };
 
+type FormTemplateResponse = {
+  id: number;
+  name: string;
+  description: string | null;
+  definition: { fields: FormField[] };
+  status: 'draft' | 'published' | 'archived';
+  projectId: number | null;
+  workflowId: number | null;
+};
+
+function toDraft(template: FormTemplateResponse): FormDraft {
+  return {
+    id: template.id,
+    name: template.name,
+    description: template.description ?? '',
+    fields: template.definition.fields,
+    status: template.status,
+    projectId: template.projectId,
+    workflowId: template.workflowId,
+  };
+}
+
 const initialDraft: FormDraft = {
-  name: 'Daily Site Inspection',
-  description: 'Capture site observations, progress, and follow-up actions.',
+  name: 'بازرسی روزانه کارگاه',
+  description: 'ثبت مشاهدات کارگاه، پیشرفت و اقدامات پیگیری.',
   fields: [
     { id: 'project', label: 'Project', type: 'select', required: true, options: ['North Tower', 'West Campus', 'River Bridge'] },
     { id: 'inspection-date', label: 'Inspection date', type: 'date', required: true },
@@ -53,11 +78,11 @@ const initialDraft: FormDraft = {
 };
 
 const fieldTypes: Array<{ type: FieldType; label: string; icon: typeof Type }> = [
-  { type: 'text', label: 'Text field', icon: Type },
-  { type: 'number', label: 'Number', icon: Hash },
-  { type: 'date', label: 'Date', icon: CalendarDays },
-  { type: 'select', label: 'Dropdown', icon: List },
-  { type: 'checkbox', label: 'Checkbox', icon: ToggleLeft },
+  { type: 'text', label: 'متن', icon: Type },
+  { type: 'number', label: 'عدد', icon: Hash },
+  { type: 'date', label: 'تاریخ', icon: CalendarDays },
+  { type: 'select', label: 'فهرست انتخاب', icon: List },
+  { type: 'checkbox', label: 'تأیید', icon: ToggleLeft },
 ];
 
 function makeId() {
@@ -66,11 +91,11 @@ function makeId() {
 
 function createField(type: FieldType): FormField {
   const labels: Record<FieldType, string> = {
-    text: 'New text field',
-    number: 'New number field',
-    date: 'New date field',
-    select: 'New dropdown field',
-    checkbox: 'New confirmation field',
+    text: 'فیلد متنی جدید',
+    number: 'فیلد عددی جدید',
+    date: 'فیلد تاریخ جدید',
+    select: 'فهرست انتخاب جدید',
+    checkbox: 'فیلد تأیید جدید',
   };
   return {
     id: makeId(),
@@ -88,17 +113,12 @@ function FieldIcon({ type }: { type: FieldType }) {
 }
 
 export default function FormsBuilder() {
-  const [draft, setDraft] = useState<FormDraft>(() => {
-    try {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      return stored ? (JSON.parse(stored) as FormDraft) : initialDraft;
-    } catch {
-      return initialDraft;
-    }
-  });
+  const [draft, setDraft] = useState<FormDraft>(initialDraft);
   const [selectedId, setSelectedId] = useState(draft.fields[0]?.id ?? '');
   const [mode, setMode] = useState<'build' | 'preview'>('build');
-  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const selectedField = useMemo(
     () => draft.fields.find((field) => field.id === selectedId) ?? draft.fields[0],
@@ -132,28 +152,72 @@ export default function FormsBuilder() {
     setSelectedId(fields[0]?.id ?? '');
   };
 
-  const saveDraft = () => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 1800);
+  useEffect(() => {
+    let active = true;
+    void get<FormTemplateResponse[]>('/forms/templates')
+      .then((templates) => {
+        const template = templates.find((item) => item.status === 'draft') ?? templates[0];
+        if (active && template) setDraft(toDraft(template));
+      })
+      .catch((cause) => {
+        if (active) setError(cause instanceof Error ? cause.message : 'Unable to load forms.');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => { active = false; };
+  }, []);
+
+  const saveDraft = async () => {
+    setSaving(true);
+    setError('');
+    const payload = { name: draft.name, description: draft.description || undefined, definition: { fields: draft.fields } };
+    try {
+      const saved = draft.id
+        ? await patch<FormTemplateResponse>(`/forms/templates/${draft.id}`, payload)
+        : await post<FormTemplateResponse>('/forms/templates', payload);
+      setDraft(toDraft(saved));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Unable to save form draft.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const publishDraft = async () => {
+    if (!draft.id) return;
+    setSaving(true);
+    setError('');
+    try {
+      const result = await post<{ template: FormTemplateResponse }>(`/forms/templates/${draft.id}/publish`, {});
+      setDraft(toDraft(result.template));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Unable to publish form.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <div className="space-y-6 pb-10">
+    <div dir="rtl" lang="fa" className="space-y-6 pb-10">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="mb-2 flex items-center gap-2 text-xs font-mono uppercase tracking-[0.18em] text-primary">
-            <Sparkles className="h-3.5 w-3.5" /> Forms workspace
+            <Sparkles className="h-3.5 w-3.5" /> فضای کاری فرم‌ها
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">Forms Builder</h1>
-          <p className="mt-1 max-w-2xl text-muted-foreground">Create reusable field-based forms for inspections, daily reports, approvals, and project workflows.</p>
+          <h1 className="text-3xl font-bold tracking-tight">فرم‌ساز</h1>
+          <p className="mt-1 max-w-2xl text-muted-foreground">فرم‌های قابل استفادهٔ مجدد برای بازرسی، گزارش روزانه، تأیید و گردش کار پروژه بسازید.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant={mode === 'build' ? 'default' : 'outline'} onClick={() => setMode('build')} className="gap-2"><Settings2 className="h-4 w-4" /> Build</Button>
-          <Button variant={mode === 'preview' ? 'default' : 'outline'} onClick={() => setMode('preview')} className="gap-2"><Eye className="h-4 w-4" /> Preview</Button>
-          <Button onClick={saveDraft} className="gap-2"><Save className="h-4 w-4" /> {saved ? 'Saved' : 'Save draft'}</Button>
+          <Button variant={mode === 'build' ? 'default' : 'outline'} onClick={() => setMode('build')} className="gap-2"><Settings2 className="h-4 w-4" /> ساخت</Button>
+          <Button variant={mode === 'preview' ? 'default' : 'outline'} onClick={() => setMode('preview')} className="gap-2"><Eye className="h-4 w-4" /> پیش‌نمایش</Button>
+          <Button disabled={saving || loading} onClick={() => void saveDraft()} className="gap-2"><Save className="h-4 w-4" /> {saving ? 'در حال ذخیره…' : 'ذخیرهٔ پیش‌نویس'}</Button>
+          {draft.id && draft.status === 'draft' && <Button disabled={saving || loading} variant="outline" onClick={() => void publishDraft()}>انتشار</Button>}
         </div>
       </div>
+
+      {error && <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>}
+      {loading && <div className="rounded-lg border border-dashed px-4 py-3 text-sm text-muted-foreground">در حال بارگذاری فرم‌های ذخیره‌شده…</div>}
 
       <div className="grid gap-6 xl:grid-cols-[240px_minmax(0,1fr)_300px]">
         {mode === 'build' && (
@@ -179,7 +243,7 @@ export default function FormsBuilder() {
                 <Input value={draft.name} onChange={(event) => updateDraft({ name: event.target.value })} className="h-9 max-w-lg border-0 bg-transparent px-0 text-xl font-semibold shadow-none focus-visible:ring-0" aria-label="Form name" />
                 <Textarea value={draft.description} onChange={(event) => updateDraft({ description: event.target.value })} className="min-h-12 max-w-xl resize-none border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0" aria-label="Form description" />
               </div>
-              <Badge variant="secondary" className="shrink-0 gap-1"><LayoutTemplate className="h-3 w-3" /> Draft</Badge>
+              <Badge variant="secondary" className="shrink-0 gap-1"><LayoutTemplate className="h-3 w-3" /> {draft.status ?? 'draft'}</Badge>
             </div>
           </CardHeader>
           <CardContent className="space-y-4 p-5">

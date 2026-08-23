@@ -5,6 +5,275 @@
  * VETRA Platform API
  * OpenAPI spec version: 0.1.0
  */
+export type FormFieldType = typeof FormFieldType[keyof typeof FormFieldType];
+
+
+export const FormFieldType = {
+  text: 'text',
+  number: 'number',
+  date: 'date',
+  select: 'select',
+  checkbox: 'checkbox',
+} as const;
+
+export interface FormField {
+  /**
+     * @minLength 1
+     * @maxLength 128
+     */
+  id: string;
+  /**
+     * @minLength 1
+     * @maxLength 256
+     */
+  label: string;
+  type: FormFieldType;
+  required: boolean;
+  /** @maxLength 512 */
+  placeholder?: string;
+  /**
+     * @maxItems 100
+     * @items.minLength 1
+     * @items.maxLength 256
+     */
+  options?: string[];
+}
+
+export interface FormDefinition {
+  /**
+     * @minItems 1
+     * @maxItems 200
+     */
+  fields: FormField[];
+}
+
+export interface FormTemplateInput {
+  /**
+     * @minLength 1
+     * @maxLength 256
+     */
+  name: string;
+  /** @maxLength 4000 */
+  description?: string;
+  /** @minimum 1 */
+  projectId?: number;
+  /** @minimum 1 */
+  workflowId?: number;
+  definition: FormDefinition;
+}
+
+export interface FormTemplateUpdate {
+  /**
+     * @minLength 1
+     * @maxLength 256
+     */
+  name?: string;
+  /** @maxLength 4000 */
+  description?: string | null;
+  /** @minimum 1 */
+  projectId?: number | null;
+  /** @minimum 1 */
+  workflowId?: number | null;
+  definition?: FormDefinition;
+}
+
+export type FormSubmissionInputAnswers = { [key: string]: unknown };
+
+export interface FormSubmissionInput {
+  /** @minimum 1 */
+  templateId: number;
+  answers: FormSubmissionInputAnswers;
+}
+
+export type FormSubmissionUpdateAnswers = { [key: string]: unknown };
+
+export interface FormSubmissionUpdate {
+  answers: FormSubmissionUpdateAnswers;
+}
+
+export type InspectionInputType = typeof InspectionInputType[keyof typeof InspectionInputType];
+
+
+export const InspectionInputType = {
+  routine: 'routine',
+  material: 'material',
+  site: 'site',
+  final: 'final',
+} as const;
+
+export type InspectionInputStatus = typeof InspectionInputStatus[keyof typeof InspectionInputStatus];
+
+
+export const InspectionInputStatus = {
+  planned: 'planned',
+} as const;
+
+export interface InspectionInput {
+  /** @minimum 1 */
+  projectId: number;
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  title: string;
+  type: InspectionInputType;
+  status?: InspectionInputStatus;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  inspector: string;
+  date: string;
+  /** @maxLength 10000 */
+  findings?: string | null;
+}
+
+export type InspectionUpdateType = typeof InspectionUpdateType[keyof typeof InspectionUpdateType];
+
+
+export const InspectionUpdateType = {
+  routine: 'routine',
+  material: 'material',
+  site: 'site',
+  final: 'final',
+} as const;
+
+export interface InspectionUpdate {
+  /** @minimum 1 */
+  projectId?: number;
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  title?: string;
+  type?: InspectionUpdateType;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  inspector?: string;
+  date?: string;
+  /** @maxLength 10000 */
+  findings?: string | null;
+}
+
+export type InspectionTransitionInputStatus = typeof InspectionTransitionInputStatus[keyof typeof InspectionTransitionInputStatus];
+
+
+export const InspectionTransitionInputStatus = {
+  planned: 'planned',
+  in_progress: 'in_progress',
+  completed: 'completed',
+  cancelled: 'cancelled',
+} as const;
+
+export interface InspectionTransitionInput {
+  status: InspectionTransitionInputStatus;
+  /**
+     * @minLength 1
+     * @maxLength 2000
+     */
+  reason?: string;
+}
+
+export type NcrInputSeverity = typeof NcrInputSeverity[keyof typeof NcrInputSeverity];
+
+
+export const NcrInputSeverity = {
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+  critical: 'critical',
+} as const;
+
+export type NcrInputStatus = typeof NcrInputStatus[keyof typeof NcrInputStatus];
+
+
+export const NcrInputStatus = {
+  open: 'open',
+} as const;
+
+export interface NcrInput {
+  /** @minimum 1 */
+  projectId: number;
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  title: string;
+  severity: NcrInputSeverity;
+  status?: NcrInputStatus;
+  /**
+     * @minLength 1
+     * @maxLength 10000
+     */
+  description: string;
+  /** @maxLength 10000 */
+  correctiveAction?: string | null;
+  /** @maxLength 200 */
+  assignedTo?: string | null;
+  dueDate?: string | null;
+}
+
+export type NcrUpdateSeverity = typeof NcrUpdateSeverity[keyof typeof NcrUpdateSeverity];
+
+
+export const NcrUpdateSeverity = {
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+  critical: 'critical',
+} as const;
+
+export interface NcrUpdate {
+  /** @minimum 1 */
+  projectId?: number;
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  title?: string;
+  severity?: NcrUpdateSeverity;
+  /**
+     * @minLength 1
+     * @maxLength 10000
+     */
+  description?: string;
+  /** @maxLength 10000 */
+  correctiveAction?: string | null;
+  /** @maxLength 200 */
+  assignedTo?: string | null;
+  dueDate?: string | null;
+}
+
+export type NcrTransitionInputStatus = typeof NcrTransitionInputStatus[keyof typeof NcrTransitionInputStatus];
+
+
+export const NcrTransitionInputStatus = {
+  open: 'open',
+  in_progress: 'in_progress',
+  resolved: 'resolved',
+  awaiting_approval: 'awaiting_approval',
+  closed: 'closed',
+} as const;
+
+export interface NcrTransitionInput {
+  status: NcrTransitionInputStatus;
+  /**
+     * @minLength 1
+     * @maxLength 2000
+     */
+  reason?: string;
+}
+
+export type NcrWorkflowRunInputPayload = { [key: string]: unknown };
+
+export interface NcrWorkflowRunInput {
+  /** @minimum 1 */
+  workflowId: number;
+  payload?: NcrWorkflowRunInputPayload;
+}
+
 export interface PhaseInput {
   name: string;
   startDate: string;
@@ -30,7 +299,34 @@ export type WorkflowInputStepsItem = {
 export interface WorkflowInput {
   name: string;
   entityType: string;
+  /** @minItems 1 */
   steps: WorkflowInputStepsItem[];
+}
+
+export type WorkflowRunInputPayload = { [key: string]: unknown };
+
+export interface WorkflowRunInput {
+  /** @minimum 1 */
+  entityId: number;
+  payload?: WorkflowRunInputPayload;
+}
+
+export type WorkflowDecisionInputDecision = typeof WorkflowDecisionInputDecision[keyof typeof WorkflowDecisionInputDecision];
+
+
+export const WorkflowDecisionInputDecision = {
+  approve: 'approve',
+  reject: 'reject',
+  request_revision: 'request_revision',
+} as const;
+
+export interface WorkflowDecisionInput {
+  decision: WorkflowDecisionInputDecision;
+  /**
+     * @minLength 1
+     * @maxLength 4000
+     */
+  comment?: string;
 }
 
 export interface DocumentUpload {
@@ -606,6 +902,16 @@ export interface Client {
   notes?: string | null;
 }
 
+export interface ClientUpdate {
+  name?: string;
+  company?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  type?: string;
+  status?: string;
+  notes?: string | null;
+}
+
 export interface ClientInput {
   organizationId?: number;
   name: string;
@@ -716,18 +1022,6 @@ search?: string;
 export type UpdatePreferencesBody = { [key: string]: unknown };
 
 export type UpdatePreferences200 = { [key: string]: unknown };
-
-export type PostWorkflowRunsIdDecisionBodyDecision = typeof PostWorkflowRunsIdDecisionBodyDecision[keyof typeof PostWorkflowRunsIdDecisionBodyDecision];
-
-
-export const PostWorkflowRunsIdDecisionBodyDecision = {
-  approve: 'approve',
-  reject: 'reject',
-} as const;
-
-export type PostWorkflowRunsIdDecisionBody = {
-  decision: PostWorkflowRunsIdDecisionBodyDecision;
-};
 
 export type PostAiAssistantBody = {
   query: string;

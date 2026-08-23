@@ -8,6 +8,8 @@
 
 export interface Notification {
   id: number;
+  organizationId: number;
+  userId: number;
   title: string;
   message: string;
   type: string;

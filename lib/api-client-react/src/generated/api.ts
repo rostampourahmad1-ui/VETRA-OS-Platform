@@ -26,6 +26,7 @@ import type {
   CashFlowEntry,
   Client,
   ClientInput,
+  ClientUpdate,
   Contract,
   ContractInput,
   ContractUpdate,
@@ -43,9 +44,16 @@ import type {
   ExpenseCategory,
   ExpenseCategoryInput,
   ExpenseInput,
+  FormSubmissionInput,
+  FormSubmissionUpdate,
+  FormTemplateInput,
+  FormTemplateUpdate,
   GetCostControlSummaryParams,
   GlobalSearchParams,
   HealthStatus,
+  InspectionInput,
+  InspectionTransitionInput,
+  InspectionUpdate,
   InventoryItem,
   InventoryItemInput,
   InventoryItemUpdate,
@@ -64,11 +72,14 @@ import type {
   MeetingInput,
   MeetingUpdate,
   MilestoneInput,
+  NcrInput,
+  NcrTransitionInput,
+  NcrUpdate,
+  NcrWorkflowRunInput,
   Notification,
   Organization,
   PhaseInput,
   PostAiAssistantBody,
-  PostWorkflowRunsIdDecisionBody,
   ProcurementOrder,
   ProcurementOrderInput,
   ProcurementOrderUpdate,
@@ -90,7 +101,9 @@ import type {
   UserInput,
   UserProfile,
   UserUpdate,
+  WorkflowDecisionInput,
   WorkflowInput,
+  WorkflowRunInput,
   Workspace,
   WorkspaceDashboard
 } from './api.schemas';
@@ -4613,6 +4626,72 @@ export function useGetClient<TData = Awaited<ReturnType<typeof getClient>>, TErr
 
 
 
+export const getUpdateClientUrl = (id: number,) => {
+
+
+
+
+  return `/api/crm/clients/${id}`
+}
+
+export const updateClient = async (id: number,
+    clientUpdate: ClientUpdate, options?: Parameters<typeof customFetch>[1]): Promise<Client> => {
+
+  return customFetch<Client>(getUpdateClientUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(clientUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateClientMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateClient>>, TError,{id: number;data: BodyType<ClientUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateClient>>, TError,{id: number;data: BodyType<ClientUpdate>}, TContext> => {
+
+const mutationKey = ['updateClient'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateClient>>, {id: number;data: BodyType<ClientUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateClient(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateClientMutationResult = NonNullable<Awaited<ReturnType<typeof updateClient>>>
+    export type UpdateClientMutationBody = BodyType<ClientUpdate>
+    export type UpdateClientMutationError = ErrorType<unknown>
+
+    export const useUpdateClient = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateClient>>, TError,{id: number;data: BodyType<ClientUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateClient>>,
+        TError,
+        {id: number;data: BodyType<ClientUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateClientMutationOptions(options));
+    }
+
 export const getGetProfileUrl = () => {
 
 
@@ -5336,14 +5415,15 @@ export const getPostWorkflowsIdRunsUrl = (id: number,) => {
 /**
  * @summary Start an approval workflow
  */
-export const postWorkflowsIdRuns = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+export const postWorkflowsIdRuns = async (id: number,
+    workflowRunInput: WorkflowRunInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
 
   return customFetch<void>(getPostWorkflowsIdRunsUrl(id),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(workflowRunInput)
   }
 );}
 
@@ -5352,8 +5432,8 @@ export const postWorkflowsIdRuns = async (id: number, options?: Parameters<typeo
 
 
 export const getPostWorkflowsIdRunsMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postWorkflowsIdRuns>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof postWorkflowsIdRuns>>, TError,{id: number}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postWorkflowsIdRuns>>, TError,{id: number;data: BodyType<WorkflowRunInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postWorkflowsIdRuns>>, TError,{id: number;data: BodyType<WorkflowRunInput>}, TContext> => {
 
 const mutationKey = ['postWorkflowsIdRuns'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -5365,10 +5445,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postWorkflowsIdRuns>>, {id: number}> = (props) => {
-          const {id} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postWorkflowsIdRuns>>, {id: number;data: BodyType<WorkflowRunInput>}> = (props) => {
+          const {id,data} = props ?? {};
 
-          return  postWorkflowsIdRuns(id,requestOptions)
+          return  postWorkflowsIdRuns(id,data,requestOptions)
         }
 
 
@@ -5379,18 +5459,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type PostWorkflowsIdRunsMutationResult = NonNullable<Awaited<ReturnType<typeof postWorkflowsIdRuns>>>
-
+    export type PostWorkflowsIdRunsMutationBody = BodyType<WorkflowRunInput>
     export type PostWorkflowsIdRunsMutationError = ErrorType<unknown>
 
     /**
  * @summary Start an approval workflow
  */
 export const usePostWorkflowsIdRuns = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postWorkflowsIdRuns>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postWorkflowsIdRuns>>, TError,{id: number;data: BodyType<WorkflowRunInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof postWorkflowsIdRuns>>,
         TError,
-        {id: number},
+        {id: number;data: BodyType<WorkflowRunInput>},
         TContext
       > => {
       return useMutation(getPostWorkflowsIdRunsMutationOptions(options));
@@ -5408,14 +5488,14 @@ export const getPostWorkflowRunsIdDecisionUrl = (id: number,) => {
  * @summary Approve or reject the current workflow step
  */
 export const postWorkflowRunsIdDecision = async (id: number,
-    postWorkflowRunsIdDecisionBody: PostWorkflowRunsIdDecisionBody, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+    workflowDecisionInput: WorkflowDecisionInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
 
   return customFetch<void>(getPostWorkflowRunsIdDecisionUrl(id),
   {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(postWorkflowRunsIdDecisionBody)
+    body: JSON.stringify(workflowDecisionInput)
   }
 );}
 
@@ -5424,8 +5504,8 @@ export const postWorkflowRunsIdDecision = async (id: number,
 
 
 export const getPostWorkflowRunsIdDecisionMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postWorkflowRunsIdDecision>>, TError,{id: number;data: BodyType<PostWorkflowRunsIdDecisionBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof postWorkflowRunsIdDecision>>, TError,{id: number;data: BodyType<PostWorkflowRunsIdDecisionBody>}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postWorkflowRunsIdDecision>>, TError,{id: number;data: BodyType<WorkflowDecisionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postWorkflowRunsIdDecision>>, TError,{id: number;data: BodyType<WorkflowDecisionInput>}, TContext> => {
 
 const mutationKey = ['postWorkflowRunsIdDecision'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -5437,7 +5517,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postWorkflowRunsIdDecision>>, {id: number;data: BodyType<PostWorkflowRunsIdDecisionBody>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postWorkflowRunsIdDecision>>, {id: number;data: BodyType<WorkflowDecisionInput>}> = (props) => {
           const {id,data} = props ?? {};
 
           return  postWorkflowRunsIdDecision(id,data,requestOptions)
@@ -5451,21 +5531,1863 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type PostWorkflowRunsIdDecisionMutationResult = NonNullable<Awaited<ReturnType<typeof postWorkflowRunsIdDecision>>>
-    export type PostWorkflowRunsIdDecisionMutationBody = BodyType<PostWorkflowRunsIdDecisionBody>
+    export type PostWorkflowRunsIdDecisionMutationBody = BodyType<WorkflowDecisionInput>
     export type PostWorkflowRunsIdDecisionMutationError = ErrorType<unknown>
 
     /**
  * @summary Approve or reject the current workflow step
  */
 export const usePostWorkflowRunsIdDecision = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postWorkflowRunsIdDecision>>, TError,{id: number;data: BodyType<PostWorkflowRunsIdDecisionBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postWorkflowRunsIdDecision>>, TError,{id: number;data: BodyType<WorkflowDecisionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof postWorkflowRunsIdDecision>>,
         TError,
-        {id: number;data: BodyType<PostWorkflowRunsIdDecisionBody>},
+        {id: number;data: BodyType<WorkflowDecisionInput>},
         TContext
       > => {
       return useMutation(getPostWorkflowRunsIdDecisionMutationOptions(options));
+    }
+
+export const getGetQualityInspectionsUrl = () => {
+
+
+
+
+  return `/api/quality/inspections`
+}
+
+/**
+ * @summary List tenant inspections
+ */
+export const getQualityInspections = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getGetQualityInspectionsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetQualityInspectionsQueryKey = () => {
+    return [
+    `/api/quality/inspections`
+    ] as const;
+    }
+
+
+export const getGetQualityInspectionsQueryOptions = <TData = Awaited<ReturnType<typeof getQualityInspections>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getQualityInspections>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetQualityInspectionsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getQualityInspections>>> = ({ signal }) => getQualityInspections({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getQualityInspections>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetQualityInspectionsQueryResult = NonNullable<Awaited<ReturnType<typeof getQualityInspections>>>
+export type GetQualityInspectionsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List tenant inspections
+ */
+
+export function useGetQualityInspections<TData = Awaited<ReturnType<typeof getQualityInspections>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getQualityInspections>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetQualityInspectionsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getPostQualityInspectionsUrl = () => {
+
+
+
+
+  return `/api/quality/inspections`
+}
+
+/**
+ * @summary Create a planned inspection
+ */
+export const postQualityInspections = async (inspectionInput: InspectionInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getPostQualityInspectionsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(inspectionInput)
+  }
+);}
+
+
+
+
+
+export const getPostQualityInspectionsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postQualityInspections>>, TError,{data: BodyType<InspectionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postQualityInspections>>, TError,{data: BodyType<InspectionInput>}, TContext> => {
+
+const mutationKey = ['postQualityInspections'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postQualityInspections>>, {data: BodyType<InspectionInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postQualityInspections(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostQualityInspectionsMutationResult = NonNullable<Awaited<ReturnType<typeof postQualityInspections>>>
+    export type PostQualityInspectionsMutationBody = BodyType<InspectionInput>
+    export type PostQualityInspectionsMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a planned inspection
+ */
+export const usePostQualityInspections = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postQualityInspections>>, TError,{data: BodyType<InspectionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof postQualityInspections>>,
+        TError,
+        {data: BodyType<InspectionInput>},
+        TContext
+      > => {
+      return useMutation(getPostQualityInspectionsMutationOptions(options));
+    }
+
+export const getGetQualityInspectionsIdUrl = (id: number,) => {
+
+
+
+
+  return `/api/quality/inspections/${id}`
+}
+
+/**
+ * @summary Get an active inspection
+ */
+export const getQualityInspectionsId = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getGetQualityInspectionsIdUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetQualityInspectionsIdQueryKey = (id: number,) => {
+    return [
+    `/api/quality/inspections/${id}`
+    ] as const;
+    }
+
+
+export const getGetQualityInspectionsIdQueryOptions = <TData = Awaited<ReturnType<typeof getQualityInspectionsId>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getQualityInspectionsId>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetQualityInspectionsIdQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getQualityInspectionsId>>> = ({ signal }) => getQualityInspectionsId(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getQualityInspectionsId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetQualityInspectionsIdQueryResult = NonNullable<Awaited<ReturnType<typeof getQualityInspectionsId>>>
+export type GetQualityInspectionsIdQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get an active inspection
+ */
+
+export function useGetQualityInspectionsId<TData = Awaited<ReturnType<typeof getQualityInspectionsId>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getQualityInspectionsId>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetQualityInspectionsIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getPatchQualityInspectionsIdUrl = (id: number,) => {
+
+
+
+
+  return `/api/quality/inspections/${id}`
+}
+
+/**
+ * @summary Update inspection attributes without changing lifecycle status
+ */
+export const patchQualityInspectionsId = async (id: number,
+    inspectionUpdate: InspectionUpdate, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getPatchQualityInspectionsIdUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(inspectionUpdate)
+  }
+);}
+
+
+
+
+
+export const getPatchQualityInspectionsIdMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchQualityInspectionsId>>, TError,{id: number;data: BodyType<InspectionUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof patchQualityInspectionsId>>, TError,{id: number;data: BodyType<InspectionUpdate>}, TContext> => {
+
+const mutationKey = ['patchQualityInspectionsId'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof patchQualityInspectionsId>>, {id: number;data: BodyType<InspectionUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  patchQualityInspectionsId(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PatchQualityInspectionsIdMutationResult = NonNullable<Awaited<ReturnType<typeof patchQualityInspectionsId>>>
+    export type PatchQualityInspectionsIdMutationBody = BodyType<InspectionUpdate>
+    export type PatchQualityInspectionsIdMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update inspection attributes without changing lifecycle status
+ */
+export const usePatchQualityInspectionsId = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchQualityInspectionsId>>, TError,{id: number;data: BodyType<InspectionUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof patchQualityInspectionsId>>,
+        TError,
+        {id: number;data: BodyType<InspectionUpdate>},
+        TContext
+      > => {
+      return useMutation(getPatchQualityInspectionsIdMutationOptions(options));
+    }
+
+export const getDeleteQualityInspectionsIdUrl = (id: number,) => {
+
+
+
+
+  return `/api/quality/inspections/${id}`
+}
+
+/**
+ * @summary Soft-delete an inspection
+ */
+export const deleteQualityInspectionsId = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteQualityInspectionsIdUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteQualityInspectionsIdMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteQualityInspectionsId>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteQualityInspectionsId>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteQualityInspectionsId'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteQualityInspectionsId>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteQualityInspectionsId(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteQualityInspectionsIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteQualityInspectionsId>>>
+
+    export type DeleteQualityInspectionsIdMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Soft-delete an inspection
+ */
+export const useDeleteQualityInspectionsId = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteQualityInspectionsId>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteQualityInspectionsId>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteQualityInspectionsIdMutationOptions(options));
+    }
+
+export const getPostQualityInspectionsIdTransitionUrl = (id: number,) => {
+
+
+
+
+  return `/api/quality/inspections/${id}/transition`
+}
+
+/**
+ * @summary Apply a controlled inspection lifecycle transition
+ */
+export const postQualityInspectionsIdTransition = async (id: number,
+    inspectionTransitionInput: InspectionTransitionInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getPostQualityInspectionsIdTransitionUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(inspectionTransitionInput)
+  }
+);}
+
+
+
+
+
+export const getPostQualityInspectionsIdTransitionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postQualityInspectionsIdTransition>>, TError,{id: number;data: BodyType<InspectionTransitionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postQualityInspectionsIdTransition>>, TError,{id: number;data: BodyType<InspectionTransitionInput>}, TContext> => {
+
+const mutationKey = ['postQualityInspectionsIdTransition'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postQualityInspectionsIdTransition>>, {id: number;data: BodyType<InspectionTransitionInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  postQualityInspectionsIdTransition(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostQualityInspectionsIdTransitionMutationResult = NonNullable<Awaited<ReturnType<typeof postQualityInspectionsIdTransition>>>
+    export type PostQualityInspectionsIdTransitionMutationBody = BodyType<InspectionTransitionInput>
+    export type PostQualityInspectionsIdTransitionMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Apply a controlled inspection lifecycle transition
+ */
+export const usePostQualityInspectionsIdTransition = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postQualityInspectionsIdTransition>>, TError,{id: number;data: BodyType<InspectionTransitionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof postQualityInspectionsIdTransition>>,
+        TError,
+        {id: number;data: BodyType<InspectionTransitionInput>},
+        TContext
+      > => {
+      return useMutation(getPostQualityInspectionsIdTransitionMutationOptions(options));
+    }
+
+export const getGetQualityInspectionsIdEventsUrl = (id: number,) => {
+
+
+
+
+  return `/api/quality/inspections/${id}/events`
+}
+
+/**
+ * @summary List immutable inspection lifecycle events
+ */
+export const getQualityInspectionsIdEvents = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getGetQualityInspectionsIdEventsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetQualityInspectionsIdEventsQueryKey = (id: number,) => {
+    return [
+    `/api/quality/inspections/${id}/events`
+    ] as const;
+    }
+
+
+export const getGetQualityInspectionsIdEventsQueryOptions = <TData = Awaited<ReturnType<typeof getQualityInspectionsIdEvents>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getQualityInspectionsIdEvents>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetQualityInspectionsIdEventsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getQualityInspectionsIdEvents>>> = ({ signal }) => getQualityInspectionsIdEvents(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getQualityInspectionsIdEvents>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetQualityInspectionsIdEventsQueryResult = NonNullable<Awaited<ReturnType<typeof getQualityInspectionsIdEvents>>>
+export type GetQualityInspectionsIdEventsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List immutable inspection lifecycle events
+ */
+
+export function useGetQualityInspectionsIdEvents<TData = Awaited<ReturnType<typeof getQualityInspectionsIdEvents>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getQualityInspectionsIdEvents>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetQualityInspectionsIdEventsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetQualityNonConformanceReportsUrl = () => {
+
+
+
+
+  return `/api/quality/non-conformance-reports`
+}
+
+/**
+ * @summary List tenant non-conformance reports
+ */
+export const getQualityNonConformanceReports = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getGetQualityNonConformanceReportsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetQualityNonConformanceReportsQueryKey = () => {
+    return [
+    `/api/quality/non-conformance-reports`
+    ] as const;
+    }
+
+
+export const getGetQualityNonConformanceReportsQueryOptions = <TData = Awaited<ReturnType<typeof getQualityNonConformanceReports>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getQualityNonConformanceReports>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetQualityNonConformanceReportsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getQualityNonConformanceReports>>> = ({ signal }) => getQualityNonConformanceReports({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getQualityNonConformanceReports>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetQualityNonConformanceReportsQueryResult = NonNullable<Awaited<ReturnType<typeof getQualityNonConformanceReports>>>
+export type GetQualityNonConformanceReportsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List tenant non-conformance reports
+ */
+
+export function useGetQualityNonConformanceReports<TData = Awaited<ReturnType<typeof getQualityNonConformanceReports>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getQualityNonConformanceReports>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetQualityNonConformanceReportsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getPostQualityNonConformanceReportsUrl = () => {
+
+
+
+
+  return `/api/quality/non-conformance-reports`
+}
+
+/**
+ * @summary Create an open non-conformance report
+ */
+export const postQualityNonConformanceReports = async (ncrInput: NcrInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getPostQualityNonConformanceReportsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(ncrInput)
+  }
+);}
+
+
+
+
+
+export const getPostQualityNonConformanceReportsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postQualityNonConformanceReports>>, TError,{data: BodyType<NcrInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postQualityNonConformanceReports>>, TError,{data: BodyType<NcrInput>}, TContext> => {
+
+const mutationKey = ['postQualityNonConformanceReports'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postQualityNonConformanceReports>>, {data: BodyType<NcrInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postQualityNonConformanceReports(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostQualityNonConformanceReportsMutationResult = NonNullable<Awaited<ReturnType<typeof postQualityNonConformanceReports>>>
+    export type PostQualityNonConformanceReportsMutationBody = BodyType<NcrInput>
+    export type PostQualityNonConformanceReportsMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create an open non-conformance report
+ */
+export const usePostQualityNonConformanceReports = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postQualityNonConformanceReports>>, TError,{data: BodyType<NcrInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof postQualityNonConformanceReports>>,
+        TError,
+        {data: BodyType<NcrInput>},
+        TContext
+      > => {
+      return useMutation(getPostQualityNonConformanceReportsMutationOptions(options));
+    }
+
+export const getGetQualityNonConformanceReportsIdUrl = (id: number,) => {
+
+
+
+
+  return `/api/quality/non-conformance-reports/${id}`
+}
+
+/**
+ * @summary Get an active non-conformance report
+ */
+export const getQualityNonConformanceReportsId = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getGetQualityNonConformanceReportsIdUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetQualityNonConformanceReportsIdQueryKey = (id: number,) => {
+    return [
+    `/api/quality/non-conformance-reports/${id}`
+    ] as const;
+    }
+
+
+export const getGetQualityNonConformanceReportsIdQueryOptions = <TData = Awaited<ReturnType<typeof getQualityNonConformanceReportsId>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getQualityNonConformanceReportsId>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetQualityNonConformanceReportsIdQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getQualityNonConformanceReportsId>>> = ({ signal }) => getQualityNonConformanceReportsId(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getQualityNonConformanceReportsId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetQualityNonConformanceReportsIdQueryResult = NonNullable<Awaited<ReturnType<typeof getQualityNonConformanceReportsId>>>
+export type GetQualityNonConformanceReportsIdQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get an active non-conformance report
+ */
+
+export function useGetQualityNonConformanceReportsId<TData = Awaited<ReturnType<typeof getQualityNonConformanceReportsId>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getQualityNonConformanceReportsId>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetQualityNonConformanceReportsIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getPatchQualityNonConformanceReportsIdUrl = (id: number,) => {
+
+
+
+
+  return `/api/quality/non-conformance-reports/${id}`
+}
+
+/**
+ * @summary Update NCR attributes without changing lifecycle status
+ */
+export const patchQualityNonConformanceReportsId = async (id: number,
+    ncrUpdate: NcrUpdate, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getPatchQualityNonConformanceReportsIdUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(ncrUpdate)
+  }
+);}
+
+
+
+
+
+export const getPatchQualityNonConformanceReportsIdMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchQualityNonConformanceReportsId>>, TError,{id: number;data: BodyType<NcrUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof patchQualityNonConformanceReportsId>>, TError,{id: number;data: BodyType<NcrUpdate>}, TContext> => {
+
+const mutationKey = ['patchQualityNonConformanceReportsId'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof patchQualityNonConformanceReportsId>>, {id: number;data: BodyType<NcrUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  patchQualityNonConformanceReportsId(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PatchQualityNonConformanceReportsIdMutationResult = NonNullable<Awaited<ReturnType<typeof patchQualityNonConformanceReportsId>>>
+    export type PatchQualityNonConformanceReportsIdMutationBody = BodyType<NcrUpdate>
+    export type PatchQualityNonConformanceReportsIdMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update NCR attributes without changing lifecycle status
+ */
+export const usePatchQualityNonConformanceReportsId = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchQualityNonConformanceReportsId>>, TError,{id: number;data: BodyType<NcrUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof patchQualityNonConformanceReportsId>>,
+        TError,
+        {id: number;data: BodyType<NcrUpdate>},
+        TContext
+      > => {
+      return useMutation(getPatchQualityNonConformanceReportsIdMutationOptions(options));
+    }
+
+export const getDeleteQualityNonConformanceReportsIdUrl = (id: number,) => {
+
+
+
+
+  return `/api/quality/non-conformance-reports/${id}`
+}
+
+/**
+ * @summary Soft-delete a non-conformance report
+ */
+export const deleteQualityNonConformanceReportsId = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteQualityNonConformanceReportsIdUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteQualityNonConformanceReportsIdMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteQualityNonConformanceReportsId>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteQualityNonConformanceReportsId>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteQualityNonConformanceReportsId'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteQualityNonConformanceReportsId>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteQualityNonConformanceReportsId(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteQualityNonConformanceReportsIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteQualityNonConformanceReportsId>>>
+
+    export type DeleteQualityNonConformanceReportsIdMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Soft-delete a non-conformance report
+ */
+export const useDeleteQualityNonConformanceReportsId = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteQualityNonConformanceReportsId>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteQualityNonConformanceReportsId>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteQualityNonConformanceReportsIdMutationOptions(options));
+    }
+
+export const getPostQualityNonConformanceReportsIdTransitionUrl = (id: number,) => {
+
+
+
+
+  return `/api/quality/non-conformance-reports/${id}/transition`
+}
+
+/**
+ * @summary Apply a controlled NCR lifecycle transition
+ */
+export const postQualityNonConformanceReportsIdTransition = async (id: number,
+    ncrTransitionInput: NcrTransitionInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getPostQualityNonConformanceReportsIdTransitionUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(ncrTransitionInput)
+  }
+);}
+
+
+
+
+
+export const getPostQualityNonConformanceReportsIdTransitionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postQualityNonConformanceReportsIdTransition>>, TError,{id: number;data: BodyType<NcrTransitionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postQualityNonConformanceReportsIdTransition>>, TError,{id: number;data: BodyType<NcrTransitionInput>}, TContext> => {
+
+const mutationKey = ['postQualityNonConformanceReportsIdTransition'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postQualityNonConformanceReportsIdTransition>>, {id: number;data: BodyType<NcrTransitionInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  postQualityNonConformanceReportsIdTransition(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostQualityNonConformanceReportsIdTransitionMutationResult = NonNullable<Awaited<ReturnType<typeof postQualityNonConformanceReportsIdTransition>>>
+    export type PostQualityNonConformanceReportsIdTransitionMutationBody = BodyType<NcrTransitionInput>
+    export type PostQualityNonConformanceReportsIdTransitionMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Apply a controlled NCR lifecycle transition
+ */
+export const usePostQualityNonConformanceReportsIdTransition = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postQualityNonConformanceReportsIdTransition>>, TError,{id: number;data: BodyType<NcrTransitionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof postQualityNonConformanceReportsIdTransition>>,
+        TError,
+        {id: number;data: BodyType<NcrTransitionInput>},
+        TContext
+      > => {
+      return useMutation(getPostQualityNonConformanceReportsIdTransitionMutationOptions(options));
+    }
+
+export const getPostQualityNonConformanceReportsIdWorkflowRunsUrl = (id: number,) => {
+
+
+
+
+  return `/api/quality/non-conformance-reports/${id}/workflow-runs`
+}
+
+/**
+ * @summary Start a dedicated approval workflow for a resolved NCR
+ */
+export const postQualityNonConformanceReportsIdWorkflowRuns = async (id: number,
+    ncrWorkflowRunInput: NcrWorkflowRunInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getPostQualityNonConformanceReportsIdWorkflowRunsUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(ncrWorkflowRunInput)
+  }
+);}
+
+
+
+
+
+export const getPostQualityNonConformanceReportsIdWorkflowRunsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postQualityNonConformanceReportsIdWorkflowRuns>>, TError,{id: number;data: BodyType<NcrWorkflowRunInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postQualityNonConformanceReportsIdWorkflowRuns>>, TError,{id: number;data: BodyType<NcrWorkflowRunInput>}, TContext> => {
+
+const mutationKey = ['postQualityNonConformanceReportsIdWorkflowRuns'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postQualityNonConformanceReportsIdWorkflowRuns>>, {id: number;data: BodyType<NcrWorkflowRunInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  postQualityNonConformanceReportsIdWorkflowRuns(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostQualityNonConformanceReportsIdWorkflowRunsMutationResult = NonNullable<Awaited<ReturnType<typeof postQualityNonConformanceReportsIdWorkflowRuns>>>
+    export type PostQualityNonConformanceReportsIdWorkflowRunsMutationBody = BodyType<NcrWorkflowRunInput>
+    export type PostQualityNonConformanceReportsIdWorkflowRunsMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Start a dedicated approval workflow for a resolved NCR
+ */
+export const usePostQualityNonConformanceReportsIdWorkflowRuns = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postQualityNonConformanceReportsIdWorkflowRuns>>, TError,{id: number;data: BodyType<NcrWorkflowRunInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof postQualityNonConformanceReportsIdWorkflowRuns>>,
+        TError,
+        {id: number;data: BodyType<NcrWorkflowRunInput>},
+        TContext
+      > => {
+      return useMutation(getPostQualityNonConformanceReportsIdWorkflowRunsMutationOptions(options));
+    }
+
+export const getGetQualityNonConformanceReportsIdEventsUrl = (id: number,) => {
+
+
+
+
+  return `/api/quality/non-conformance-reports/${id}/events`
+}
+
+/**
+ * @summary List immutable NCR lifecycle events
+ */
+export const getQualityNonConformanceReportsIdEvents = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getGetQualityNonConformanceReportsIdEventsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetQualityNonConformanceReportsIdEventsQueryKey = (id: number,) => {
+    return [
+    `/api/quality/non-conformance-reports/${id}/events`
+    ] as const;
+    }
+
+
+export const getGetQualityNonConformanceReportsIdEventsQueryOptions = <TData = Awaited<ReturnType<typeof getQualityNonConformanceReportsIdEvents>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getQualityNonConformanceReportsIdEvents>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetQualityNonConformanceReportsIdEventsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getQualityNonConformanceReportsIdEvents>>> = ({ signal }) => getQualityNonConformanceReportsIdEvents(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getQualityNonConformanceReportsIdEvents>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetQualityNonConformanceReportsIdEventsQueryResult = NonNullable<Awaited<ReturnType<typeof getQualityNonConformanceReportsIdEvents>>>
+export type GetQualityNonConformanceReportsIdEventsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List immutable NCR lifecycle events
+ */
+
+export function useGetQualityNonConformanceReportsIdEvents<TData = Awaited<ReturnType<typeof getQualityNonConformanceReportsIdEvents>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getQualityNonConformanceReportsIdEvents>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetQualityNonConformanceReportsIdEventsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetFormsTemplatesUrl = () => {
+
+
+
+
+  return `/api/forms/templates`
+}
+
+/**
+ * @summary List tenant form templates
+ */
+export const getFormsTemplates = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getGetFormsTemplatesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetFormsTemplatesQueryKey = () => {
+    return [
+    `/api/forms/templates`
+    ] as const;
+    }
+
+
+export const getGetFormsTemplatesQueryOptions = <TData = Awaited<ReturnType<typeof getFormsTemplates>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFormsTemplates>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetFormsTemplatesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFormsTemplates>>> = ({ signal }) => getFormsTemplates({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getFormsTemplates>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetFormsTemplatesQueryResult = NonNullable<Awaited<ReturnType<typeof getFormsTemplates>>>
+export type GetFormsTemplatesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List tenant form templates
+ */
+
+export function useGetFormsTemplates<TData = Awaited<ReturnType<typeof getFormsTemplates>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFormsTemplates>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetFormsTemplatesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getPostFormsTemplatesUrl = () => {
+
+
+
+
+  return `/api/forms/templates`
+}
+
+/**
+ * @summary Create a form template draft
+ */
+export const postFormsTemplates = async (formTemplateInput: FormTemplateInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getPostFormsTemplatesUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(formTemplateInput)
+  }
+);}
+
+
+
+
+
+export const getPostFormsTemplatesMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postFormsTemplates>>, TError,{data: BodyType<FormTemplateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postFormsTemplates>>, TError,{data: BodyType<FormTemplateInput>}, TContext> => {
+
+const mutationKey = ['postFormsTemplates'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postFormsTemplates>>, {data: BodyType<FormTemplateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postFormsTemplates(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostFormsTemplatesMutationResult = NonNullable<Awaited<ReturnType<typeof postFormsTemplates>>>
+    export type PostFormsTemplatesMutationBody = BodyType<FormTemplateInput>
+    export type PostFormsTemplatesMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a form template draft
+ */
+export const usePostFormsTemplates = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postFormsTemplates>>, TError,{data: BodyType<FormTemplateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof postFormsTemplates>>,
+        TError,
+        {data: BodyType<FormTemplateInput>},
+        TContext
+      > => {
+      return useMutation(getPostFormsTemplatesMutationOptions(options));
+    }
+
+export const getGetFormsTemplatesIdUrl = (id: number,) => {
+
+
+
+
+  return `/api/forms/templates/${id}`
+}
+
+/**
+ * @summary Get a tenant form template
+ */
+export const getFormsTemplatesId = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getGetFormsTemplatesIdUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetFormsTemplatesIdQueryKey = (id: number,) => {
+    return [
+    `/api/forms/templates/${id}`
+    ] as const;
+    }
+
+
+export const getGetFormsTemplatesIdQueryOptions = <TData = Awaited<ReturnType<typeof getFormsTemplatesId>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFormsTemplatesId>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetFormsTemplatesIdQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFormsTemplatesId>>> = ({ signal }) => getFormsTemplatesId(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getFormsTemplatesId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetFormsTemplatesIdQueryResult = NonNullable<Awaited<ReturnType<typeof getFormsTemplatesId>>>
+export type GetFormsTemplatesIdQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get a tenant form template
+ */
+
+export function useGetFormsTemplatesId<TData = Awaited<ReturnType<typeof getFormsTemplatesId>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFormsTemplatesId>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetFormsTemplatesIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getPatchFormsTemplatesIdUrl = (id: number,) => {
+
+
+
+
+  return `/api/forms/templates/${id}`
+}
+
+/**
+ * @summary Update a draft form template
+ */
+export const patchFormsTemplatesId = async (id: number,
+    formTemplateUpdate: FormTemplateUpdate, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getPatchFormsTemplatesIdUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(formTemplateUpdate)
+  }
+);}
+
+
+
+
+
+export const getPatchFormsTemplatesIdMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchFormsTemplatesId>>, TError,{id: number;data: BodyType<FormTemplateUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof patchFormsTemplatesId>>, TError,{id: number;data: BodyType<FormTemplateUpdate>}, TContext> => {
+
+const mutationKey = ['patchFormsTemplatesId'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof patchFormsTemplatesId>>, {id: number;data: BodyType<FormTemplateUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  patchFormsTemplatesId(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PatchFormsTemplatesIdMutationResult = NonNullable<Awaited<ReturnType<typeof patchFormsTemplatesId>>>
+    export type PatchFormsTemplatesIdMutationBody = BodyType<FormTemplateUpdate>
+    export type PatchFormsTemplatesIdMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update a draft form template
+ */
+export const usePatchFormsTemplatesId = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchFormsTemplatesId>>, TError,{id: number;data: BodyType<FormTemplateUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof patchFormsTemplatesId>>,
+        TError,
+        {id: number;data: BodyType<FormTemplateUpdate>},
+        TContext
+      > => {
+      return useMutation(getPatchFormsTemplatesIdMutationOptions(options));
+    }
+
+export const getPostFormsTemplatesIdPublishUrl = (id: number,) => {
+
+
+
+
+  return `/api/forms/templates/${id}/publish`
+}
+
+/**
+ * @summary Publish a form template version
+ */
+export const postFormsTemplatesIdPublish = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getPostFormsTemplatesIdPublishUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getPostFormsTemplatesIdPublishMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postFormsTemplatesIdPublish>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postFormsTemplatesIdPublish>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['postFormsTemplatesIdPublish'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postFormsTemplatesIdPublish>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  postFormsTemplatesIdPublish(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostFormsTemplatesIdPublishMutationResult = NonNullable<Awaited<ReturnType<typeof postFormsTemplatesIdPublish>>>
+
+    export type PostFormsTemplatesIdPublishMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Publish a form template version
+ */
+export const usePostFormsTemplatesIdPublish = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postFormsTemplatesIdPublish>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof postFormsTemplatesIdPublish>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getPostFormsTemplatesIdPublishMutationOptions(options));
+    }
+
+export const getGetFormSubmissionsUrl = () => {
+
+
+
+
+  return `/api/form-submissions`
+}
+
+/**
+ * @summary List tenant form submissions
+ */
+export const getFormSubmissions = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getGetFormSubmissionsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetFormSubmissionsQueryKey = () => {
+    return [
+    `/api/form-submissions`
+    ] as const;
+    }
+
+
+export const getGetFormSubmissionsQueryOptions = <TData = Awaited<ReturnType<typeof getFormSubmissions>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFormSubmissions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetFormSubmissionsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFormSubmissions>>> = ({ signal }) => getFormSubmissions({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getFormSubmissions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetFormSubmissionsQueryResult = NonNullable<Awaited<ReturnType<typeof getFormSubmissions>>>
+export type GetFormSubmissionsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List tenant form submissions
+ */
+
+export function useGetFormSubmissions<TData = Awaited<ReturnType<typeof getFormSubmissions>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFormSubmissions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetFormSubmissionsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getPostFormSubmissionsUrl = () => {
+
+
+
+
+  return `/api/form-submissions`
+}
+
+/**
+ * @summary Create a form submission draft
+ */
+export const postFormSubmissions = async (formSubmissionInput: FormSubmissionInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getPostFormSubmissionsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(formSubmissionInput)
+  }
+);}
+
+
+
+
+
+export const getPostFormSubmissionsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postFormSubmissions>>, TError,{data: BodyType<FormSubmissionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postFormSubmissions>>, TError,{data: BodyType<FormSubmissionInput>}, TContext> => {
+
+const mutationKey = ['postFormSubmissions'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postFormSubmissions>>, {data: BodyType<FormSubmissionInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postFormSubmissions(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostFormSubmissionsMutationResult = NonNullable<Awaited<ReturnType<typeof postFormSubmissions>>>
+    export type PostFormSubmissionsMutationBody = BodyType<FormSubmissionInput>
+    export type PostFormSubmissionsMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a form submission draft
+ */
+export const usePostFormSubmissions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postFormSubmissions>>, TError,{data: BodyType<FormSubmissionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof postFormSubmissions>>,
+        TError,
+        {data: BodyType<FormSubmissionInput>},
+        TContext
+      > => {
+      return useMutation(getPostFormSubmissionsMutationOptions(options));
+    }
+
+export const getGetFormSubmissionsIdUrl = (id: number,) => {
+
+
+
+
+  return `/api/form-submissions/${id}`
+}
+
+/**
+ * @summary Get a tenant form submission
+ */
+export const getFormSubmissionsId = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getGetFormSubmissionsIdUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetFormSubmissionsIdQueryKey = (id: number,) => {
+    return [
+    `/api/form-submissions/${id}`
+    ] as const;
+    }
+
+
+export const getGetFormSubmissionsIdQueryOptions = <TData = Awaited<ReturnType<typeof getFormSubmissionsId>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFormSubmissionsId>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetFormSubmissionsIdQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFormSubmissionsId>>> = ({ signal }) => getFormSubmissionsId(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getFormSubmissionsId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetFormSubmissionsIdQueryResult = NonNullable<Awaited<ReturnType<typeof getFormSubmissionsId>>>
+export type GetFormSubmissionsIdQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get a tenant form submission
+ */
+
+export function useGetFormSubmissionsId<TData = Awaited<ReturnType<typeof getFormSubmissionsId>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFormSubmissionsId>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetFormSubmissionsIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getPatchFormSubmissionsIdUrl = (id: number,) => {
+
+
+
+
+  return `/api/form-submissions/${id}`
+}
+
+/**
+ * @summary Update a draft or revision-requested submission
+ */
+export const patchFormSubmissionsId = async (id: number,
+    formSubmissionUpdate: FormSubmissionUpdate, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getPatchFormSubmissionsIdUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(formSubmissionUpdate)
+  }
+);}
+
+
+
+
+
+export const getPatchFormSubmissionsIdMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchFormSubmissionsId>>, TError,{id: number;data: BodyType<FormSubmissionUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof patchFormSubmissionsId>>, TError,{id: number;data: BodyType<FormSubmissionUpdate>}, TContext> => {
+
+const mutationKey = ['patchFormSubmissionsId'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof patchFormSubmissionsId>>, {id: number;data: BodyType<FormSubmissionUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  patchFormSubmissionsId(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PatchFormSubmissionsIdMutationResult = NonNullable<Awaited<ReturnType<typeof patchFormSubmissionsId>>>
+    export type PatchFormSubmissionsIdMutationBody = BodyType<FormSubmissionUpdate>
+    export type PatchFormSubmissionsIdMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update a draft or revision-requested submission
+ */
+export const usePatchFormSubmissionsId = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchFormSubmissionsId>>, TError,{id: number;data: BodyType<FormSubmissionUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof patchFormSubmissionsId>>,
+        TError,
+        {id: number;data: BodyType<FormSubmissionUpdate>},
+        TContext
+      > => {
+      return useMutation(getPatchFormSubmissionsIdMutationOptions(options));
+    }
+
+export const getPostFormSubmissionsIdSubmitUrl = (id: number,) => {
+
+
+
+
+  return `/api/form-submissions/${id}/submit`
+}
+
+/**
+ * @summary Submit a form response for approval
+ */
+export const postFormSubmissionsIdSubmit = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getPostFormSubmissionsIdSubmitUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getPostFormSubmissionsIdSubmitMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postFormSubmissionsIdSubmit>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postFormSubmissionsIdSubmit>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['postFormSubmissionsIdSubmit'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postFormSubmissionsIdSubmit>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  postFormSubmissionsIdSubmit(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostFormSubmissionsIdSubmitMutationResult = NonNullable<Awaited<ReturnType<typeof postFormSubmissionsIdSubmit>>>
+
+    export type PostFormSubmissionsIdSubmitMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Submit a form response for approval
+ */
+export const usePostFormSubmissionsIdSubmit = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postFormSubmissionsIdSubmit>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof postFormSubmissionsIdSubmit>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getPostFormSubmissionsIdSubmitMutationOptions(options));
     }
 
 export const getPostDocumentsUploadUrl = () => {

@@ -39,7 +39,6 @@ router.post("/documents/upload", requirePermission("documents.create"), upload.s
   audit(req, "document.uploaded", "document", { resourceId: row.id, newValues: { name: row.name, type: row.type, size: row.size } });
 });
 
-router.delete("/documents/:id", requirePermission("documents.delete"), async (req, res): Promise<void> => { const [row] = await db.select().from(documentsTable).where(and(eq(documentsTable.id, Number(req.params.id)), eq(documentsTable.organizationId, tenantId(req)))); if (!row) { res.status(404).json({ error: "Not found" }); return; } if (row.storagePath) await fs.rm(row.storagePath, { force: true }).catch(() => undefined); await db.delete(documentsTable).where(eq(documentsTable.id, row.id)); res.status(204).send(); });
 router.delete("/documents/:id", requirePermission("documents.delete"), async (req, res): Promise<void> => {
   const [row] = await db.select().from(documentsTable).where(and(eq(documentsTable.id, Number(req.params.id)), eq(documentsTable.organizationId, tenantId(req))));
   if (!row) { res.status(404).json({ error: "Not found" }); return; }

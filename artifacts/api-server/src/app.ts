@@ -1,6 +1,7 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
+import type { Request, Response, NextFunction } from "express";
 import { clerkMiddleware } from "@clerk/express";
 import { publishableKeyFromHost } from "@clerk/shared/keys";
 import {
@@ -11,6 +12,9 @@ import {
 import router from "./routes";
 import webhookRouter from "./routes/webhook";
 import { logger } from "./lib/logger";
+import { runWithCorrelationId, generateCorrelationId } from "./lib/logger";
+import { metricsMiddleware, startSystemMetricsUpdater } from "./lib/metrics";
+import { errorHandler } from "./middlewares/errorHandler";
 
 const app: Express = express();
 const allowedCorsOrigins = new Set(
@@ -19,6 +23,20 @@ const allowedCorsOrigins = new Set(
     .map((origin) => origin.trim())
     .filter(Boolean),
 );
+
+// ─── Correlation ID Middleware ─────────────────────────────────────────────
+// Assigns a unique correlation ID to every request and binds it to the
+// async context so all descendant logs include the correlation ID.
+app.use((req: Request, _res: Response, next: NextFunction) => {
+  const correlationId =
+    (req.headers["x-correlation-id"] as string) || generateCorrelationId();
+  (req as any).correlationId = correlationId;
+  runWithCorrelationId(correlationId, next);
+});
+
+// ─── Metrics Middleware ───────────────────────────────────────────────────
+// Collects HTTP request metrics (count, duration, active requests).
+app.use(metricsMiddleware);
 
 app.use(
   pinoHttp({
@@ -74,6 +92,13 @@ app.use(
   }),
 );
 
+// ─── Start Periodic System Metrics ────────────────────────────────────────
+startSystemMetricsUpdater();
+
 app.use("/api", router);
+
+// ─── Global Error Handler ────────────────────────────────────────────────────
+// Must be registered AFTER all routes so it catches errors from every route.
+app.use(errorHandler);
 
 export default app;

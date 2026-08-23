@@ -22,13 +22,62 @@
       "when": 1787145600000,
       "tag": "0004_audit_rls",
       "breakpoints": true
-     },
-     {
-       "idx": 3,
-       "version": "7",
-       "when": 1787241600000,
-       "tag": "0005_db_roles",
-       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787241600000,
+      "tag": "0005_db_roles",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1787328000000,
+      "tag": "0006_forms",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1787414400000,
+      "tag": "0007_workflow_hardening",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787500800000,
+      "tag": "0008_request_scoped_rls",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787587200000,
+      "tag": "0009_quality_lifecycle",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1787673600000,
+      "tag": "0010_planning_wbs",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1787760000000,
+      "tag": "0011_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788086400000,
+      "tag": "0012_tenant_rls_coverage",
+      "breakpoints": true
     }
   ]
 }

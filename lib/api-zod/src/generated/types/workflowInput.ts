@@ -10,5 +10,6 @@ import type { WorkflowInputStepsItem } from './workflowInputStepsItem';
 export interface WorkflowInput {
   name: string;
   entityType: string;
+  /** @minItems 1 */
   steps: WorkflowInputStepsItem[];
 }

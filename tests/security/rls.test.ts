@@ -274,3 +274,29 @@ describe("VETRA-SEC-05: setOrganizationContext", () => {
     expect(sql).toMatch(/set_organization_context\s*\(\s*org_id\s+integer\s*\)/i);
   });
 });
+
+
+// ─── P1 Forms & Workflow RLS Extensions ────────────────────────────────────
+
+describe("VETRA-FORM-01 / VETRA-WORKFLOW-01: New tenant boundaries", () => {
+  const formsSql = readFileSync(resolve(__dirname, "../../lib/db/drizzle/0006_forms.sql"), "utf-8");
+  const workflowSql = readFileSync(resolve(__dirname, "../../lib/db/drizzle/0007_workflow_hardening.sql"), "utf-8");
+
+  it("protects each Forms table with forced fail-closed RLS policies", () => {
+    for (const table of ["form_templates", "form_template_versions", "form_submissions"]) {
+      expect(formsSql).toMatch(new RegExp(`ALTER TABLE\\s+"${table}"\\s+ENABLE ROW LEVEL SECURITY`, "i"));
+      expect(formsSql).toMatch(new RegExp(`ALTER TABLE\\s+"${table}"\\s+FORCE ROW LEVEL SECURITY`, "i"));
+      expect(formsSql).toMatch(new RegExp(`create_tenant_rls_policy\\('${table}'`, "i"));
+    }
+  });
+
+  it("protects Workflow records and makes decision events append-only", () => {
+    for (const table of ["workflows", "workflow_runs", "workflow_run_events"]) {
+      expect(workflowSql).toMatch(new RegExp(`ALTER TABLE\\s+"${table}"\\s+ENABLE ROW LEVEL SECURITY`, "i"));
+      expect(workflowSql).toMatch(new RegExp(`ALTER TABLE\\s+"${table}"\\s+FORCE ROW LEVEL SECURITY`, "i"));
+    }
+    expect(workflowSql).toMatch(/workflow_steps_tenant_isolation/i);
+    expect(workflowSql).toMatch(/BEFORE UPDATE\s+ON\s+"workflow_run_events"/i);
+    expect(workflowSql).toMatch(/BEFORE DELETE\s+ON\s+"workflow_run_events"/i);
+  });
+});

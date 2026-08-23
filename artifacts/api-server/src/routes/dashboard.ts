@@ -1,7 +1,8 @@
 import { requireAuth } from "../middlewares/requireAuth";
 import { requirePermission } from "../middlewares/permissions";
 import { Router } from "express";
-import { db } from "@workspace/db";
+import { and, desc, eq, sql } from "drizzle-orm";
+import { db, auditLogsTable } from "@workspace/db";
 import {
   projectsTable,
   tasksTable,
@@ -9,7 +10,6 @@ import {
   equipmentTable,
   activityTable,
 } from "@workspace/db";
-import { sql, eq } from "drizzle-orm";
 import { tenantId } from "../middlewares/tenant";
 
 const router = Router();
@@ -124,6 +124,72 @@ router.get("/dashboard/cash-flow", requirePermission("dashboard.read"), async (r
     };
   });
   res.json(data);
+});
+
+/**
+ * VETRA-SEC-04: Audit Logs endpoint
+ *
+ * Returns paginated audit log entries for the current tenant.
+ * Supports optional filtering by action, resource, and actorId.
+ * Sorted by most recent first.
+ *
+ * Security:
+ * - Tenant isolation via organizationId (extracted from authenticated user)
+ * - Requires dashboard.read permission
+ * - Enforces append-only audit principle (no writes via this endpoint)
+ */
+router.get("/dashboard/audit-logs", requirePermission("dashboard.read"), async (req, res): Promise<void> => {
+  const organizationId = tenantId(req);
+  const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
+  const offset = Math.max(Number(req.query.offset) || 0, 0);
+
+  const filters = [eq(auditLogsTable.organizationId, organizationId)];
+  if (typeof req.query.action === "string" && req.query.action) {
+    filters.push(eq(auditLogsTable.action, req.query.action));
+  }
+  if (typeof req.query.resource === "string" && req.query.resource) {
+    filters.push(eq(auditLogsTable.resource, req.query.resource));
+  }
+  if (typeof req.query.actorId === "string" && req.query.actorId) {
+    const actorId = Number(req.query.actorId);
+    if (Number.isInteger(actorId) && actorId > 0) {
+      filters.push(eq(auditLogsTable.actorId, actorId));
+    }
+  }
+
+  const [rows, countResult] = await Promise.all([
+    db.select()
+      .from(auditLogsTable)
+      .where(and(...filters))
+      .orderBy(desc(auditLogsTable.createdAt))
+      .limit(limit)
+      .offset(offset),
+    db.select({ total: sql<number>`count(*)` })
+      .from(auditLogsTable)
+      .where(and(...filters)),
+  ]);
+
+  const total = Number(countResult[0]?.total ?? 0);
+  res.json({
+    items: rows.map((row) => ({
+      id: row.id,
+      action: row.action,
+      resource: row.resource,
+      resourceId: row.resourceId,
+      actorId: row.actorId,
+      actorClerkId: row.actorClerkId,
+      oldValues: row.oldValues,
+      newValues: row.newValues,
+      metadata: row.metadata,
+      createdAt: row.createdAt.toISOString(),
+    })),
+    pagination: {
+      total,
+      limit,
+      offset,
+      hasMore: offset + limit < total,
+    },
+  });
 });
 
 export default router;

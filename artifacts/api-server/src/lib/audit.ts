@@ -1,5 +1,5 @@
 import type { Request } from "express";
-import { db, auditLogsTable } from "@workspace/db";
+import { auditLogsTable, withOrganizationDatabase } from "@workspace/db";
 import type { AuditActionType } from "@workspace/db";
 import { logger } from "./logger";
 
@@ -30,18 +30,20 @@ export interface AuditEntry {
  */
 export async function writeAuditLog(entry: AuditEntry): Promise<void> {
   try {
-    await db.insert(auditLogsTable).values({
-      organizationId: entry.organizationId,
-      actorId: entry.actorId ?? null,
-      actorClerkId: entry.actorClerkId ?? null,
-      action: entry.action,
-      resource: entry.resource,
-      resourceId: entry.resourceId != null ? String(entry.resourceId) : null,
-      oldValues: entry.oldValues ?? null,
-      newValues: entry.newValues ?? null,
-      metadata: entry.metadata ?? null,
-      ipAddress: null,
-      userAgent: null,
+    await withOrganizationDatabase(entry.organizationId, async (database) => {
+      await database.insert(auditLogsTable).values({
+        organizationId: entry.organizationId,
+        actorId: entry.actorId ?? null,
+        actorClerkId: entry.actorClerkId ?? null,
+        action: entry.action,
+        resource: entry.resource,
+        resourceId: entry.resourceId != null ? String(entry.resourceId) : null,
+        oldValues: entry.oldValues ?? null,
+        newValues: entry.newValues ?? null,
+        metadata: entry.metadata ?? null,
+        ipAddress: null,
+        userAgent: null,
+      });
     });
   } catch (error) {
     logger.error({ err: error, auditAction: entry.action }, "Audit log write failed");
@@ -112,13 +114,15 @@ export async function auditCrossTenantAttempt(
   metadata?: Record<string, unknown>,
 ): Promise<void> {
   try {
-    await db.insert(auditLogsTable).values({
-      organizationId,
-      actorId: actorId ?? null,
-      action: "security.cross_tenant_attempt",
-      resource: targetResource,
-      resourceId: String(targetResourceId),
-      metadata: metadata ?? null,
+    await withOrganizationDatabase(organizationId, async (database) => {
+      await database.insert(auditLogsTable).values({
+        organizationId,
+        actorId: actorId ?? null,
+        action: "security.cross_tenant_attempt",
+        resource: targetResource,
+        resourceId: String(targetResourceId),
+        metadata: metadata ?? null,
+      });
     });
     logger.warn(
       { organizationId, actorId, targetResource, targetResourceId },
