@@ -181,12 +181,12 @@ router.post("/payroll/:id/pay", requirePermission("hr.update"), async (req, res)
   res.json({ ...row, baseSalary: Number(row.baseSalary), overtime: Number(row.overtime), bonuses: Number(row.bonuses), deductions: Number(row.deductions), insurance: Number(row.insurance), tax: Number(row.tax), netPay: Number(row.netPay) });
   audit(req, "payroll.paid", "payroll", { resourceId: id, newValues: { status: "paid" } });
 });
- 
+
  // ─── Payroll Auto-Calculation ──────────────────────────────────────────────
- 
+
  /**
   * Auto-calculate payroll for an employee in a given period.
-  * 
+  *
   * Overtime is computed from attendance records (hours worked beyond 8h/day).
   * Insurance is calculated as 7% of base salary (standard Iranian rate).
   * Tax is calculated using a simplified progressive bracket.
@@ -202,7 +202,7 @@ router.post("/payroll/:id/pay", requirePermission("hr.update"), async (req, res)
      and(eq(employeesTable.id, employeeId), eq(employeesTable.organizationId, tenantId(req)))
    );
    if (!emp) { res.status(404).json({ error: "Employee not found" }); return; }
- 
+
    // Calculate overtime from attendance records in the period
    const attendanceAgg = await db
      .select({
@@ -219,28 +219,28 @@ router.post("/payroll/:id/pay", requirePermission("hr.update"), async (req, res)
          sql`${attendanceTable.date} <= ${periodEnd}`,
        )
      );
- 
+
    const totalHours = Number(attendanceAgg[0]?.totalHours ?? 0);
    const totalOvertime = Number(attendanceAgg[0]?.totalOvertime ?? 0);
    const totalDays = Number(attendanceAgg[0]?.totalDays ?? 0);
- 
+
    // Use the employee's daily wage or compute from monthly salary
    const empDailyWage = Number(emp.dailyWage) || (Number(emp.salary) / 30) || 0;
    const empMonthlySalary = Number(emp.salary) || (empDailyWage * 30) || 0;
- 
+
    // Base salary for the period (pro-rated to actual working days)
    const bs = Number(baseSalary) || empMonthlySalary;
    const bn = Number(bonuses) || 0;
    const dd = Number(deductions) || 0;
- 
+
    // Overtime: 1.4x of daily wage per overtime hour
    const hourlyWage = empDailyWage / 8;
    const ot = Math.round(totalOvertime * hourlyWage * 1.4 * 100) / 100;
- 
+
    // Insurance: 7% of (base salary + overtime + bonuses)
    const grossForInsurance = bs + ot + bn;
    const ins = Math.round(grossForInsurance * 0.07 * 100) / 100;
- 
+
    // Tax: simplified progressive brackets (monthly)
    const taxable = grossForInsurance - ins - dd;
    let tx = 0;
@@ -251,9 +251,9 @@ router.post("/payroll/:id/pay", requirePermission("hr.update"), async (req, res)
      else tx = 3250000 + (taxable - 30000000) * 0.20;
    }
    tx = Math.round(tx * 100) / 100;
- 
+
    const netPay = Math.round((bs + ot + bn - dd - ins - tx) * 100) / 100;
- 
+
    res.json({
      employeeId,
      employeeName: `${emp.firstName} ${emp.lastName}`,
@@ -277,12 +277,12 @@ router.post("/payroll/:id/pay", requirePermission("hr.update"), async (req, res)
      },
    });
  });
- 
+
  // ─── Personnel Dashboard ────────────────────────────────────────────────────
- 
+
  router.get("/dashboard/personnel", requirePermission("hr.read"), async (req, res): Promise<void> => {
    const organizationId = tenantId(req);
- 
+
    const [employees, attendanceToday, payrollSummary] = await Promise.all([
      db.select().from(employeesTable).where(
        and(eq(employeesTable.organizationId, organizationId), isNull(employeesTable.deletedAt))
@@ -313,7 +313,7 @@ router.post("/payroll/:id/pay", requirePermission("hr.update"), async (req, res)
        )
      ),
    ]);
- 
+
    // Department breakdown
    const deptMap = new Map<string, number>();
    employees.forEach((e) => {
@@ -324,10 +324,10 @@ router.post("/payroll/:id/pay", requirePermission("hr.update"), async (req, res)
      department,
      count,
    }));
- 
+
    const activeCount = employees.filter((e) => e.status === "active").length;
    const inactiveCount = employees.filter((e) => e.status !== "active").length;
- 
+
    res.json({
      totalEmployees: employees.length,
      activeEmployees: activeCount,
@@ -348,5 +348,5 @@ router.post("/payroll/:id/pay", requirePermission("hr.update"), async (req, res)
      },
    });
  });
- 
+
  export default router;

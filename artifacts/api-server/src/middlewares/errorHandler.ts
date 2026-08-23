@@ -5,7 +5,7 @@ import { metrics } from "../lib/metrics";
 /**
  * VETRA-INFRA-05: Global Error Handler Middleware
  *
- * Catches all errors passed via 
+ * Catches all errors passed via
 ext(error) and returns a structured
  * JSON error response.  Every error is logged with the correlation ID
  * and the route's error counter is incremented for observability.

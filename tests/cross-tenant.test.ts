@@ -423,4 +423,3 @@ describe("Forms tenant isolation", () => {
     expect(response.status).toBe(404);
   });
 });
-
