@@ -25,6 +25,7 @@ const ContractList = lazy(() => import('@/pages/contracts/ContractList'));
 const DailyReportList = lazy(() => import('@/pages/reports/DailyReportList'));
 const MeetingList = lazy(() => import('@/pages/meetings/MeetingList'));
 const UserList = lazy(() => import('@/pages/hr/UserList'));
+const AttendanceForm = lazy(() => import('@/pages/hr/AttendanceForm'));
 const EquipmentList = lazy(() => import('@/pages/equipment/EquipmentList'));
 const InventoryList = lazy(() => import('@/pages/inventory/InventoryList'));
 const ProcurementList = lazy(() => import('@/pages/procurement/ProcurementList'));
@@ -193,6 +194,7 @@ function AppRoutes() {
             <Route path="/daily-reports" component={DailyReportList} />
             <Route path="/meetings" component={MeetingList} />
             <Route path="/hr" component={UserList} />
+            <Route path="/hr/attendance" component={AttendanceForm} />
             <Route path="/equipment" component={EquipmentList} />
             <Route path="/inventory" component={InventoryList} />
             <Route path="/procurement" component={ProcurementList} />
