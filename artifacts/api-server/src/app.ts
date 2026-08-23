@@ -14,6 +14,7 @@ import webhookRouter from "./routes/webhook";
 import { logger } from "./lib/logger";
 import { runWithCorrelationId, generateCorrelationId } from "./lib/logger";
 import { metricsMiddleware, startSystemMetricsUpdater } from "./lib/metrics";
+import { errorHandler } from "./middlewares/errorHandler";
 
 const app: Express = express();
 const allowedCorsOrigins = new Set(
@@ -95,5 +96,9 @@ app.use(
 startSystemMetricsUpdater();
 
 app.use("/api", router);
+
+// ─── Global Error Handler ────────────────────────────────────────────────────
+// Must be registered AFTER all routes so it catches errors from every route.
+app.use(errorHandler);
 
 export default app;

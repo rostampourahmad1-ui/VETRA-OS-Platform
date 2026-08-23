@@ -180,6 +180,7 @@ function AppRoutes() {
         <OrganizationProjectProvider>
           <Shell>
             <div className="flex justify-start px-4 pt-4"><ThemeSwitcher /></div>
+          <ErrorBoundary fallback={(error, reset) => <ErrorPage error={error} onRetry={reset} />}>
           <Suspense fallback={<div className="flex items-center justify-center min-h-[60vh]"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500" /></div>}><Switch>
             <Route path="/" component={Dashboard} />
             <Route path="/onboarding" component={OrgProjectSelector} />
@@ -213,6 +214,7 @@ function AppRoutes() {
             <Route path="/resources" component={ResourcesPage} />
             <Route component={NotFound} />
           </Switch></Suspense>
+          </ErrorBoundary>
           </Shell>
         </OrganizationProjectProvider>
       </Show>
@@ -285,3 +287,5 @@ function App() {
 }
 
 export default App;
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ErrorPage } from '@/pages/error';

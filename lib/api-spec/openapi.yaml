@@ -1541,6 +1541,31 @@ paths:
       summary: Mark payroll as paid
       responses: { '200': { description: Paid } }
 
+  /payroll/calculate:
+    post:
+      summary: Auto-calculate payroll from attendance for a period
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [employeeId, periodStart, periodEnd]
+              properties:
+                employeeId: { type: integer }
+                periodStart: { type: string, format: date }
+                periodEnd: { type: string, format: date }
+                baseSalary: { type: number }
+                bonuses: { type: number }
+                deductions: { type: number }
+                notes: { type: string }
+      responses:
+        '200': { description: Calculated payroll breakdown }
+  /dashboard/personnel:
+    get:
+      summary: Personnel dashboard stats
+      responses: { '200': { description: Personnel dashboard } }
+
   # ─── Procurement Extensions ────────────────────────────────────────────────────
   /suppliers:
     get:

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { and, eq, desc, isNull } from "drizzle-orm";
+ import { and, eq, desc, isNull, sql, sum } from "drizzle-orm";
 import { db, employeesTable, attendanceTable, payrollTable, projectsTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requirePermission } from "../middlewares/permissions";
@@ -181,5 +181,172 @@ router.post("/payroll/:id/pay", requirePermission("hr.update"), async (req, res)
   res.json({ ...row, baseSalary: Number(row.baseSalary), overtime: Number(row.overtime), bonuses: Number(row.bonuses), deductions: Number(row.deductions), insurance: Number(row.insurance), tax: Number(row.tax), netPay: Number(row.netPay) });
   audit(req, "payroll.paid", "payroll", { resourceId: id, newValues: { status: "paid" } });
 });
-
-export default router;
+ 
+ // ─── Payroll Auto-Calculation ──────────────────────────────────────────────
+ 
+ /**
+  * Auto-calculate payroll for an employee in a given period.
+  * 
+  * Overtime is computed from attendance records (hours worked beyond 8h/day).
+  * Insurance is calculated as 7% of base salary (standard Iranian rate).
+  * Tax is calculated using a simplified progressive bracket.
+  * Net pay = baseSalary + overtime + bonuses - deductions - insurance - tax.
+  */
+ router.post("/payroll/calculate", requirePermission("hr.create"), async (req, res): Promise<void> => {
+   const { employeeId, periodStart, periodEnd, baseSalary, bonuses, deductions, notes } = req.body;
+   if (!employeeId || !periodStart || !periodEnd) {
+     res.status(400).json({ error: "employeeId, periodStart, periodEnd are required" });
+     return;
+   }
+   const [emp] = await db.select().from(employeesTable).where(
+     and(eq(employeesTable.id, employeeId), eq(employeesTable.organizationId, tenantId(req)))
+   );
+   if (!emp) { res.status(404).json({ error: "Employee not found" }); return; }
+ 
+   // Calculate overtime from attendance records in the period
+   const attendanceAgg = await db
+     .select({
+       totalHours: sum(attendanceTable.hoursWorked).mapWith(Number),
+       totalOvertime: sum(attendanceTable.overtimeHours).mapWith(Number),
+       totalDays: sql<number>`count(*)`,
+     })
+     .from(attendanceTable)
+     .where(
+       and(
+         eq(attendanceTable.employeeId, employeeId),
+         eq(attendanceTable.organizationId, tenantId(req)),
+         sql`${attendanceTable.date} >= ${periodStart}`,
+         sql`${attendanceTable.date} <= ${periodEnd}`,
+       )
+     );
+ 
+   const totalHours = Number(attendanceAgg[0]?.totalHours ?? 0);
+   const totalOvertime = Number(attendanceAgg[0]?.totalOvertime ?? 0);
+   const totalDays = Number(attendanceAgg[0]?.totalDays ?? 0);
+ 
+   // Use the employee's daily wage or compute from monthly salary
+   const empDailyWage = Number(emp.dailyWage) || (Number(emp.salary) / 30) || 0;
+   const empMonthlySalary = Number(emp.salary) || (empDailyWage * 30) || 0;
+ 
+   // Base salary for the period (pro-rated to actual working days)
+   const bs = Number(baseSalary) || empMonthlySalary;
+   const bn = Number(bonuses) || 0;
+   const dd = Number(deductions) || 0;
+ 
+   // Overtime: 1.4x of daily wage per overtime hour
+   const hourlyWage = empDailyWage / 8;
+   const ot = Math.round(totalOvertime * hourlyWage * 1.4 * 100) / 100;
+ 
+   // Insurance: 7% of (base salary + overtime + bonuses)
+   const grossForInsurance = bs + ot + bn;
+   const ins = Math.round(grossForInsurance * 0.07 * 100) / 100;
+ 
+   // Tax: simplified progressive brackets (monthly)
+   const taxable = grossForInsurance - ins - dd;
+   let tx = 0;
+   if (taxable > 0) {
+     if (taxable <= 5000000) tx = 0; // exempt up to 5M IRR
+     else if (taxable <= 15000000) tx = (taxable - 5000000) * 0.10;
+     else if (taxable <= 30000000) tx = 1000000 + (taxable - 15000000) * 0.15;
+     else tx = 3250000 + (taxable - 30000000) * 0.20;
+   }
+   tx = Math.round(tx * 100) / 100;
+ 
+   const netPay = Math.round((bs + ot + bn - dd - ins - tx) * 100) / 100;
+ 
+   res.json({
+     employeeId,
+     employeeName: `${emp.firstName} ${emp.lastName}`,
+     periodStart,
+     periodEnd,
+     baseSalary: bs,
+     overtime: ot,
+     bonuses: bn,
+     deductions: dd,
+     insurance: ins,
+     tax: tx,
+     netPay,
+     calculationDetails: {
+       totalDaysPresent: totalDays,
+       totalHoursWorked: Math.round(totalHours * 10) / 10,
+       totalOvertimeHours: Math.round(totalOvertime * 10) / 10,
+       hourlyWage: Math.round(hourlyWage * 100) / 100,
+       dailyWage: empDailyWage,
+       monthlySalary: empMonthlySalary,
+       insuranceRate: "7%",
+     },
+   });
+ });
+ 
+ // ─── Personnel Dashboard ────────────────────────────────────────────────────
+ 
+ router.get("/dashboard/personnel", requirePermission("hr.read"), async (req, res): Promise<void> => {
+   const organizationId = tenantId(req);
+ 
+   const [employees, attendanceToday, payrollSummary] = await Promise.all([
+     db.select().from(employeesTable).where(
+       and(eq(employeesTable.organizationId, organizationId), isNull(employeesTable.deletedAt))
+     ),
+     db.select({
+       total: sql<number>`count(*)`,
+       present: sql<number>`count(*) filter (where ${attendanceTable.status} = 'present')`,
+       absent: sql<number>`count(*) filter (where ${attendanceTable.status} = 'absent')`,
+       late: sql<number>`count(*) filter (where ${attendanceTable.status} = 'late')`,
+       onLeave: sql<number>`count(*) filter (where ${attendanceTable.status} = 'on_leave')`,
+     }).from(attendanceTable).where(
+       and(
+         eq(attendanceTable.organizationId, organizationId),
+         sql`${attendanceTable.date} = CURRENT_DATE`,
+       )
+     ),
+     db.select({
+       totalDraft: sql<number>`count(*) filter (where ${payrollTable.status} = 'draft')`,
+       totalPaid: sql<number>`count(*) filter (where ${payrollTable.status} = 'paid')`,
+       totalPayrollAmount: sum(payrollTable.netPay).mapWith(Number),
+       thisMonthPayroll: sum(payrollTable.netPay)
+         .mapWith(Number)
+         .as("this_month"),
+     }).from(payrollTable).where(
+       and(
+         eq(payrollTable.organizationId, organizationId),
+         sql`${payrollTable.periodStart} >= date_trunc('month', CURRENT_DATE)`,
+       )
+     ),
+   ]);
+ 
+   // Department breakdown
+   const deptMap = new Map<string, number>();
+   employees.forEach((e) => {
+     const dept = e.department || "General";
+     deptMap.set(dept, (deptMap.get(dept) || 0) + 1);
+   });
+   const departmentBreakdown = Array.from(deptMap.entries()).map(([department, count]) => ({
+     department,
+     count,
+   }));
+ 
+   const activeCount = employees.filter((e) => e.status === "active").length;
+   const inactiveCount = employees.filter((e) => e.status !== "active").length;
+ 
+   res.json({
+     totalEmployees: employees.length,
+     activeEmployees: activeCount,
+     inactiveEmployees: inactiveCount,
+     departmentBreakdown,
+     attendanceToday: {
+       total: Number(attendanceToday[0]?.total ?? 0),
+       present: Number(attendanceToday[0]?.present ?? 0),
+       absent: Number(attendanceToday[0]?.absent ?? 0),
+       late: Number(attendanceToday[0]?.late ?? 0),
+       onLeave: Number(attendanceToday[0]?.onLeave ?? 0),
+     },
+     payrollSummary: {
+       draftCount: Number(payrollSummary[0]?.totalDraft ?? 0),
+       paidCount: Number(payrollSummary[0]?.totalPaid ?? 0),
+       totalPayrollAmount: Number(payrollSummary[0]?.totalPayrollAmount ?? 0),
+       thisMonthPayroll: Number(payrollSummary[0]?.thisMonthPayroll ?? 0),
+     },
+   });
+ });
+ 
+ export default router;
