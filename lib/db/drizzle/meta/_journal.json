@@ -73,4 +73,11 @@
       "breakpoints": true
     }
   ]
+  ,{
+    "idx": 10,
+    "version": "7",
+    "when": 1788086400000,
+    "tag": "0012_tenant_rls_coverage",
+    "breakpoints": true
+  }
 }
