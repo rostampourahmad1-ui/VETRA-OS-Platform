@@ -18,3 +18,6 @@ export * from "./workflows";
 export * from "./forms";
 export * from "./quality";
 export * from "./audit";
+export * from "./boq";
+export * from "./hr";
+export * from "./procurement-ext";

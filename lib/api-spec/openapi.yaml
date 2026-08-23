@@ -1396,6 +1396,238 @@ paths:
             schema: { type: object, required: [query], properties: { query: { type: string } } }
       responses: { '200': { description: Assistant answer } }
 
+  # ─── Contracts & BOQ ──────────────────────────────────────────────────────────
+  /contracts/{contractId}/boq:
+    parameters:
+      - in: path
+        name: contractId
+        required: true
+        schema: { type: integer }
+    get:
+      summary: List BOQ items for a contract
+      responses: { '200': { description: BOQ items } }
+    post:
+      summary: Create a BOQ item
+      responses: { '201': { description: Created } }
+  /contracts/{contractId}/boq/{id}:
+    parameters:
+      - in: path
+        name: contractId
+        required: true
+        schema: { type: integer }
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
+    patch:
+      summary: Update a BOQ item
+      responses: { '200': { description: Updated } }
+    delete:
+      summary: Soft-delete a BOQ item
+      responses: { '204': { description: Deleted } }
+  /contracts/{contractId}/payment-certificates:
+    parameters:
+      - in: path
+        name: contractId
+        required: true
+        schema: { type: integer }
+    get:
+      summary: List payment certificates for a contract
+      responses: { '200': { description: Payment certificates } }
+    post:
+      summary: Create a payment certificate
+      responses: { '201': { description: Created } }
+  /contracts/{contractId}/payment-certificates/{id}:
+    parameters:
+      - in: path
+        name: contractId
+        required: true
+        schema: { type: integer }
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
+    patch:
+      summary: Update a draft payment certificate
+      responses: { '200': { description: Updated } }
+  /contracts/{contractId}/payment-certificates/{id}/approve:
+    parameters:
+      - in: path
+        name: contractId
+        required: true
+        schema: { type: integer }
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
+    post:
+      summary: Approve a payment certificate
+      responses: { '200': { description: Approved } }
+  /boq-items/{boqItemId}/qto:
+    parameters:
+      - in: path
+        name: boqItemId
+        required: true
+        schema: { type: integer }
+    get:
+      summary: List QTO items for a BOQ item
+      responses: { '200': { description: QTO items } }
+    post:
+      summary: Create a QTO item
+      responses: { '201': { description: Created } }
+
+  # ─── HR & Attendance ──────────────────────────────────────────────────────────
+  /employees:
+    get:
+      summary: List employees
+      responses: { '200': { description: Employees } }
+    post:
+      summary: Create an employee
+      responses: { '201': { description: Created } }
+  /employees/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
+    get:
+      summary: Get employee by id
+      responses: { '200': { description: Employee } }
+    patch:
+      summary: Update an employee
+      responses: { '200': { description: Updated } }
+    delete:
+      summary: Soft-delete an employee
+      responses: { '204': { description: Deleted } }
+  /attendance:
+    get:
+      summary: List attendance records
+      responses: { '200': { description: Attendance records } }
+    post:
+      summary: Create an attendance record
+      responses: { '201': { description: Created } }
+  /attendance/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
+    patch:
+      summary: Update an attendance record
+      responses: { '200': { description: Updated } }
+  /payroll:
+    get:
+      summary: List payroll records
+      responses: { '200': { description: Payroll records } }
+    post:
+      summary: Create a payroll record
+      responses: { '201': { description: Created } }
+  /payroll/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
+    patch:
+      summary: Update a draft payroll record
+      responses: { '200': { description: Updated } }
+  /payroll/{id}/pay:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
+    post:
+      summary: Mark payroll as paid
+      responses: { '200': { description: Paid } }
+
+  # ─── Procurement Extensions ────────────────────────────────────────────────────
+  /suppliers:
+    get:
+      summary: List suppliers
+      responses: { '200': { description: Suppliers } }
+    post:
+      summary: Create a supplier
+      responses: { '201': { description: Created } }
+  /suppliers/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
+    patch:
+      summary: Update a supplier
+      responses: { '200': { description: Updated } }
+    delete:
+      summary: Soft-delete a supplier
+      responses: { '204': { description: Deleted } }
+  /materials:
+    get:
+      summary: List materials
+      responses: { '200': { description: Materials } }
+    post:
+      summary: Create a material
+      responses: { '201': { description: Created } }
+  /materials/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
+    patch:
+      summary: Update a material
+      responses: { '200': { description: Updated } }
+    delete:
+      summary: Soft-delete a material
+      responses: { '204': { description: Deleted } }
+  /warehouse:
+    get:
+      summary: List warehouses
+      responses: { '200': { description: Warehouses } }
+    post:
+      summary: Create a warehouse
+      responses: { '201': { description: Created } }
+  /warehouse/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
+    patch:
+      summary: Update a warehouse
+      responses: { '200': { description: Updated } }
+    delete:
+      summary: Soft-delete a warehouse
+      responses: { '204': { description: Deleted } }
+  /procurement/{procurementId}/items:
+    parameters:
+      - in: path
+        name: procurementId
+        required: true
+        schema: { type: integer }
+    get:
+      summary: List items in a procurement order
+      responses: { '200': { description: Procurement items } }
+    post:
+      summary: Create a procurement item
+      responses: { '201': { description: Created } }
+  /procurement/{procurementId}/items/{id}:
+    parameters:
+      - in: path
+        name: procurementId
+        required: true
+        schema: { type: integer }
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
+    patch:
+      summary: Update a procurement item
+      responses: { '200': { description: Updated } }
+    delete:
+      summary: Delete a procurement item
+      responses: { '204': { description: Deleted } }
+
 components:
   schemas:
 

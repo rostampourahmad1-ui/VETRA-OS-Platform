@@ -23,6 +23,9 @@ import formsRouter from "./forms";
 import aiRouter from "./ai";
 import qualityRouter from "./quality";
 import { attachTenant } from "../middlewares/tenant";
+import contractsBoqRouter from "./contracts-boq";
+import hrRouter from "./hr";
+import procurementExtRouter from "./procurement-ext";
 
 const router: IRouter = Router();
 
@@ -50,5 +53,8 @@ router.use(workflowsRouter);
 router.use(formsRouter);
 router.use(aiRouter);
 router.use(qualityRouter);
+router.use(contractsBoqRouter);
+router.use(hrRouter);
+router.use(procurementExtRouter);
 
 export default router;
