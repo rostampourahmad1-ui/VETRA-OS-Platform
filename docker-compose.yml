@@ -1,95 +1,126 @@
- # ============================================================================
- # VETRA OS — Local Development Environment
- # ============================================================================
- # Purpose: PostgreSQL 16 + PgBouncer + non-owner DB role architecture
- # Security: Application uses vetra_app (non-owner, RLS-enforced) role.
- #           Migrations use vetra_admin role.
- #           PgBouncer runs in transaction pooling mode.
- #
- # Setup:
- #   cp .env.example .env
- #   # Edit .env and set POSTGRES_ADMIN_PASSWORD and POSTGRES_APP_PASSWORD
- #   docker compose up -d
- # ============================================================================
- 
- version: "3.9"
- 
- services:
-   # ─── PostgreSQL 16 ──────────────────────────────────────────────────────
-   postgres:
-     image: postgres:16.8-alpine
-     container_name: vetra-postgres
-     restart: unless-stopped
-     environment:
-       POSTGRES_USER: ${POSTGRES_ADMIN_USER:-vetra_admin}
-       POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?err}
-       POSTGRES_DB: ${POSTGRES_DB:-vetra_dev}
-     ports:
-       - "${POSTGRES_PORT:-5432}:5432"
-     volumes:
-       - postgres_data:/var/lib/postgresql/data
-       - ./infra/db/init:/docker-entrypoint-initdb.d:ro
-     healthcheck:
-       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_ADMIN_USER:-vetra_admin} -d ${POSTGRES_DB:-vetra_dev}"]
-       interval: 10s
-       timeout: 5s
-       retries: 5
-     networks:
-       - vetra-network
- 
-   # ─── PgBouncer (Transaction Pooling) ────────────────────────────────────
-   pgbouncer:
-     image: edoburu/pgbouncer:1.24.0
-     container_name: vetra-pgbouncer
-     restart: unless-stopped
-     environment:
-       DB_HOST: postgres
-       DB_PORT: "5432"
-       DB_USER: ${POSTGRES_ADMIN_USER:-vetra_admin}
-       DB_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?err}
-       DB_NAME: ${POSTGRES_DB:-vetra_dev}
-       # Application user (non-owner, RLS enforced)
-       AUTH_USER: ${POSTGRES_APP_USER:-vetra_app}
-       AUTH_PASSWORD: ${POSTGRES_APP_PASSWORD:?err}
-       # PgBouncer admin
-       ADMIN_USERS: ${POSTGRES_ADMIN_USER:-vetra_admin}
-       POOL_MODE: transaction
-       MAX_CLIENT_CONN: "100"
-       DEFAULT_POOL_SIZE: "20"
-       RESERVE_POOL_SIZE: "5"
-       RESERVE_POOL_TIMEOUT: "3"
-       MAX_DB_CONNECTIONS: "50"
-       MAX_USER_CONNECTIONS: "50"
-       SERVER_RESET_QUERY: "DISCARD ALL"
-       # Connection settings
-       CLIENT_IDLE_TIMEOUT: "0"
-       IDLE_TRANSACTION_TIMEOUT: "0"
-       SERVER_IDLE_TIMEOUT: "600"
-       SERVER_LIFETIME: "3600"
-       SERVER_CONNECT_TIMEOUT: "15"
-       QUERY_TIMEOUT: "0"
-       QUERY_WAIT_TIMEOUT: "120"
-       # Logging
-       VERBOSE: "0"
-       STATS_PERIOD: "60"
-       LOG_CONNECTIONS: "1"
-       LOG_DISCONNECTIONS: "1"
-       # Security
-       AUTH_TYPE: "scram-sha-256"
-     ports:
-       - "${PGBOUNCER_PORT:-6432}:6432"
-     depends_on:
-       postgres:
-         condition: service_healthy
-     networks:
-       - vetra-network
-     volumes:
-       - ./infra/pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
- 
- volumes:
-   postgres_data:
-     driver: local
- 
- networks:
-   vetra-network:
-     driver: bridge
+# ============================================================================
+# VETRA OS — Local Development and Integration Test Environment
+# ============================================================================
+
+services:
+  postgres:
+    image: postgres:16.8-alpine
+    container_name: vetra-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER:-vetra_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?POSTGRES_ADMIN_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-vetra_dev}
+
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/db/init:/docker-entrypoint-initdb.d:ro
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_ADMIN_USER:-vetra_admin} -d ${POSTGRES_DB:-vetra_dev}"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+    networks:
+      - vetra-network
+
+  pgbouncer:
+    image: edoburu/pgbouncer:1.24.0
+    container_name: vetra-pgbouncer
+    restart: unless-stopped
+
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: ${POSTGRES_ADMIN_USER:-vetra_admin}
+      DB_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?POSTGRES_ADMIN_PASSWORD is required}
+      DB_NAME: ${POSTGRES_DB:-vetra_dev}
+
+      AUTH_USER: ${POSTGRES_APP_USER:-vetra_app}
+      AUTH_PASSWORD: ${POSTGRES_APP_PASSWORD:?POSTGRES_APP_PASSWORD is required}
+
+      ADMIN_USERS: ${POSTGRES_ADMIN_USER:-vetra_admin}
+
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: "100"
+      DEFAULT_POOL_SIZE: "20"
+      RESERVE_POOL_SIZE: "5"
+      RESERVE_POOL_TIMEOUT: "3"
+      MAX_DB_CONNECTIONS: "50"
+      MAX_USER_CONNECTIONS: "50"
+
+      SERVER_RESET_QUERY: DISCARD ALL
+
+      CLIENT_IDLE_TIMEOUT: "0"
+      IDLE_TRANSACTION_TIMEOUT: "0"
+      SERVER_IDLE_TIMEOUT: "600"
+      SERVER_LIFETIME: "3600"
+      SERVER_CONNECT_TIMEOUT: "15"
+      QUERY_TIMEOUT: "0"
+      QUERY_WAIT_TIMEOUT: "120"
+
+      VERBOSE: "0"
+      STATS_PERIOD: "60"
+      LOG_CONNECTIONS: "1"
+      LOG_DISCONNECTIONS: "1"
+
+      AUTH_TYPE: scram-sha-256
+
+    ports:
+      - "${PGBOUNCER_PORT:-6432}:6432"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    volumes:
+      - ./infra/pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+
+    networks:
+      - vetra-network
+
+  tester:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: vetra-tester
+
+    environment:
+      NODE_ENV: test
+
+      DATABASE_URL: >-
+        postgresql://${POSTGRES_ADMIN_USER:-vetra_admin}:${POSTGRES_ADMIN_PASSWORD}@postgres:5432/${POSTGRES_DB:-vetra_dev}
+
+      DATABASE_TEST_APP_URL: >-
+        postgresql://${POSTGRES_APP_USER:-vetra_app}:${POSTGRES_APP_PASSWORD}@postgres:5432/${POSTGRES_DB:-vetra_dev}
+
+      DATABASE_APP_URL: >-
+        postgresql://${POSTGRES_APP_USER:-vetra_app}:${POSTGRES_APP_PASSWORD}@postgres:5432/${POSTGRES_DB:-vetra_dev}
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    networks:
+      - vetra-network
+
+    command: ["pnpm", "vitest", "run"]
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  vetra-network:
+    driver: bridge
