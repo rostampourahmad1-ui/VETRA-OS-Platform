@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { useOrganizationProject } from '@/contexts/OrganizationProjectContext';
+import { formatJalali } from '@/lib/jalali';
 
 interface Baseline {
   id: number; projectId: number; name: string; version: number; isActive: number; description?: string | null; createdAt: string;
@@ -21,14 +23,15 @@ export default function ProgressPage() {
   const [baselines, setBaselines] = useState<Baseline[]>([]);
   const [progress, setProgress] = useState<ProgressRecord[]>([]);
   const [evm, setEvm] = useState<EvmMetric[]>([]);
-  const [projectId, setProjectId] = useState('');
+  const { project } = useOrganizationProject();
+  const projectId = project?.id;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [blForm, setBlForm] = useState({ name: '', description: '' });
   const [prForm, setPrForm] = useState({ activityId: '', reportDate: '', progressPercent: '0', actualCost: '0', actualLaborHours: '0', notes: '' });
   const [evmForm, setEvmForm] = useState({ baselineId: '', reportDate: '', plannedValue: '0', earnedValue: '0', actualCost: '0' });
 
-  const load = async (pid: string) => {
+  const load = async (pid: number) => {
     if (!pid) return;
     setLoading(true); setError('');
     try {
@@ -51,6 +54,7 @@ export default function ProgressPage() {
   };
 
   const snapshotBaseline = async (baselineId: number) => {
+    if (!projectId) return;
     try { await post(`/baselines/${baselineId}/activities`, {}); await load(projectId); }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'Unable to snapshot baseline.'); }
   };
@@ -74,13 +78,13 @@ export default function ProgressPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-primary">PROJECT CONTROL / PROGRESS</p>
-          <h1 className="text-3xl font-semibold tracking-tight">Progress & Baselines</h1>
+          <p className="text-sm font-medium text-primary">کنترل پروژه / پیشرفت</p>
+          <h1 className="text-3xl font-semibold tracking-tight">پیشرفت و خط مبنا</h1>
           <p className="mt-1 text-muted-foreground">Track actual progress, manage baselines, and compute EVM metrics.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Input type="number" min="1" placeholder="Project ID" value={projectId} onChange={(e) => setProjectId(e.target.value)} className="w-32" />
-          <Button variant="outline" onClick={() => projectId && load(projectId)} disabled={!projectId}><RefreshCw className="mr-2 h-4 w-4" />Load</Button>
+          <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm" aria-label="پروژهٔ فعال">پروژهٔ فعال: {project?.name ?? 'انتخاب نشده'}</div>
+          <Button variant="outline" onClick={() => projectId && load(projectId)} disabled={!projectId}><RefreshCw className="mr-2 h-4 w-4" />بارگذاری</Button>
         </div>
       </div>
       {error && <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>}
@@ -160,7 +164,7 @@ export default function ProgressPage() {
             </div>
           </CardHeader>
           <CardContent>
-            {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : progress.length === 0 ? <p className="text-sm text-muted-foreground">No progress records.</p> : <div className="space-y-3">{progress.slice(0, 10).map((pr) => <div key={pr.id} className="rounded-lg border p-4"><div className="flex items-start justify-between gap-3"><div><h3 className="font-medium text-sm">Activity #{pr.activityId}</h3><p className="text-xs text-muted-foreground">{pr.reportDate}</p></div><Badge variant={pr.progressPercent >= 100 ? 'default' : pr.progressPercent > 0 ? 'secondary' : 'outline'}>{pr.progressPercent}%</Badge></div>{pr.notes && <p className="mt-1 text-xs text-muted-foreground">{pr.notes}</p>}</div>)}</div>}
+            {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : progress.length === 0 ? <p className="text-sm text-muted-foreground">No progress records.</p> : <div className="space-y-3">{progress.slice(0, 10).map((pr) => <div key={pr.id} className="rounded-lg border p-4"><div className="flex items-start justify-between gap-3"><div><h3 className="font-medium text-sm">Activity #{pr.activityId}</h3><p className="text-xs text-muted-foreground">{formatJalali(pr.reportDate)}</p></div><Badge variant={pr.progressPercent >= 100 ? 'default' : pr.progressPercent > 0 ? 'secondary' : 'outline'}>{pr.progressPercent}%</Badge></div>{pr.notes && <p className="mt-1 text-xs text-muted-foreground">{pr.notes}</p>}</div>)}</div>}
           </CardContent>
         </Card>
       </div>

@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { useOrganizationProject } from '@/contexts/OrganizationProjectContext';
 
 interface Calendar {
   id: number; projectId: number; name: string; description?: string | null;
@@ -22,13 +23,14 @@ export default function SchedulingPage() {
   const [calendars, setCalendars] = useState<Calendar[]>([]);
   const [dependencies, setDependencies] = useState<Dependency[]>([]);
   const [cpm, setCpm] = useState<{ activities: CpmActivity[]; criticalPath: number[]; projectFinishDays: number } | null>(null);
-  const [projectId, setProjectId] = useState('');
+  const { project } = useOrganizationProject();
+  const projectId = project?.id;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [calForm, setCalForm] = useState({ name: '', workDays: '1,2,3,4,5,6', workStartHour: '08:00', workEndHour: '17:00' });
   const [depForm, setDepForm] = useState({ predecessorId: '', successorId: '', dependencyType: 'FS', lagDays: '0' });
 
-  const load = async (pid: string) => {
+  const load = async (pid: number) => {
     if (!pid) return;
     setLoading(true); setError('');
     try {
@@ -65,13 +67,13 @@ export default function SchedulingPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-primary">PROJECT CONTROL / SCHEDULING</p>
-          <h1 className="text-3xl font-semibold tracking-tight">Scheduling & Gantt</h1>
-          <p className="mt-1 text-muted-foreground">Manage calendars, activity dependencies, and CPM calculations.</p>
+          <p className="text-sm font-medium text-primary">کنترل پروژه / زمان‌بندی</p>
+          <h1 className="text-3xl font-semibold tracking-tight">زمان‌بندی و گانت</h1>
+          <p className="mt-1 text-muted-foreground">تقویم‌ها، وابستگی فعالیت‌ها و محاسبات CPM پروژهٔ فعال را مدیریت کنید.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Input type="number" min="1" placeholder="Project ID" value={projectId} onChange={(e) => setProjectId(e.target.value)} className="w-32" />
-          <Button variant="outline" onClick={() => projectId && load(projectId)} disabled={!projectId}><RefreshCw className="mr-2 h-4 w-4" />Load</Button>
+          <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm" aria-label="پروژهٔ فعال">پروژهٔ فعال: {project?.name ?? 'انتخاب نشده'}</div>
+          <Button variant="outline" onClick={() => projectId && load(projectId)} disabled={!projectId}><RefreshCw className="mr-2 h-4 w-4" />بارگذاری</Button>
         </div>
       </div>
       {error && <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>}
@@ -117,7 +119,7 @@ export default function SchedulingPage() {
         <Card>
           <CardHeader><CardTitle>Calendars <span className="text-sm font-normal text-muted-foreground">({calendars.length})</span></CardTitle></CardHeader>
           <CardContent>
-            {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : calendars.length === 0 ? <p className="text-sm text-muted-foreground">No calendars defined.</p> : <div className="space-y-3">{calendars.map((cal) => <div key={cal.id} className="rounded-lg border p-4"><div className="flex items-start justify-between gap-3"><div><h3 className="font-medium">{cal.name}</h3><p className="text-sm text-muted-foreground">Days: {cal.workDays} · {cal.workStartHour}–{cal.workEndHour}</p></div><div className="flex items-center gap-2">{cal.isDefault ? <Badge variant="default">Default</Badge> : null}<Button variant="ghost" size="icon" onClick={() => removeCalendar(cal.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></div></div></div>)}</div>}
+            {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : calendars.length === 0 ? <p className="text-sm text-muted-foreground">No calendars defined.</p> : <div className="space-y-3">{calendars.map((cal) => <div key={cal.id} className="rounded-lg border p-4"><div className="flex items-start justify-between gap-3"><div><h3 className="font-medium">{cal.name}</h3><p className="text-sm text-muted-foreground">Days: {cal.workDays} · {cal.workStartHour}–{cal.workEndHour}</p></div><div className="flex items-center gap-2">{cal.isDefault ? <Badge variant="default">پیش‌فرض</Badge> : null}<Button variant="ghost" size="icon" onClick={() => removeCalendar(cal.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></div></div></div>)}</div>}
           </CardContent>
         </Card>
 
