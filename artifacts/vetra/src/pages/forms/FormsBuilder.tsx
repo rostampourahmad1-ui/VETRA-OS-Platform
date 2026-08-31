@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { get, patch, post } from '@/lib/phase2-api';
+import { useOrganizationProject } from '@/contexts/OrganizationProjectContext';
 
 type FieldType = 'text' | 'number' | 'date' | 'select' | 'checkbox';
 
@@ -119,6 +120,7 @@ export default function FormsBuilder() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { project } = useOrganizationProject();
 
   const selectedField = useMemo(
     () => draft.fields.find((field) => field.id === selectedId) ?? draft.fields[0],
@@ -154,7 +156,7 @@ export default function FormsBuilder() {
 
   useEffect(() => {
     let active = true;
-    void get<FormTemplateResponse[]>('/forms/templates')
+    void get<FormTemplateResponse[]>('/forms/templates', { projectId: project?.id })
       .then((templates) => {
         const template = templates.find((item) => item.status === 'draft') ?? templates[0];
         if (active && template) setDraft(toDraft(template));
@@ -166,13 +168,17 @@ export default function FormsBuilder() {
         if (active) setLoading(false);
       });
     return () => { active = false; };
-  }, []);
+  }, [project?.id]);
 
   const saveDraft = async () => {
     setSaving(true);
     setError('');
-    const payload = { name: draft.name, description: draft.description || undefined, definition: { fields: draft.fields } };
+    const payload = { name: draft.name, description: draft.description || undefined, definition: { fields: draft.fields }, projectId: project?.id };
     try {
+      if (!project) {
+        setError('ابتدا پروژهٔ فعال را انتخاب کنید.');
+        return;
+      }
       const saved = draft.id
         ? await patch<FormTemplateResponse>(`/forms/templates/${draft.id}`, payload)
         : await post<FormTemplateResponse>('/forms/templates', payload);
