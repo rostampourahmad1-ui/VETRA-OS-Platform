@@ -1,6 +1,404 @@
 -- VETRA-SEC-07: Tenant-scoped RLS for HR, Procurement-Ext, Scheduling, Phase2, BOQ, Planning, and RBAC tables
 -- =========================================================================================================
 -- Adds RLS (ENABLE + FORCE) and tenant isolation policies to all tables that have organization_id
+
+-- ─── 0. Schema prerequisites ────────────────────────────────────────────────
+-- These tables are part of the Drizzle schema but were previously absent from
+-- the replayable SQL history. Keep creation additive so existing databases
+-- retain their data while fresh CI databases can apply the full history.
+
+CREATE TABLE IF NOT EXISTS "budgets" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"organization_id" integer NOT NULL,
+	"project_id" integer NOT NULL,
+	"category_id" integer,
+	"name" text NOT NULL,
+	"amount" numeric(15, 2) DEFAULT '0' NOT NULL,
+	"period" text DEFAULT 'annual' NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "clients" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"organization_id" integer NOT NULL,
+	"name" text NOT NULL,
+	"company" text,
+	"email" text,
+	"phone" text,
+	"type" text DEFAULT 'client' NOT NULL,
+	"status" text DEFAULT 'active' NOT NULL,
+	"notes" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "expense_categories" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"organization_id" integer NOT NULL,
+	"name" text NOT NULL,
+	"code" text NOT NULL,
+	"color" text DEFAULT '#64748b' NOT NULL,
+	"active" boolean DEFAULT true NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "expenses" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"organization_id" integer NOT NULL,
+	"project_id" integer NOT NULL,
+	"category_id" integer,
+	"submitted_by" integer,
+	"description" text NOT NULL,
+	"amount" numeric(15, 2) NOT NULL,
+	"expense_date" date NOT NULL,
+	"status" text DEFAULT 'approved' NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "milestones" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"project_id" integer NOT NULL,
+	"organization_id" integer NOT NULL,
+	"phase_id" integer,
+	"name" text NOT NULL,
+	"due_date" date NOT NULL,
+	"status" text DEFAULT 'pending' NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "project_phases" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"project_id" integer NOT NULL,
+	"organization_id" integer NOT NULL,
+	"name" text NOT NULL,
+	"description" text,
+	"start_date" date NOT NULL,
+	"end_date" date NOT NULL,
+	"progress" integer DEFAULT 0 NOT NULL,
+	"color" text DEFAULT '#2563eb' NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "boq_items" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"contract_id" integer NOT NULL,
+	"organization_id" integer NOT NULL,
+	"code" text NOT NULL,
+	"description" text NOT NULL,
+	"unit" text NOT NULL,
+	"quantity" numeric(15, 3) DEFAULT '0' NOT NULL,
+	"unit_price" numeric(15, 2) DEFAULT '0' NOT NULL,
+	"total_price" numeric(15, 2) DEFAULT '0' NOT NULL,
+	"parent_id" integer,
+	"level" integer DEFAULT 0 NOT NULL,
+	"sort_order" integer DEFAULT 0 NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS "payment_certificates" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"contract_id" integer NOT NULL,
+	"organization_id" integer NOT NULL,
+	"title" text NOT NULL,
+	"certificate_number" text NOT NULL,
+	"period_start" date NOT NULL,
+	"period_end" date NOT NULL,
+	"previous_cumulative" numeric(15, 2) DEFAULT '0' NOT NULL,
+	"this_period" numeric(15, 2) DEFAULT '0' NOT NULL,
+	"deductions" numeric(15, 2) DEFAULT '0' NOT NULL,
+	"retention" numeric(15, 2) DEFAULT '0' NOT NULL,
+	"net_payable" numeric(15, 2) DEFAULT '0' NOT NULL,
+	"cumulative_to_date" numeric(15, 2) DEFAULT '0' NOT NULL,
+	"status" text DEFAULT 'draft' NOT NULL,
+	"approved_by" integer,
+	"approved_at" timestamp with time zone,
+	"notes" text,
+	"created_by" integer NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS "qto_items" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"boq_item_id" integer NOT NULL,
+	"organization_id" integer NOT NULL,
+	"description" text NOT NULL,
+	"unit" text NOT NULL,
+	"design_quantity" numeric(15, 3) DEFAULT '0' NOT NULL,
+	"field_quantity" numeric(15, 3) DEFAULT '0' NOT NULL,
+	"waste_factor" numeric(5, 2) DEFAULT '0' NOT NULL,
+	"notes" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "attendance" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"employee_id" integer NOT NULL,
+	"organization_id" integer NOT NULL,
+	"date" date NOT NULL,
+	"check_in" text,
+	"check_out" text,
+	"status" text DEFAULT 'present' NOT NULL,
+	"hours_worked" numeric(5, 1),
+	"overtime_hours" numeric(5, 1),
+	"notes" text,
+	"recorded_by" integer NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "employees" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"organization_id" integer NOT NULL,
+	"code" text NOT NULL,
+	"first_name" text NOT NULL,
+	"last_name" text NOT NULL,
+	"national_id" text,
+	"phone" text NOT NULL,
+	"email" text,
+	"position" text NOT NULL,
+	"department" text,
+	"project_id" integer,
+	"user_id" integer,
+	"hire_date" date NOT NULL,
+	"salary" numeric(15, 2) DEFAULT '0' NOT NULL,
+	"daily_wage" numeric(15, 2) DEFAULT '0' NOT NULL,
+	"status" text DEFAULT 'active' NOT NULL,
+	"gender" text,
+	"insurance_number" text,
+	"bank_account" text,
+	"address" text,
+	"notes" text,
+	"created_by" integer NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS "payroll" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"employee_id" integer NOT NULL,
+	"organization_id" integer NOT NULL,
+	"period_start" date NOT NULL,
+	"period_end" date NOT NULL,
+	"base_salary" numeric(15, 2) DEFAULT '0' NOT NULL,
+	"overtime" numeric(15, 2) DEFAULT '0' NOT NULL,
+	"bonuses" numeric(15, 2) DEFAULT '0' NOT NULL,
+	"deductions" numeric(15, 2) DEFAULT '0' NOT NULL,
+	"insurance" numeric(15, 2) DEFAULT '0' NOT NULL,
+	"tax" numeric(15, 2) DEFAULT '0' NOT NULL,
+	"net_pay" numeric(15, 2) DEFAULT '0' NOT NULL,
+	"status" text DEFAULT 'draft' NOT NULL,
+	"paid_at" timestamp with time zone,
+	"notes" text,
+	"created_by" integer NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS "materials" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"organization_id" integer NOT NULL,
+	"code" text NOT NULL,
+	"name" text NOT NULL,
+	"category" text NOT NULL,
+	"unit" text NOT NULL,
+	"unit_price" numeric(15, 2) DEFAULT '0' NOT NULL,
+	"min_stock" numeric(12, 2),
+	"current_stock" numeric(12, 2) DEFAULT '0' NOT NULL,
+	"description" text,
+	"supplier_id" integer,
+	"project_id" integer,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS "procurement_items" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"procurement_id" integer NOT NULL,
+	"organization_id" integer NOT NULL,
+	"material_id" integer,
+	"description" text NOT NULL,
+	"quantity" numeric(12, 3) DEFAULT '0' NOT NULL,
+	"unit" text NOT NULL,
+	"unit_price" numeric(15, 2) DEFAULT '0' NOT NULL,
+	"total_price" numeric(15, 2) DEFAULT '0' NOT NULL,
+	"received_quantity" numeric(12, 3) DEFAULT '0' NOT NULL,
+	"warehouse_id" integer,
+	"notes" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "suppliers" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"organization_id" integer NOT NULL,
+	"name" text NOT NULL,
+	"contact_person" text,
+	"phone" text NOT NULL,
+	"email" text,
+	"address" text,
+	"tax_id" text,
+	"category" text,
+	"rating" integer DEFAULT 0,
+	"status" text DEFAULT 'active' NOT NULL,
+	"notes" text,
+	"created_by" integer NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS "warehouse" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"organization_id" integer NOT NULL,
+	"name" text NOT NULL,
+	"location" text,
+	"manager" text,
+	"project_id" integer,
+	"status" text DEFAULT 'active' NOT NULL,
+	"notes" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS "activity_dependencies" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"project_id" integer NOT NULL,
+	"organization_id" integer NOT NULL,
+	"predecessor_id" integer NOT NULL,
+	"successor_id" integer NOT NULL,
+	"dependency_type" text DEFAULT 'FS' NOT NULL,
+	"lag_days" integer DEFAULT 0 NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS "actual_progress" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"activity_id" integer NOT NULL,
+	"project_id" integer NOT NULL,
+	"organization_id" integer NOT NULL,
+	"report_date" date NOT NULL,
+	"progress_percent" integer DEFAULT 0 NOT NULL,
+	"actual_start" date,
+	"actual_finish" date,
+	"actual_cost" numeric(15, 2),
+	"actual_labor_hours" numeric(10, 1),
+	"physical_progress" integer DEFAULT 0,
+	"status" text DEFAULT 'not_started' NOT NULL,
+	"notes" text,
+	"recorded_by" integer NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "baseline_activities" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"baseline_id" integer NOT NULL,
+	"activity_id" integer NOT NULL,
+	"organization_id" integer NOT NULL,
+	"planned_start" date NOT NULL,
+	"planned_finish" date NOT NULL,
+	"duration_days" integer NOT NULL,
+	"planned_cost" numeric(15, 2) DEFAULT '0' NOT NULL,
+	"planned_labor_hours" numeric(10, 1) DEFAULT '0' NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "baselines" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"project_id" integer NOT NULL,
+	"organization_id" integer NOT NULL,
+	"name" text NOT NULL,
+	"version" integer NOT NULL,
+	"is_active" integer DEFAULT 0 NOT NULL,
+	"description" text,
+	"created_by" integer NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS "calendar_exceptions" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"calendar_id" integer NOT NULL,
+	"organization_id" integer NOT NULL,
+	"exception_date" date NOT NULL,
+	"is_working_day" integer DEFAULT 0 NOT NULL,
+	"description" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "evm_metrics" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"project_id" integer NOT NULL,
+	"organization_id" integer NOT NULL,
+	"baseline_id" integer NOT NULL,
+	"report_date" date NOT NULL,
+	"planned_value" numeric(15, 2) DEFAULT '0' NOT NULL,
+	"earned_value" numeric(15, 2) DEFAULT '0' NOT NULL,
+	"actual_cost" numeric(15, 2) DEFAULT '0' NOT NULL,
+	"cost_variance" numeric(15, 2) DEFAULT '0' NOT NULL,
+	"schedule_variance" numeric(15, 2) DEFAULT '0' NOT NULL,
+	"cost_performance_index" numeric(5, 2) DEFAULT '1' NOT NULL,
+	"schedule_performance_index" numeric(5, 2) DEFAULT '1' NOT NULL,
+	"estimate_at_completion" numeric(15, 2),
+	"estimate_to_complete" numeric(15, 2),
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "project_calendars" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"project_id" integer NOT NULL,
+	"organization_id" integer NOT NULL,
+	"name" text NOT NULL,
+	"description" text,
+	"is_default" integer DEFAULT 0 NOT NULL,
+	"work_days" text DEFAULT '1,2,3,4,5,6' NOT NULL,
+	"work_start_hour" text DEFAULT '08:00' NOT NULL,
+	"work_end_hour" text DEFAULT '17:00' NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS "resource_assignments" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"activity_id" integer NOT NULL,
+	"project_id" integer NOT NULL,
+	"organization_id" integer NOT NULL,
+	"resource_type_id" integer NOT NULL,
+	"quantity" numeric(12, 2) DEFAULT '1' NOT NULL,
+	"cost_per_unit" numeric(15, 2) DEFAULT '0' NOT NULL,
+	"total_cost" numeric(15, 2) DEFAULT '0' NOT NULL,
+	"start_date" date,
+	"end_date" date,
+	"notes" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS "resource_types" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"organization_id" integer NOT NULL,
+	"name" text NOT NULL,
+	"category" text NOT NULL,
+	"unit" text NOT NULL,
+	"default_cost_per_unit" numeric(15, 2) DEFAULT '0' NOT NULL,
+	"description" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp with time zone
+);
+
+
 -- but were created without RLS coverage. Also handles user_roles via parent-based RLS through roles.
 -- This migration is additive and idempotent (IF NOT EXISTS guards throughout).
 

@@ -2,6 +2,7 @@
 import { spawnSync } from "node:child_process";
 
 const executable = "pnpm";
+const hasDatabaseUrl = Boolean(process.env.DATABASE_MIGRATION_URL || process.env.DATABASE_URL);
 const hasDatabaseTestUrl = Boolean(process.env.DATABASE_TEST_APP_URL);
 const nodeMajor = Number.parseInt(process.versions.node.split(".")[0] ?? "0", 10);
 
@@ -19,13 +20,20 @@ if (nodeMajor !== 24) {
 run("OpenAPI code generation", ["--filter", "@workspace/api-spec", "run", "codegen"]);
 run("Lint", ["lint"]);
 run("Typecheck", ["typecheck"]);
-run("Unit and regression tests", ["test"]);
+
+if (hasDatabaseUrl) {
+  run("PostgreSQL migrations", ["db:migrate"]);
+} else {
+  process.stdout.write("\n=== PostgreSQL migrations ===\nSKIPPED: DATABASE_MIGRATION_URL or DATABASE_URL is not set. This is a release blocker outside CI.\n");
+}
 
 if (hasDatabaseTestUrl) {
   run("PostgreSQL RLS integration tests", ["exec", "vitest", "run", "tests/security/rls-integration.test.ts"]);
 } else {
   process.stdout.write("\n=== PostgreSQL RLS integration tests ===\nSKIPPED: DATABASE_TEST_APP_URL is not set. This is a release blocker outside CI.\n");
 }
+
+run("Unit and regression tests", ["test"]);
 
 run("Production build", ["build"]);
 process.stdout.write("\n=== Diff hygiene ===\n");

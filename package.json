@@ -9,6 +9,7 @@
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
     "lint": "pnpm -r --if-present run lint",
     "test": "vitest run",
+    "db:migrate": "node scripts/run-migrations.mjs",
     "validate:final": "node scripts/final-validation.mjs"
   },
   "private": true,
