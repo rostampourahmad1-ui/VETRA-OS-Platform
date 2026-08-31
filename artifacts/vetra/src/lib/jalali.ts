@@ -1,4 +1,4 @@
-import { format, formatDistanceToNow } from 'date-fns-jalali';
+import { format } from 'date-fns-jalali';
 
 export function toDate(value: string | Date | null | undefined): Date | null {
   if (!value) return null;
@@ -15,17 +15,21 @@ export function formatJalaliLong(value: string | Date | null | undefined): strin
   return formatJalali(value, 'd MMMM yyyy');
 }
 
-export function formatRelativeJalali(value: string | Date | null | undefined): string {
+export function formatRelativeJalali(value: string | Date | null | undefined, now = new Date()): string {
   const date = toDate(value);
-  return date ? formatDistanceToNow(date, { addSuffix: true }) : '—';
+  if (!date) return '—';
+  const minutes = Math.max(0, Math.floor((now.getTime() - date.getTime()) / 60_000));
+  if (minutes < 1) return 'همین حالا';
+  if (minutes < 60) return `${persianNumber(minutes)} دقیقه پیش`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${persianNumber(hours)} ساعت پیش`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${persianNumber(days)} روز پیش`;
+  return formatJalali(date);
 }
 
 export const persianNumber = (value: string | number): string =>
   String(value).replace(/\d/g, (digit) => '۰۱۲۳۴۵۶۷۸۹'[Number(digit)]);
 
-/**
- * Format a number as currency using the Persian locale (fa-IR, IRR).
- * Consistent across all pages: "IRR ۱,۲۳۴,۵۶۷"
- */
 export const formatCurrency = (value: number): string =>
   new Intl.NumberFormat('fa-IR', { style: 'currency', currency: 'IRR', maximumFractionDigits: 0 }).format(value);
