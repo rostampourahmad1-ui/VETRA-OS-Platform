@@ -1823,6 +1823,8 @@ components:
             properties:
               name: { type: string }
               requiredPermission: { type: string }
+              approvalType: { type: string, enum: [single, any], default: single }
+              requiredApprovals: { type: integer, minimum: 1, default: 1 }
     WorkflowRunInput:
       type: object
       required: [entityId]

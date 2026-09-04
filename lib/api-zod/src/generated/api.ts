@@ -432,6 +432,16 @@ export const DeleteDocumentResponse = zod.void()
 
 
 /**
+ * @summary Download a document's stored file
+ */
+export const DownloadDocumentParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const DownloadDocumentResponse = zod.unknown()
+
+
+/**
  * @summary List contracts
  */
 export const ListContractsQueryParams = zod.object({
@@ -580,7 +590,7 @@ export const CreateDailyReportBody = zod.object({
   "issues": zod.string().optional(),
   "notes": zod.string().optional(),
   "projectId": zod.number().int(),
-  "createdBy": zod.string().optional()
+  "createdBy": zod.string()
 })
 
 export const CreateDailyReportResponse = zod.object({
@@ -1524,6 +1534,9 @@ export const GetWorkflowsResponse = zod.unknown()
 /**
  * @summary Define an approval workflow
  */
+export const postWorkflowsBodyStepsItemApprovalTypeDefault = `single`;
+export const postWorkflowsBodyStepsItemRequiredApprovalsDefault = 1;
+
 
 
 
@@ -1533,8 +1546,8 @@ export const PostWorkflowsBody = zod.object({
   "steps": zod.array(zod.object({
   "name": zod.string(),
   "requiredPermission": zod.string(),
-  "approvalType": zod.enum(["single", "any", "all"]).optional(),
-  "requiredApprovals": zod.number().int().min(1).optional()
+  "approvalType": zod.enum(['single', 'any']).default(postWorkflowsBodyStepsItemApprovalTypeDefault),
+  "requiredApprovals": zod.number().int().min(1).default(postWorkflowsBodyStepsItemRequiredApprovalsDefault)
 })).min(1)
 })
 
@@ -1880,6 +1893,16 @@ export const GetFormsTemplatesIdResponse = zod.unknown()
 
 
 /**
+ * @summary Soft-delete a draft form template
+ */
+export const DeleteFormsTemplatesIdParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const DeleteFormsTemplatesIdResponse = zod.void()
+
+
+/**
  * @summary Update a draft form template
  */
 export const PatchFormsTemplatesIdParams = zod.object({
@@ -1937,6 +1960,16 @@ export const PostFormsTemplatesIdPublishResponse = zod.unknown()
 
 
 /**
+ * @summary Archive a published form template
+ */
+export const PostFormsTemplatesIdArchiveParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const PostFormsTemplatesIdArchiveResponse = zod.unknown()
+
+
+/**
  * @summary List tenant form submissions
  */
 export const GetFormSubmissionsResponse = zod.unknown()
@@ -1964,6 +1997,16 @@ export const GetFormSubmissionsIdParams = zod.object({
 })
 
 export const GetFormSubmissionsIdResponse = zod.unknown()
+
+
+/**
+ * @summary Delete a draft or revision-requested submission (owner only)
+ */
+export const DeleteFormSubmissionsIdParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const DeleteFormSubmissionsIdResponse = zod.void()
 
 
 /**
@@ -2009,5 +2052,365 @@ export const PostAiAssistantBody = zod.object({
 })
 
 export const PostAiAssistantResponse = zod.unknown()
+
+
+/**
+ * @summary List BOQ items for a contract
+ */
+export const GetContractsContractIdBoqParams = zod.object({
+  "contractId": zod.coerce.number().int()
+})
+
+export const GetContractsContractIdBoqResponse = zod.unknown()
+
+
+/**
+ * @summary Create a BOQ item
+ */
+export const PostContractsContractIdBoqParams = zod.object({
+  "contractId": zod.coerce.number().int()
+})
+
+export const PostContractsContractIdBoqResponse = zod.void()
+
+
+/**
+ * @summary Update a BOQ item
+ */
+export const PatchContractsContractIdBoqIdParams = zod.object({
+  "contractId": zod.coerce.number().int(),
+  "id": zod.coerce.number().int()
+})
+
+export const PatchContractsContractIdBoqIdResponse = zod.unknown()
+
+
+/**
+ * @summary Soft-delete a BOQ item
+ */
+export const DeleteContractsContractIdBoqIdParams = zod.object({
+  "contractId": zod.coerce.number().int(),
+  "id": zod.coerce.number().int()
+})
+
+export const DeleteContractsContractIdBoqIdResponse = zod.void()
+
+
+/**
+ * @summary List payment certificates for a contract
+ */
+export const GetContractsContractIdPaymentCertificatesParams = zod.object({
+  "contractId": zod.coerce.number().int()
+})
+
+export const GetContractsContractIdPaymentCertificatesResponse = zod.unknown()
+
+
+/**
+ * @summary Create a payment certificate
+ */
+export const PostContractsContractIdPaymentCertificatesParams = zod.object({
+  "contractId": zod.coerce.number().int()
+})
+
+export const PostContractsContractIdPaymentCertificatesResponse = zod.void()
+
+
+/**
+ * @summary Update a draft payment certificate
+ */
+export const PatchContractsContractIdPaymentCertificatesIdParams = zod.object({
+  "contractId": zod.coerce.number().int(),
+  "id": zod.coerce.number().int()
+})
+
+export const PatchContractsContractIdPaymentCertificatesIdResponse = zod.unknown()
+
+
+/**
+ * @summary Approve a payment certificate
+ */
+export const PostContractsContractIdPaymentCertificatesIdApproveParams = zod.object({
+  "contractId": zod.coerce.number().int(),
+  "id": zod.coerce.number().int()
+})
+
+export const PostContractsContractIdPaymentCertificatesIdApproveResponse = zod.unknown()
+
+
+/**
+ * @summary List QTO items for a BOQ item
+ */
+export const GetBoqItemsBoqItemIdQtoParams = zod.object({
+  "boqItemId": zod.coerce.number().int()
+})
+
+export const GetBoqItemsBoqItemIdQtoResponse = zod.unknown()
+
+
+/**
+ * @summary Create a QTO item
+ */
+export const PostBoqItemsBoqItemIdQtoParams = zod.object({
+  "boqItemId": zod.coerce.number().int()
+})
+
+export const PostBoqItemsBoqItemIdQtoResponse = zod.void()
+
+
+/**
+ * @summary List employees
+ */
+export const GetEmployeesResponse = zod.unknown()
+
+
+/**
+ * @summary Create an employee
+ */
+export const PostEmployeesResponse = zod.void()
+
+
+/**
+ * @summary Get employee by id
+ */
+export const GetEmployeesIdParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const GetEmployeesIdResponse = zod.unknown()
+
+
+/**
+ * @summary Update an employee
+ */
+export const PatchEmployeesIdParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const PatchEmployeesIdResponse = zod.unknown()
+
+
+/**
+ * @summary Soft-delete an employee
+ */
+export const DeleteEmployeesIdParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const DeleteEmployeesIdResponse = zod.void()
+
+
+/**
+ * @summary List attendance records
+ */
+export const GetAttendanceResponse = zod.unknown()
+
+
+/**
+ * @summary Create an attendance record
+ */
+export const PostAttendanceResponse = zod.void()
+
+
+/**
+ * @summary Update an attendance record
+ */
+export const PatchAttendanceIdParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const PatchAttendanceIdResponse = zod.unknown()
+
+
+/**
+ * @summary List payroll records
+ */
+export const GetPayrollResponse = zod.unknown()
+
+
+/**
+ * @summary Create a payroll record
+ */
+export const PostPayrollResponse = zod.void()
+
+
+/**
+ * @summary Update a draft payroll record
+ */
+export const PatchPayrollIdParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const PatchPayrollIdResponse = zod.unknown()
+
+
+/**
+ * @summary Mark payroll as paid
+ */
+export const PostPayrollIdPayParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const PostPayrollIdPayResponse = zod.unknown()
+
+
+/**
+ * @summary Auto-calculate payroll from attendance for a period
+ */
+export const PostPayrollCalculateBody = zod.object({
+  "employeeId": zod.number().int(),
+  "periodStart": zod.coerce.date(),
+  "periodEnd": zod.coerce.date(),
+  "baseSalary": zod.number().optional(),
+  "bonuses": zod.number().optional(),
+  "deductions": zod.number().optional(),
+  "notes": zod.string().optional()
+})
+
+export const PostPayrollCalculateResponse = zod.unknown()
+
+
+/**
+ * @summary Personnel dashboard stats
+ */
+export const GetDashboardPersonnelResponse = zod.unknown()
+
+
+/**
+ * @summary List suppliers
+ */
+export const GetSuppliersResponse = zod.unknown()
+
+
+/**
+ * @summary Create a supplier
+ */
+export const PostSuppliersResponse = zod.void()
+
+
+/**
+ * @summary Update a supplier
+ */
+export const PatchSuppliersIdParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const PatchSuppliersIdResponse = zod.unknown()
+
+
+/**
+ * @summary Soft-delete a supplier
+ */
+export const DeleteSuppliersIdParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const DeleteSuppliersIdResponse = zod.void()
+
+
+/**
+ * @summary List materials
+ */
+export const GetMaterialsResponse = zod.unknown()
+
+
+/**
+ * @summary Create a material
+ */
+export const PostMaterialsResponse = zod.void()
+
+
+/**
+ * @summary Update a material
+ */
+export const PatchMaterialsIdParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const PatchMaterialsIdResponse = zod.unknown()
+
+
+/**
+ * @summary Soft-delete a material
+ */
+export const DeleteMaterialsIdParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const DeleteMaterialsIdResponse = zod.void()
+
+
+/**
+ * @summary List warehouses
+ */
+export const GetWarehouseResponse = zod.unknown()
+
+
+/**
+ * @summary Create a warehouse
+ */
+export const PostWarehouseResponse = zod.void()
+
+
+/**
+ * @summary Update a warehouse
+ */
+export const PatchWarehouseIdParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const PatchWarehouseIdResponse = zod.unknown()
+
+
+/**
+ * @summary Soft-delete a warehouse
+ */
+export const DeleteWarehouseIdParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const DeleteWarehouseIdResponse = zod.void()
+
+
+/**
+ * @summary List items in a procurement order
+ */
+export const GetProcurementProcurementIdItemsParams = zod.object({
+  "procurementId": zod.coerce.number().int()
+})
+
+export const GetProcurementProcurementIdItemsResponse = zod.unknown()
+
+
+/**
+ * @summary Create a procurement item
+ */
+export const PostProcurementProcurementIdItemsParams = zod.object({
+  "procurementId": zod.coerce.number().int()
+})
+
+export const PostProcurementProcurementIdItemsResponse = zod.void()
+
+
+/**
+ * @summary Update a procurement item
+ */
+export const PatchProcurementProcurementIdItemsIdParams = zod.object({
+  "procurementId": zod.coerce.number().int(),
+  "id": zod.coerce.number().int()
+})
+
+export const PatchProcurementProcurementIdItemsIdResponse = zod.unknown()
+
+
+/**
+ * @summary Delete a procurement item
+ */
+export const DeleteProcurementProcurementIdItemsIdParams = zod.object({
+  "procurementId": zod.coerce.number().int(),
+  "id": zod.coerce.number().int()
+})
+
+export const DeleteProcurementProcurementIdItemsIdResponse = zod.void()
 
 

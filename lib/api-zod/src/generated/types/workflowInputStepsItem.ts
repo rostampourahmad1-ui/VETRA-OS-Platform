@@ -5,8 +5,12 @@
  * VETRA Platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { WorkflowInputStepsItemApprovalType } from './workflowInputStepsItemApprovalType';
 
 export type WorkflowInputStepsItem = {
   name: string;
   requiredPermission: string;
+  approvalType?: WorkflowInputStepsItemApprovalType;
+  /** @minimum 1 */
+  requiredApprovals?: number;
 };
