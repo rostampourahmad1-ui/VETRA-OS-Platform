@@ -14,6 +14,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useUser, useClerk } from '@clerk/react';
+import { useOrganizationProject } from '@/contexts/OrganizationProjectContext';
+import { formatRelativeJalali } from '@/lib/jalali';
 
 export function Shell({ children }: { children: React.ReactNode }) {
   return (
@@ -172,6 +174,7 @@ function Topbar() {
   const panelRef = useRef<HTMLDivElement>(null);
   const bellRef = useRef<HTMLButtonElement>(null);
   const [results, setResults] = useState<any[]>([]);
+  const { organization, project } = useOrganizationProject();
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -212,17 +215,7 @@ function Topbar() {
     } catch { /* ignore */ }
   };
 
-  const formatTime = (iso: string) => {
-    const d = new Date(iso);
-    const now = new Date();
-    const diff = now.getTime() - d.getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'now';
-    if (mins < 60) return `${mins}m ago`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h ago`;
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
+  const formatTime = (iso: string) => formatRelativeJalali(iso);
 
   return (
     <header className="h-16 flex items-center justify-between px-6 border-b bg-card">
@@ -230,11 +223,15 @@ function Topbar() {
         <Button variant="ghost" size="icon" className="md:hidden"><Menu className="h-5 w-5" /></Button>
         <div className="relative w-full max-w-md hidden sm:block">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search projects, tasks, documents..." className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-primary font-sans" />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="جست‌وجوی پروژه، وظیفه و سند…" className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-primary font-sans" />
           {results.length > 0 && <div className="absolute z-20 top-11 left-0 right-0 rounded-md border bg-card shadow-lg p-2 space-y-1">{results.slice(0, 6).map((result) => <button key={`${result.type}-${result.id}`} onClick={() => { setLocation(result.href); setQuery(''); }} className="w-full text-left px-3 py-2 rounded hover:bg-muted text-sm"><span className="font-medium">{result.title}</span><span className="text-xs text-muted-foreground ml-2">{result.type}</span></button>)}</div>}
         </div>
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
+        <Link href="/onboarding" className="hidden sm:flex max-w-[280px] items-center gap-2 rounded-md border border-input bg-background px-3 py-1.5 text-right text-xs hover:bg-muted" aria-label="تغییر سازمان و پروژه">
+          <Building2 className="h-4 w-4 shrink-0 text-primary" />
+          <span className="min-w-0 truncate">{organization?.name ?? 'سازمان انتخاب نشده'} / {project?.name ?? 'پروژه انتخاب نشده'}</span>
+        </Link>
         <Button ref={bellRef} variant="ghost" size="icon" className="relative" onClick={() => setOpen(prev => !prev)}>
           <Bell className="h-5 w-5 text-muted-foreground" />
           {unreadCount > 0 && (
@@ -249,14 +246,14 @@ function Topbar() {
             className="absolute top-14 right-6 z-50 w-80 sm:w-96 rounded-lg border bg-card shadow-xl"
           >
             <div className="flex items-center justify-between px-4 py-3 border-b">
-              <h3 className="font-semibold text-sm">Notifications</h3>
+              <h3 className="font-semibold text-sm">اعلان‌ها</h3>
               <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setOpen(false)}>
                 <X className="h-3.5 w-3.5" />
               </Button>
             </div>
             <div className="max-h-80 overflow-y-auto">
               {notifications.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">No notifications yet</p>
+                <p className="text-sm text-muted-foreground text-center py-8">اعلانی وجود ندارد</p>
               ) : (
                 notifications.map(n => (
                   <div key={n.id} className={`flex items-start gap-3 px-4 py-3 border-b last:border-0 hover:bg-muted/50 transition-colors ${!n.read ? 'bg-muted/30' : ''}`}>
@@ -278,7 +275,7 @@ function Topbar() {
                         onClick={() => handleMarkRead(n.id)}
                         className="text-[10px] text-primary hover:underline shrink-0 mt-0.5"
                       >
-                        Mark read
+                        خوانده شد
                       </button>
                     )}
                   </div>

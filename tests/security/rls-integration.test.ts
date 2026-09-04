@@ -7,7 +7,7 @@
  *
  * PREREQUISITES:
  *   - A PostgreSQL database must be accessible at DATABASE_URL
- *   - Migrations 0000 through 0008 must have been applied
+ *   - All numbered SQL migrations in lib/db/drizzle must have been applied
  *   - The vetra_app and vetra_migration roles must exist (run init scripts)
  *
  * If PostgreSQL is not available, all tests are skipped with a clear message.
@@ -24,6 +24,22 @@ import { createDatabasePool, pool } from "../../lib/db/src/index";
 const TENANT_A = 999990;
 const TENANT_B = 999991;
 const TEST_TIMEOUT = 30_000;
+
+const tenantScopedTables = [
+  "users", "projects", "tasks", "contracts", "daily_reports", "meetings",
+  "equipment", "inventory", "procurement", "activity", "documents", "audit_logs",
+  "roles", "form_templates", "form_template_versions", "form_submissions",
+  "workflows", "workflow_steps", "workflow_runs", "workflow_run_events",
+  "inspections", "non_conformance_reports", "quality_events", "notifications",
+  "employees", "attendance", "payroll", "suppliers", "materials", "warehouse",
+  "procurement_items", "project_calendars", "calendar_exceptions", "activity_dependencies",
+  "baselines", "baseline_activities", "actual_progress", "evm_metrics", "resource_types",
+  "resource_assignments", "expense_categories", "budgets", "expenses", "clients",
+  "boq_items", "qto_items", "payment_certificates", "project_phases", "milestones",
+  "user_roles",
+] as const;
+
+const directTenantScopedTables = tenantScopedTables.filter((table) => table !== "workflow_steps");
 
 // ─── Database Connection ───────────────────────────────────────────────────
 
@@ -148,14 +164,7 @@ afterAll(async () => {
        console.warn("SKIPPED: PostgreSQL not available");
        return;
      }
-     const requiredTables = [
-       "users", "projects", "tasks", "contracts", "daily_reports",
-       "meetings", "equipment", "inventory", "procurement",
-       "activity", "documents", "audit_logs", "roles",
-       "form_templates", "form_template_versions", "form_submissions",
-       "workflows", "workflow_steps", "workflow_runs", "workflow_run_events",
-       "inspections", "non_conformance_reports", "quality_events",
-     ];
+     const requiredTables = tenantScopedTables;
      const result = await adminPool.query(
        `SELECT tablename FROM pg_tables
         WHERE schemaname = 'public'
@@ -174,14 +183,7 @@ afterAll(async () => {
        console.warn("SKIPPED: PostgreSQL not available");
        return;
      }
-     const requiredTables = [
-       "users", "projects", "tasks", "contracts", "daily_reports",
-       "meetings", "equipment", "inventory", "procurement",
-       "activity", "documents", "audit_logs", "roles",
-       "form_templates", "form_template_versions", "form_submissions",
-       "workflows", "workflow_steps", "workflow_runs", "workflow_run_events",
-       "inspections", "non_conformance_reports", "quality_events",
-     ];
+     const requiredTables = tenantScopedTables;
      const result = await adminPool.query(
        `SELECT c.relname AS tablename
         FROM pg_class AS c
@@ -449,9 +451,39 @@ afterAll(async () => {
         GROUP BY tablename
         ORDER BY tablename`
      );
-     for (const row of result.rows) {
-       expect(Number(row.policy_count)).toBe(4);
+     const policyCounts = new Map(result.rows.map((row: { tablename: string; policy_count: string }) => [row.tablename, Number(row.policy_count)]));
+     for (const table of directTenantScopedTables) {
+       expect(policyCounts.get(table), `${table} policy count`).toBe(4);
      }
+
+     const workflowPolicies = await adminPool.query(
+       `SELECT count(*) AS policy_count
+        FROM pg_policies
+        WHERE schemaname = 'public'
+          AND tablename = 'workflow_steps'
+          AND policyname = 'workflow_steps_tenant_isolation'`,
+     );
+     expect(Number(workflowPolicies.rows[0]?.policy_count), "workflow_steps policy count").toBe(1);
+   }, TEST_TIMEOUT);
+
+   it("P1-11: append-only audit and quality triggers exist", async () => {
+     if (!postgresAvailable) {
+       console.warn("SKIPPED: PostgreSQL not available");
+       return;
+     }
+     const result = await adminPool.query(
+       `SELECT tgname FROM pg_trigger
+        WHERE NOT tgisinternal
+          AND tgname = ANY($1)
+        ORDER BY tgname`,
+       [["audit_logs_no_update", "audit_logs_no_delete", "quality_events_no_update", "quality_events_no_delete"]],
+     );
+     expect(result.rows.map((row: { tgname: string }) => row.tgname)).toEqual([
+       "audit_logs_no_delete",
+       "audit_logs_no_update",
+       "quality_events_no_delete",
+       "quality_events_no_update",
+     ]);
    }, TEST_TIMEOUT);
  });
 

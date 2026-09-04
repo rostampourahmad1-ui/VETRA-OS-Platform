@@ -64,10 +64,9 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f infra/db/init/01-roles.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "ALTER ROLE vetra_app WITH PASSWORD 'vetra_app'"
       - name: Apply database migrations
-        run: |
-          for migration in $(ls lib/db/drizzle/*.sql | sort); do
-            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$migration"
-          done
+        run: pnpm db:migrate
+      - name: PostgreSQL RLS integration tests
+        run: pnpm exec vitest run tests/security/rls-integration.test.ts --reporter=verbose
       - name: Test
         run: pnpm test
 
@@ -92,12 +91,10 @@ jobs:
         run: pnpm vitest run tests/security/ --reporter=verbose
 
       - name: Full dependency audit
-        run: pnpm audit --audit-level=high || true
+        run: pnpm audit --audit-level=high
 
       - name: Summary
-        run: |
-          echo "::notice::Security scan completed. All unit tests passed."
-          echo "::notice::Dependency audit ran with --audit-level=high."
+        run: echo "Security scan completed."
 
   docker-build:
     runs-on: ubuntu-latest
@@ -110,4 +107,4 @@ jobs:
         run: docker build -t vetra-api-server -f artifacts/api-server/Dockerfile .
 
       - name: Build Frontend Docker Image
-        run: docker build -t vetra-frontend -f artifacts/vetra/Dockerfile . || echo "Frontend Dockerfile not ready yet - skipping"
+        run: docker build -t vetra-frontend -f artifacts/vetra/Dockerfile .

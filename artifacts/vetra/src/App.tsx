@@ -9,7 +9,7 @@ import { Route, Switch, Router as WouterRouter, useLocation, Redirect } from 'wo
 import { useQueryClient } from '@tanstack/react-query';
 
 import { Shell } from '@/components/layout/Shell';
-import { OrganizationProjectProvider } from '@/contexts/OrganizationProjectContext';
+import { OrganizationProjectProvider, useOrganizationProject } from '@/contexts/OrganizationProjectContext';
 import ThemeSwitcher from '@/components/theme-switcher';
 
 // ─── Lazy-loaded page chunks ──────────────────────────────────────────────────
@@ -173,11 +173,20 @@ function ClerkQueryClientCacheInvalidator() {
 // AppRoutes handles both authenticated and unauthenticated states:
 // - signed-in  → full Shell + inner routes
 // - signed-out → landing page at "/", redirect to "/" elsewhere
+function ContextGuard({ children }: { children: React.ReactNode }) {
+  const [location] = useLocation();
+  const { hasContext } = useOrganizationProject();
+
+  if (!hasContext && location !== '/onboarding') return <Redirect to="/onboarding" />;
+  return <>{children}</>;
+}
+
 function AppRoutes() {
   return (
     <>
       <Show when="signed-in">
         <OrganizationProjectProvider>
+          <ContextGuard>
           <Shell>
             <div className="flex justify-start px-4 pt-4"><ThemeSwitcher /></div>
           <ErrorBoundary fallback={(error, reset) => <ErrorPage error={error} onRetry={reset} />}>
@@ -216,6 +225,7 @@ function AppRoutes() {
           </Switch></Suspense>
           </ErrorBoundary>
           </Shell>
+          </ContextGuard>
         </OrganizationProjectProvider>
       </Show>
 

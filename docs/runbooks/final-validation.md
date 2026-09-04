@@ -44,11 +44,9 @@ node scripts/final-validation.mjs
 export DATABASE_MIGRATION_URL='postgresql://...'
 export DATABASE_TEST_APP_URL='postgresql://...'
 
-# roleها و migrationها باید یک بار و به‌ترتیب در محیط test/staging اعمال شوند.
+# roleها و تمام فایل‌های SQL migration از پوشهٔ migration، به‌ترتیب شماره، اعمال می‌شوند.
 psql "$DATABASE_MIGRATION_URL" -v ON_ERROR_STOP=1 -f infra/db/init/01-roles.sql
-for migration in lib/db/drizzle/0000_nervous_mathemanic.sql lib/db/drizzle/0001_phase3.sql lib/db/drizzle/0002_quality.sql lib/db/drizzle/0003_tenant_isolation.sql lib/db/drizzle/0004_audit_rls.sql lib/db/drizzle/0005_db_roles.sql lib/db/drizzle/0006_forms.sql lib/db/drizzle/0007_workflow_hardening.sql lib/db/drizzle/0008_request_scoped_rls.sql lib/db/drizzle/0009_quality_lifecycle.sql lib/db/drizzle/0010_planning_wbs.sql; do
-  psql "$DATABASE_MIGRATION_URL" -v ON_ERROR_STOP=1 -f "$migration"
-done
+pnpm db:migrate
 
 pnpm exec vitest run tests/security/rls-integration.test.ts
 ```

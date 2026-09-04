@@ -15,6 +15,10 @@ import {
   List,
   Hash,
   Eye,
+  Send,
+  CheckCircle2,
+  XCircle,
+  RotateCcw,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,6 +27,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { get, patch, post } from '@/lib/phase2-api';
+import { useOrganizationProject } from '@/contexts/OrganizationProjectContext';
 
 type FieldType = 'text' | 'number' | 'date' | 'select' | 'checkbox';
 
@@ -53,6 +58,17 @@ type FormTemplateResponse = {
   status: 'draft' | 'published' | 'archived';
   projectId: number | null;
   workflowId: number | null;
+};
+
+type FormSubmissionResponse = {
+  id: number;
+  projectId: number | null;
+  templateId: number;
+  status: 'draft' | 'submitted' | 'approved' | 'rejected' | 'revision_requested';
+  answers: Record<string, unknown>;
+  workflowRunId: number | null;
+  submittedAt: string | null;
+  updatedAt: string;
 };
 
 function toDraft(template: FormTemplateResponse): FormDraft {
@@ -119,6 +135,12 @@ export default function FormsBuilder() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [templates, setTemplates] = useState<FormTemplateResponse[]>([]);
+  const [submissions, setSubmissions] = useState<FormSubmissionResponse[]>([]);
+  const [selectedSubmissionTemplateId, setSelectedSubmissionTemplateId] = useState('');
+  const [submissionAnswers, setSubmissionAnswers] = useState<Record<string, unknown>>({});
+  const [submissionBusy, setSubmissionBusy] = useState<number | 'new' | null>(null);
+  const { project } = useOrganizationProject();
 
   const selectedField = useMemo(
     () => draft.fields.find((field) => field.id === selectedId) ?? draft.fields[0],
@@ -154,10 +176,19 @@ export default function FormsBuilder() {
 
   useEffect(() => {
     let active = true;
-    void get<FormTemplateResponse[]>('/forms/templates')
-      .then((templates) => {
-        const template = templates.find((item) => item.status === 'draft') ?? templates[0];
-        if (active && template) setDraft(toDraft(template));
+    void Promise.all([
+      get<FormTemplateResponse[]>('/forms/templates', { projectId: project?.id }),
+      get<FormSubmissionResponse[]>('/form-submissions', { projectId: project?.id }),
+    ])
+      .then(([templateRows, submissionRows]) => {
+        const template = templateRows.find((item) => item.status === 'draft') ?? templateRows[0];
+        if (active) {
+          setTemplates(templateRows);
+          setSubmissions(submissionRows);
+          if (template) setDraft(toDraft(template));
+          const published = templateRows.find((item) => item.status === 'published');
+          if (published) setSelectedSubmissionTemplateId(String(published.id));
+        }
       })
       .catch((cause) => {
         if (active) setError(cause instanceof Error ? cause.message : 'Unable to load forms.');
@@ -166,13 +197,17 @@ export default function FormsBuilder() {
         if (active) setLoading(false);
       });
     return () => { active = false; };
-  }, []);
+  }, [project?.id]);
 
   const saveDraft = async () => {
     setSaving(true);
     setError('');
-    const payload = { name: draft.name, description: draft.description || undefined, definition: { fields: draft.fields } };
+    const payload = { name: draft.name, description: draft.description || undefined, definition: { fields: draft.fields }, projectId: project?.id };
     try {
+      if (!project) {
+        setError('ابتدا پروژهٔ فعال را انتخاب کنید.');
+        return;
+      }
       const saved = draft.id
         ? await patch<FormTemplateResponse>(`/forms/templates/${draft.id}`, payload)
         : await post<FormTemplateResponse>('/forms/templates', payload);
@@ -181,6 +216,49 @@ export default function FormsBuilder() {
       setError(cause instanceof Error ? cause.message : 'Unable to save form draft.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const refreshSubmissions = async () => {
+    if (!project) return;
+    const rows = await get<FormSubmissionResponse[]>('/form-submissions', { projectId: project.id });
+    setSubmissions(rows);
+  };
+
+  const selectedSubmissionTemplate = templates.find((template) => String(template.id) === selectedSubmissionTemplateId && template.status === 'published');
+
+  const createSubmission = async () => {
+    if (!selectedSubmissionTemplate || !project) return;
+    setSubmissionBusy('new');
+    setError('');
+    try {
+      const created = await post<FormSubmissionResponse>('/form-submissions', {
+        templateId: selectedSubmissionTemplate.id,
+        answers: submissionAnswers,
+      });
+      await post<FormSubmissionResponse>(`/form-submissions/${created.id}/submit`, {});
+      setSubmissionAnswers({});
+      await refreshSubmissions();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'ارسال فرم انجام نشد.');
+    } finally {
+      setSubmissionBusy(null);
+    }
+  };
+
+  const decideSubmission = async (submission: FormSubmissionResponse, decision: 'approve' | 'reject' | 'request_revision') => {
+    if (!submission.workflowRunId) return;
+    const comment = decision === 'request_revision' ? window.prompt('توضیح درخواست اصلاح را وارد کنید:')?.trim() : undefined;
+    if (decision === 'request_revision' && !comment) return;
+    setSubmissionBusy(submission.id);
+    setError('');
+    try {
+      await post(`/workflow-runs/${submission.workflowRunId}/decision`, { decision, comment });
+      await refreshSubmissions();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'تصمیم گردش‌کار ثبت نشد.');
+    } finally {
+      setSubmissionBusy(null);
     }
   };
 
@@ -218,6 +296,24 @@ export default function FormsBuilder() {
 
       {error && <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>}
       {loading && <div className="rounded-lg border border-dashed px-4 py-3 text-sm text-muted-foreground">در حال بارگذاری فرم‌های ذخیره‌شده…</div>}
+
+      <Card className="border-border/70 bg-card/80">
+        <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Send className="h-4 w-4 text-primary" /> ارسال و تأیید فرم‌ها</CardTitle><p className="text-sm text-muted-foreground">فرم منتشرشدهٔ پروژهٔ فعال را تکمیل کنید یا submissionهای در انتظار را بررسی کنید.</p></CardHeader>
+        <CardContent className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          <div className="space-y-4 rounded-lg border p-4">
+            <div className="space-y-2"><Label htmlFor="submission-template">الگوی منتشرشده</Label><select id="submission-template" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={selectedSubmissionTemplateId} onChange={(event) => { setSelectedSubmissionTemplateId(event.target.value); setSubmissionAnswers({}); }}><option value="">انتخاب الگو</option>{templates.filter((template) => template.status === 'published').map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select></div>
+            {selectedSubmissionTemplate?.definition.fields.map((field) => <div key={field.id} className="space-y-2"><Label>{field.label}{field.required && <span className="text-primary"> *</span>}</Label>{field.type === 'checkbox' ? <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={submissionAnswers[field.id] === true} onChange={(event) => setSubmissionAnswers((current) => ({ ...current, [field.id]: event.target.checked }))} className="h-4 w-4 accent-primary" /> تأیید</label> : field.type === 'select' ? <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={String(submissionAnswers[field.id] ?? '')} onChange={(event) => setSubmissionAnswers((current) => ({ ...current, [field.id]: event.target.value }))}><option value="">انتخاب کنید</option>{field.options?.map((option) => <option key={option} value={option}>{option}</option>)}</select> : <Input type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'} placeholder={field.placeholder} value={String(submissionAnswers[field.id] ?? '')} onChange={(event) => setSubmissionAnswers((current) => ({ ...current, [field.id]: field.type === 'number' ? Number(event.target.value) : event.target.value }))} />}</div>)}
+            <Button disabled={!selectedSubmissionTemplate || submissionBusy === 'new'} onClick={() => void createSubmission()} className="gap-2"><Send className="h-4 w-4" />{submissionBusy === 'new' ? 'در حال ارسال…' : 'ارسال برای تأیید'}</Button>
+          </div>
+          <div className="space-y-3">
+            {submissions.length === 0 ? <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">هنوز submissionای برای پروژهٔ فعال ثبت نشده است.</div> : submissions.map((submission) => {
+              const template = templates.find((item) => item.id === submission.templateId);
+              const pending = submission.status === 'submitted' && submission.workflowRunId;
+              return <div key={submission.id} className="rounded-lg border p-4"><div className="flex items-center justify-between gap-3"><div><p className="font-medium">{template?.name ?? `Submission #${submission.id}`}</p><p className="text-xs text-muted-foreground">#{submission.id} · {submission.status}</p></div><Badge variant={submission.status === 'approved' ? 'default' : 'secondary'}>{submission.status}</Badge></div>{pending && <div className="mt-3 flex flex-wrap gap-2"><Button size="sm" disabled={submissionBusy === submission.id} onClick={() => void decideSubmission(submission, 'approve')} className="gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> تأیید</Button><Button size="sm" variant="outline" disabled={submissionBusy === submission.id} onClick={() => void decideSubmission(submission, 'request_revision')} className="gap-1"><RotateCcw className="h-3.5 w-3.5" /> درخواست اصلاح</Button><Button size="sm" variant="destructive" disabled={submissionBusy === submission.id} onClick={() => void decideSubmission(submission, 'reject')} className="gap-1"><XCircle className="h-3.5 w-3.5" /> رد</Button></div>}</div>;
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 xl:grid-cols-[240px_minmax(0,1fr)_300px]">
         {mode === 'build' && (
