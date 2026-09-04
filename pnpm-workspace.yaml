@@ -90,6 +90,7 @@ overrides:
   "@esbuild-kit/esm-loader": "npm:tsx@^4.21.0"
   esbuild: "0.28.1"
   js-yaml: "4.3.1"
+  fast-uri: "3.1.6"
 allowBuilds:
   '@clerk/shared': true
   esbuild: true

@@ -5,6 +5,7 @@ import {
   db,
   inspectionsTable,
   nonConformanceReportsTable,
+  formTemplatesTable,
   projectsTable,
   qualityEventsTable,
   workflowRunEventsTable,
@@ -49,6 +50,7 @@ export const inspectionInput = z.object({
   inspector: z.string().trim().min(1).max(200),
   date: z.string().date(),
   findings: z.string().trim().max(10_000).optional().nullable(),
+  templateId: z.coerce.number().int().positive().optional().nullable(),
 });
 
 export const ncrInput = z.object({
@@ -72,6 +74,17 @@ export const ncrTransitionInput = z.object({
   status: z.enum(ncrStatuses),
   reason: z.string().trim().min(1).max(2_000).optional(),
 });
+async function templateBelongsToProject(templateId: number | null | undefined, organizationId: number, projectId: number): Promise<boolean> {
+  if (!templateId) return true;
+  const [template] = await db.select({ id: formTemplatesTable.id }).from(formTemplatesTable).where(and(
+    eq(formTemplatesTable.id, templateId),
+    eq(formTemplatesTable.organizationId, organizationId),
+    eq(formTemplatesTable.projectId, projectId),
+    isNull(formTemplatesTable.deletedAt),
+  ));
+  return Boolean(template);
+}
+
 const ncrWorkflowInput = z.object({
   workflowId: z.coerce.number().int().positive(),
   payload: z.record(z.unknown()).optional(),
@@ -150,6 +163,7 @@ router.post("/inspections", requirePermission("quality.create"), async (req, res
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const organizationId = tenantId(req);
   if (!(await projectBelongsToTenant(parsed.data.projectId, organizationId))) { res.status(400).json({ error: "Project not found" }); return; }
+  if (!(await templateBelongsToProject(parsed.data.templateId, organizationId, parsed.data.projectId))) { res.status(400).json({ error: "Inspection template not found for project" }); return; }
   const [row] = await db.insert(inspectionsTable).values({
     ...parsed.data,
     organizationId,
@@ -208,6 +222,7 @@ router.patch("/inspections/:id", requirePermission("quality.update"), async (req
   ));
   if (!previous) { res.status(404).json({ error: "Not found" }); return; }
   if (parsed.data.projectId && !(await projectBelongsToTenant(parsed.data.projectId, organizationId))) { res.status(400).json({ error: "Project not found" }); return; }
+  if (parsed.data.templateId && !(await templateBelongsToProject(parsed.data.templateId, organizationId, parsed.data.projectId ?? previous.projectId))) { res.status(400).json({ error: "Inspection template not found for project" }); return; }
   const [row] = await db.update(inspectionsTable).set({ ...parsed.data, updatedBy: req.vetraUser!.id, updatedAt: new Date() }).where(and(
     eq(inspectionsTable.id, id), eq(inspectionsTable.organizationId, organizationId), isNull(inspectionsTable.deletedAt),
   )).returning();

@@ -4,6 +4,7 @@ import { date, integer, jsonb, pgTable, serial, text, timestamp } from "drizzle-
 import { organizationsTable } from "./organizations";
 import { projectsTable } from "./projects";
 import { usersTable } from "./users";
+import { formTemplatesTable } from "./forms";
 
 export const inspectionStatuses = ["planned", "in_progress", "completed", "cancelled"] as const;
 export const ncrStatuses = ["open", "in_progress", "resolved", "awaiting_approval", "closed"] as const;
@@ -28,6 +29,7 @@ export const inspectionsTable = pgTable("inspections", {
   inspector: text("inspector").notNull(),
   date: date("date", { mode: "string" }).notNull(),
   findings: text("findings"),
+  templateId: integer("template_id").references(() => formTemplatesTable.id, { onDelete: "set null" }),
   createdBy: integer("created_by").references(() => usersTable.id),
   updatedBy: integer("updated_by").references(() => usersTable.id),
   deletedBy: integer("deleted_by").references(() => usersTable.id),
