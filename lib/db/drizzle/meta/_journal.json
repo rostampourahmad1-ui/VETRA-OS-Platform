@@ -78,6 +78,13 @@
       "when": 1788086400000,
       "tag": "0012_tenant_rls_coverage",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788172800000,
+      "tag": "0013_document_download_security",
+      "breakpoints": true
     }
   ]
 }
