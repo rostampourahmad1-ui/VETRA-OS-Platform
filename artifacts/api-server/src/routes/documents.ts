@@ -87,4 +87,17 @@ router.delete("/documents/:id", requirePermission("documents.delete"), async (re
   audit(req, "document.deleted", "document", { resourceId: row.id });
   res.status(204).send();
 });
+router.patch("/documents/:id", requirePermission("documents.update"), async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  const organizationId = tenantId(req);
+  const { name, type } = req.body ?? {};
+  const updates: Record<string, unknown> = {};
+  if (name !== undefined) updates.name = name;
+  if (type !== undefined) updates.type = type;
+  const [row] = await db.update(documentsTable).set(updates).where(and(eq(documentsTable.id, id), eq(documentsTable.organizationId, organizationId))).returning();
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
+  audit(req, "document.updated", "document", { resourceId: id, newValues: { name: row.name, type: row.type } });
+  res.json(row);
+});
+
 export default router;

@@ -108,4 +108,13 @@ router.patch("/inventory/:id", requirePermission("inventory.update"), async (req
   audit(req, "inventory.updated", "inventory_item", { resourceId: id, oldValues: { name: current.name }, newValues: { name: row.name, category: row.category } });
 });
 
+router.delete("/inventory/:id", requirePermission("inventory.delete"), async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  const organizationId = tenantId(req);
+  const [row] = await db.delete(inventoryTable).where(and(eq(inventoryTable.id, id), eq(inventoryTable.organizationId, organizationId))).returning();
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
+  audit(req, "inventory.deleted", "inventory_item", { resourceId: id, oldValues: { name: row.name, category: row.category } });
+  res.status(200).json({ message: "Inventory item deleted" });
+});
+
 export default router;

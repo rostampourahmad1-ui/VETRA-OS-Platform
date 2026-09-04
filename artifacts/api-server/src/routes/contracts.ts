@@ -57,4 +57,13 @@ router.patch("/contracts/:id", requirePermission("contracts.update"), async (req
   audit(req, "contract.updated", "contract", { resourceId: contractId, oldValues, newValues: { name: row.name, status: row.status, type: row.type, value: row.value } });
 });
 
+router.delete("/contracts/:id", requirePermission("contracts.delete"), async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  const organizationId = tenantId(req);
+  const [row] = await db.delete(contractsTable).where(and(eq(contractsTable.id, id), eq(contractsTable.organizationId, organizationId))).returning();
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
+  audit(req, "contract.deleted", "contract", { resourceId: id, oldValues: { name: row.name, status: row.status } });
+  res.status(200).json({ message: "Contract deleted" });
+});
+
 export default router;
