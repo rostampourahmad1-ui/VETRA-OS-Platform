@@ -62,3 +62,6 @@ yarn.lock
 # Bun (not used)
 bunfig.toml
 
+
+# temp pnpm store
+.pnpm-store-temp/
