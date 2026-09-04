@@ -18,6 +18,14 @@ interface Inspection {
   inspector: string;
   date: string;
   findings?: string | null;
+  templateId?: number | null;
+}
+
+interface FormTemplate {
+  id: number;
+  name: string;
+  status: string;
+  projectId?: number | null;
 }
 
 interface Ncr {
@@ -44,25 +52,28 @@ const statusTone = (status: string) => {
 export default function QualityManagement() {
   const [inspections, setInspections] = useState<Inspection[]>([]);
   const [ncrs, setNcrs] = useState<Ncr[]>([]);
+  const [templates, setTemplates] = useState<FormTemplate[]>([]);
   const { project } = useOrganizationProject();
   const [inspectionFilter, setInspectionFilter] = useState('all');
   const [ncrFilter, setNcrFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [transitioning, setTransitioning] = useState<number | null>(null);
-  const [inspectionForm, setInspectionForm] = useState({ projectId: '', title: '', type: 'routine', status: 'planned', inspector: '', date: '', findings: '' });
+  const [inspectionForm, setInspectionForm] = useState({ projectId: '', templateId: '', title: '', type: 'routine', status: 'planned', inspector: '', date: '', findings: '' });
   const [ncrForm, setNcrForm] = useState({ projectId: '', title: '', severity: 'medium', status: 'open', description: '', correctiveAction: '', assignedTo: '', dueDate: '' });
 
   const load = async () => {
     setLoading(true);
     setError('');
     try {
-      const [inspectionRows, ncrRows] = await Promise.all([
+      const [inspectionRows, ncrRows, templateRows] = await Promise.all([
         get<Inspection[]>('/inspections', { projectId: project?.id }),
         get<Ncr[]>('/non-conformance-reports', { projectId: project?.id }),
+        get<FormTemplate[]>('/forms/templates', { projectId: project?.id, status: 'published' }),
       ]);
       setInspections(inspectionRows);
       setNcrs(ncrRows);
+      setTemplates(templateRows);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Unable to load quality records.');
     } finally {
@@ -79,8 +90,8 @@ export default function QualityManagement() {
     event.preventDefault();
     try {
       if (!project) return;
-      await post<Inspection>('/inspections', { ...inspectionForm, projectId: project.id });
-      setInspectionForm({ projectId: '', title: '', type: 'routine', status: 'planned', inspector: '', date: '', findings: '' });
+      await post<Inspection>('/inspections', { ...inspectionForm, projectId: project.id, templateId: inspectionForm.templateId ? Number(inspectionForm.templateId) : null });
+      setInspectionForm({ projectId: '', templateId: '', title: '', type: 'routine', status: 'planned', inspector: '', date: '', findings: '' });
       await load();
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Unable to create inspection.'); }
   };
@@ -129,11 +140,18 @@ export default function QualityManagement() {
       </div>
       {error && <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>}
 
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Card><CardHeader className="pb-2"><CardTitle className="text-sm">بازرسی‌ها</CardTitle></CardHeader><CardContent><p className="text-2xl font-semibold">{inspections.length}</p><p className="text-xs text-muted-foreground">{inspections.filter((item) => item.status === 'completed').length} تکمیل‌شده</p></CardContent></Card>
+        <Card><CardHeader className="pb-2"><CardTitle className="text-sm">عدم انطباق‌ها</CardTitle></CardHeader><CardContent><p className="text-2xl font-semibold">{ncrs.length}</p><p className="text-xs text-muted-foreground">{ncrs.filter((item) => !['closed', 'resolved'].includes(item.status)).length} باز</p></CardContent></Card>
+        <Card><CardHeader className="pb-2"><CardTitle className="text-sm">الگوهای فرم</CardTitle></CardHeader><CardContent><p className="text-2xl font-semibold">{templates.length}</p><p className="text-xs text-muted-foreground">منتشرشده برای پروژهٔ فعال</p></CardContent></Card>
+        <Card><CardHeader className="pb-2"><CardTitle className="text-sm">نرخ تکمیل</CardTitle></CardHeader><CardContent><p className="text-2xl font-semibold">{inspections.length ? Math.round((inspections.filter((item) => item.status === 'completed').length / inspections.length) * 100) : 0}%</p><p className="text-xs text-muted-foreground">بر اساس بازرسی‌ها</p></CardContent></Card>
+      </div>
+
       <div className="grid gap-6 xl:grid-cols-2">
         <Card>
           <CardHeader><CardTitle className="flex items-center gap-2"><Plus className="h-5 w-5" />New inspection</CardTitle></CardHeader>
           <CardContent><form className="grid gap-3" onSubmit={createInspection}>
-            <div className="grid gap-3 sm:grid-cols-2"><Input required type="number" min="1" aria-label="پروژهٔ فعال" value={project?.id ?? ''} readOnly /><Input required placeholder="Inspection title" value={inspectionForm.title} onChange={(e) => setInspectionForm({ ...inspectionForm, title: e.target.value })} /></div>
+            <div className="grid gap-3 sm:grid-cols-2"><Input required type="number" min="1" aria-label="پروژهٔ فعال" value={project?.id ?? ''} readOnly /><select className="h-10 rounded-md border bg-background px-3 text-sm" aria-label="الگوی فرم بازرسی" value={inspectionForm.templateId} onChange={(e) => setInspectionForm({ ...inspectionForm, templateId: e.target.value })}><option value="">بدون الگوی فرم</option>{templates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select></div><div className="grid gap-3 sm:grid-cols-2"><Input required placeholder="Inspection title" value={inspectionForm.title} onChange={(e) => setInspectionForm({ ...inspectionForm, title: e.target.value })} /></div>
             <div className="grid gap-3 sm:grid-cols-3"><Input required placeholder="Inspector" value={inspectionForm.inspector} onChange={(e) => setInspectionForm({ ...inspectionForm, inspector: e.target.value })} /><Input required type="date" value={inspectionForm.date} onChange={(e) => setInspectionForm({ ...inspectionForm, date: e.target.value })} /><select className="h-10 rounded-md border bg-background px-3 text-sm" value={inspectionForm.type} onChange={(e) => setInspectionForm({ ...inspectionForm, type: e.target.value })}><option value="routine">Routine</option><option value="material">Material</option><option value="site">Site</option><option value="final">Final</option></select></div>
             <Textarea placeholder="Findings" value={inspectionForm.findings} onChange={(e) => setInspectionForm({ ...inspectionForm, findings: e.target.value })} />
             <Button type="submit"><ClipboardCheck className="mr-2 h-4 w-4" />Create inspection</Button>
