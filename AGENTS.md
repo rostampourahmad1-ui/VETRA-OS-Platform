@@ -254,3 +254,20 @@ A task is complete only when:
 - Inputs are validated.
 - Build, Lint, and Typescript tests pass.
 - No secrets are committed.
+---
+
+## 21. Prototype Completion Governance — Mandatory
+
+Before implementing or declaring any major feature complete, every AI agent, coding assistant, developer, or contributor must read and follow:
+
+`docs/VETRA-PROTOTYPE-COMPLETION-PLAN.md`
+
+This document is the mandatory development governance for completing the VETRA prototype. In particular:
+- **No Mock Completion.**
+- **No UI-only completion.**
+- A feature is not complete until its real business path works end-to-end.
+- Follow the required chain: `UI → Type / Contract → API → Validation → Authorization → Tenant Isolation → Domain / Service Logic → Database → Audit → Tests`.
+- Respect the defined dependency and implementation order; do not jump to advanced AI, Vision, BIM, IoT, or other later-stage features while required core foundations are incomplete.
+- When documentation and implementation differ, inspect the repository and preserve the real architecture rather than creating parallel or duplicate domain logic.
+
+Any deviation from this plan must be explicitly justified and documented as an architectural decision.
