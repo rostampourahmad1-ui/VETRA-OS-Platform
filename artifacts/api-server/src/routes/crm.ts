@@ -56,4 +56,13 @@ router.patch('/crm/clients/:id', requirePermission("crm.update"), async (req, re
   audit(req, 'crm.client.updated', 'client', { resourceId: row.id, oldValues: oldClient ? { name: oldClient.name, company: oldClient.company, type: oldClient.type, status: oldClient.status } : undefined, newValues: { name: row.name, company: row.company, type: row.type, status: row.status } });
   res.json(row);
 });
+router.delete("/crm/clients/:id", requirePermission("crm.delete"), async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  const organizationId = tenantId(req);
+  const [row] = await db.delete(clientsTable).where(and(eq(clientsTable.id, id), eq(clientsTable.organizationId, organizationId))).returning();
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
+  audit(req, "crm.client.deleted", "client", { resourceId: id, oldValues: { name: row.name, company: row.company } });
+  res.status(200).json({ message: "Client deleted" });
+});
+
 export default router;

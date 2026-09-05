@@ -85,4 +85,25 @@ router.get("/daily-reports/:id", requirePermission("daily-reports.read"), async 
   });
 });
 
+router.patch("/daily-reports/:id", requirePermission("daily-reports.update"), async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  const organizationId = tenantId(req);
+  const d = req.body ?? {};
+  const updates: Record<string, unknown> = {};
+  for (const key of ["date", "weather", "issues", "notes"]) if (d[key] !== undefined) updates[key] = d[key]; if (d.temperature !== undefined) updates.temperature = String(d.temperature); if (d.progress !== undefined) updates.progress = String(d.progress); if (d.workersOnSite !== undefined) updates.workersOnSite = Number(d.workersOnSite);
+  const [row] = await db.update(dailyReportsTable).set(updates).where(and(eq(dailyReportsTable.id, id), eq(dailyReportsTable.organizationId, organizationId))).returning();
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
+  audit(req, "dailyreport.updated", "daily_report", { resourceId: id, newValues: { progress: row.progress } });
+  res.json(row);
+});
+
+router.delete("/daily-reports/:id", requirePermission("daily-reports.delete"), async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  const organizationId = tenantId(req);
+  const [row] = await db.delete(dailyReportsTable).where(and(eq(dailyReportsTable.id, id), eq(dailyReportsTable.organizationId, organizationId))).returning();
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
+  audit(req, "dailyreport.deleted", "daily_report", { resourceId: id, oldValues: { progress: row.progress } });
+  res.status(200).json({ message: "Daily report deleted" });
+});
+
 export default router;

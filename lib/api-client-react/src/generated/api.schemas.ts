@@ -291,9 +291,20 @@ export interface MilestoneInput {
   phaseId?: number;
 }
 
+export type WorkflowInputStepsItemApprovalType = typeof WorkflowInputStepsItemApprovalType[keyof typeof WorkflowInputStepsItemApprovalType];
+
+
+export const WorkflowInputStepsItemApprovalType = {
+  single: 'single',
+  any: 'any',
+} as const;
+
 export type WorkflowInputStepsItem = {
   name: string;
   requiredPermission: string;
+  approvalType?: WorkflowInputStepsItemApprovalType;
+  /** @minimum 1 */
+  requiredApprovals?: number;
 };
 
 export interface WorkflowInput {
@@ -1025,5 +1036,15 @@ export type UpdatePreferences200 = { [key: string]: unknown };
 
 export type PostAiAssistantBody = {
   query: string;
+};
+
+export type PostPayrollCalculateBody = {
+  employeeId: number;
+  periodStart: string;
+  periodEnd: string;
+  baseSalary?: number;
+  bonuses?: number;
+  deductions?: number;
+  notes?: string;
 };
 

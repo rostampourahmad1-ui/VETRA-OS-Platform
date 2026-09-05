@@ -28,6 +28,10 @@ const aliases = new Map([
     "export * from './updatePreferencesBody';",
     "export type { UpdatePreferencesBody as UpdatePreferencesBodyType } from './updatePreferencesBody';",
   ],
+  [
+    "export * from './postPayrollCalculateBody';",
+    "export type { PostPayrollCalculateBody as PostPayrollCalculateBodyType } from './postPayrollCalculateBody';",
+  ],
 ]);
 
 let typesIndex = await readFile(typesIndexPath, "utf8");

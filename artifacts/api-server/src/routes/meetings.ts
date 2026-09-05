@@ -116,4 +116,13 @@ router.patch("/meetings/:id", requirePermission("meetings.update"), async (req, 
   audit(req, "meeting.updated", "meeting", { resourceId: id, oldValues: { title: current.title }, newValues: { title: row.title, status: row.status } });
 });
 
+router.delete("/meetings/:id", requirePermission("meetings.delete"), async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  const organizationId = tenantId(req);
+  const [row] = await db.delete(meetingsTable).where(and(eq(meetingsTable.id, id), eq(meetingsTable.organizationId, organizationId))).returning();
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
+  audit(req, "meeting.deleted", "meeting", { resourceId: id, oldValues: { title: row.title } });
+  res.status(200).json({ message: "Meeting deleted" });
+});
+
 export default router;

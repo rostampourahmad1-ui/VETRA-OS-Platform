@@ -401,6 +401,28 @@ paths:
         "204":
           description: Deleted
 
+  /documents/{id}/download:
+    get:
+      operationId: downloadDocument
+      tags: [documents]
+      summary: Download a document's stored file
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: File contents
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Document not found or not owned by the tenant
+
   # ─── Contracts ───────────────────────────────────────────────────────────────
   /contracts:
     get:
@@ -1801,6 +1823,8 @@ components:
             properties:
               name: { type: string }
               requiredPermission: { type: string }
+              approvalType: { type: string, enum: [single, any], default: single }
+              requiredApprovals: { type: integer, minimum: 1, default: 1 }
     WorkflowRunInput:
       type: object
       required: [entityId]
