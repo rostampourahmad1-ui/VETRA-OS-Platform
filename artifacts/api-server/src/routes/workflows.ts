@@ -19,6 +19,7 @@ import {
 } from "@workspace/api-zod";
 import { audit } from "../lib/audit";
 import { requireAuth } from "../middlewares/requireAuth";
+import { notifyWorkflowDecision } from "../lib/notifications";
 import { hasPermission, requirePermission } from "../middlewares/permissions";
 import { tenantId } from "../middlewares/tenant";
 
@@ -274,6 +275,16 @@ router.post("/workflow-runs/:id/decision", requirePermission("workflows.approve"
   }
 
   } // end if (updated.status !== "pending")
+
+  // Notify the workflow initiator about the decision
+  if (updated.status !== "pending" && run.submittedBy != null && run.submittedBy !== req.vetraUser!.id) {
+    const decisionLabel = updated.status === "approved"
+      ? "approved"
+      : updated.status === "rejected" ? "rejected" : "revision_requested";
+    const entityTitle = run.entityType === "form_submission"
+      ? `فرم #${run.entityId ?? ""}` : `NCR #${run.entityId ?? ""}`;
+    notifyWorkflowDecision(run.organizationId, run.submittedBy, entityTitle, decisionLabel, run.id);
+  }
 
   audit(req, `workflow_run.${decision}`, "workflow_run", {
     resourceId: run.id,

@@ -8,6 +8,7 @@ import { CreateDocumentBody } from "@workspace/api-zod";
 import { requirePermission } from "../middlewares/permissions";
 import { tenantId } from "../middlewares/tenant";
 import { audit } from "../lib/audit";
+import { notifyDocumentUploaded } from "../lib/notifications";
 import {
   MAX_UPLOAD_SIZE_BYTES,
   generateStorageFilename,
@@ -49,6 +50,7 @@ router.post("/documents", requirePermission("documents.create"), async (req, res
   const [row] = await db.insert(documentsTable).values({ name: d.name, type: d.type, size: d.size, projectId: d.projectId, organizationId: tenantId(req), uploadedBy: d.uploadedBy, url: d.url }).returning();
   res.status(201).json({ ...row, projectName: project.name, createdAt: row.createdAt.toISOString() });
   audit(req, "document.created", "document", { resourceId: row.id, newValues: { name: row.name, type: row.type, projectId: row.projectId } });
+  notifyDocumentUploaded(req, row.name, row.projectId, row.id);
 });
 
 router.post("/documents/upload", requirePermission("documents.create"), upload.single("file"), async (req, res): Promise<void> => {
@@ -61,6 +63,7 @@ router.post("/documents/upload", requirePermission("documents.create"), upload.s
   const [row] = await db.insert(documentsTable).values({ name: req.file.originalname, type: req.file.mimetype, size: req.file.size, projectId, organizationId: tenantId(req), uploadedBy: String(req.vetraUser?.id ?? "system"), url: null, storagePath }).returning();
   res.status(201).json({ ...row, url: documentDownloadUrl(row) });
   audit(req, "document.uploaded", "document", { resourceId: row.id, newValues: { name: row.name, type: row.type, size: row.size } });
+  notifyDocumentUploaded(req, row.name, row.projectId, row.id);
 });
 
 router.get("/documents/:id/download", requirePermission("documents.download"), async (req, res): Promise<void> => {
