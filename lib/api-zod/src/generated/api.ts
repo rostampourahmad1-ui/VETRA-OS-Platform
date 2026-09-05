@@ -1879,7 +1879,44 @@ export const PostFormsTemplatesBody = zod.object({
 })
 })
 
-export const PostFormsTemplatesResponse = zod.void()
+export const postFormsTemplatesResponseDefinitionFieldsItemIdMax = 128;
+
+export const postFormsTemplatesResponseDefinitionFieldsItemLabelMax = 256;
+
+export const postFormsTemplatesResponseDefinitionFieldsItemPlaceholderMax = 512;
+
+export const postFormsTemplatesResponseDefinitionFieldsItemOptionsItemMax = 256;
+
+export const postFormsTemplatesResponseDefinitionFieldsItemOptionsMax = 100;
+
+export const postFormsTemplatesResponseDefinitionFieldsMax = 200;
+
+
+
+export const PostFormsTemplatesResponse = zod.object({
+  "id": zod.number().int(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "definition": zod.object({
+  "fields": zod.array(zod.object({
+  "id": zod.string().min(1).max(postFormsTemplatesResponseDefinitionFieldsItemIdMax),
+  "label": zod.string().min(1).max(postFormsTemplatesResponseDefinitionFieldsItemLabelMax),
+  "type": zod.enum(['text', 'number', 'date', 'select', 'checkbox']),
+  "required": zod.boolean(),
+  "placeholder": zod.string().max(postFormsTemplatesResponseDefinitionFieldsItemPlaceholderMax).optional(),
+  "options": zod.array(zod.string().min(1).max(postFormsTemplatesResponseDefinitionFieldsItemOptionsItemMax)).max(postFormsTemplatesResponseDefinitionFieldsItemOptionsMax).optional()
+})).min(1).max(postFormsTemplatesResponseDefinitionFieldsMax)
+}),
+  "status": zod.enum(['draft', 'published', 'archived']),
+  "projectId": zod.number().int().nullable(),
+  "workflowId": zod.number().int().nullable(),
+  "organizationId": zod.number().int().optional(),
+  "createdBy": zod.number().int().optional(),
+  "updatedBy": zod.number().int().optional(),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date().optional(),
+  "deletedAt": zod.coerce.date().nullish()
+})
 
 
 /**
@@ -1889,7 +1926,74 @@ export const GetFormsTemplatesIdParams = zod.object({
   "id": zod.coerce.number().int()
 })
 
-export const GetFormsTemplatesIdResponse = zod.unknown()
+export const getFormsTemplatesIdResponseOneDefinitionFieldsItemIdMax = 128;
+
+export const getFormsTemplatesIdResponseOneDefinitionFieldsItemLabelMax = 256;
+
+export const getFormsTemplatesIdResponseOneDefinitionFieldsItemPlaceholderMax = 512;
+
+export const getFormsTemplatesIdResponseOneDefinitionFieldsItemOptionsItemMax = 256;
+
+export const getFormsTemplatesIdResponseOneDefinitionFieldsItemOptionsMax = 100;
+
+export const getFormsTemplatesIdResponseOneDefinitionFieldsMax = 200;
+
+export const getFormsTemplatesIdResponseTwoVersionsItemDefinitionFieldsItemIdMax = 128;
+
+export const getFormsTemplatesIdResponseTwoVersionsItemDefinitionFieldsItemLabelMax = 256;
+
+export const getFormsTemplatesIdResponseTwoVersionsItemDefinitionFieldsItemPlaceholderMax = 512;
+
+export const getFormsTemplatesIdResponseTwoVersionsItemDefinitionFieldsItemOptionsItemMax = 256;
+
+export const getFormsTemplatesIdResponseTwoVersionsItemDefinitionFieldsItemOptionsMax = 100;
+
+export const getFormsTemplatesIdResponseTwoVersionsItemDefinitionFieldsMax = 200;
+
+
+
+export const GetFormsTemplatesIdResponse = zod.object({
+  "id": zod.number().int(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "definition": zod.object({
+  "fields": zod.array(zod.object({
+  "id": zod.string().min(1).max(getFormsTemplatesIdResponseOneDefinitionFieldsItemIdMax),
+  "label": zod.string().min(1).max(getFormsTemplatesIdResponseOneDefinitionFieldsItemLabelMax),
+  "type": zod.enum(['text', 'number', 'date', 'select', 'checkbox']),
+  "required": zod.boolean(),
+  "placeholder": zod.string().max(getFormsTemplatesIdResponseOneDefinitionFieldsItemPlaceholderMax).optional(),
+  "options": zod.array(zod.string().min(1).max(getFormsTemplatesIdResponseOneDefinitionFieldsItemOptionsItemMax)).max(getFormsTemplatesIdResponseOneDefinitionFieldsItemOptionsMax).optional()
+})).min(1).max(getFormsTemplatesIdResponseOneDefinitionFieldsMax)
+}),
+  "status": zod.enum(['draft', 'published', 'archived']),
+  "projectId": zod.number().int().nullable(),
+  "workflowId": zod.number().int().nullable(),
+  "organizationId": zod.number().int().optional(),
+  "createdBy": zod.number().int().optional(),
+  "updatedBy": zod.number().int().optional(),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date().optional(),
+  "deletedAt": zod.coerce.date().nullish()
+}).and(zod.object({
+  "versions": zod.array(zod.object({
+  "id": zod.number().int(),
+  "templateId": zod.number().int(),
+  "version": zod.number().int(),
+  "definition": zod.object({
+  "fields": zod.array(zod.object({
+  "id": zod.string().min(1).max(getFormsTemplatesIdResponseTwoVersionsItemDefinitionFieldsItemIdMax),
+  "label": zod.string().min(1).max(getFormsTemplatesIdResponseTwoVersionsItemDefinitionFieldsItemLabelMax),
+  "type": zod.enum(['text', 'number', 'date', 'select', 'checkbox']),
+  "required": zod.boolean(),
+  "placeholder": zod.string().max(getFormsTemplatesIdResponseTwoVersionsItemDefinitionFieldsItemPlaceholderMax).optional(),
+  "options": zod.array(zod.string().min(1).max(getFormsTemplatesIdResponseTwoVersionsItemDefinitionFieldsItemOptionsItemMax)).max(getFormsTemplatesIdResponseTwoVersionsItemDefinitionFieldsItemOptionsMax).optional()
+})).min(1).max(getFormsTemplatesIdResponseTwoVersionsItemDefinitionFieldsMax)
+}),
+  "publishedBy": zod.number().int(),
+  "publishedAt": zod.coerce.date()
+}))
+}))
 
 
 /**
@@ -1946,7 +2050,44 @@ export const PatchFormsTemplatesIdBody = zod.object({
 }).optional()
 })
 
-export const PatchFormsTemplatesIdResponse = zod.unknown()
+export const patchFormsTemplatesIdResponseDefinitionFieldsItemIdMax = 128;
+
+export const patchFormsTemplatesIdResponseDefinitionFieldsItemLabelMax = 256;
+
+export const patchFormsTemplatesIdResponseDefinitionFieldsItemPlaceholderMax = 512;
+
+export const patchFormsTemplatesIdResponseDefinitionFieldsItemOptionsItemMax = 256;
+
+export const patchFormsTemplatesIdResponseDefinitionFieldsItemOptionsMax = 100;
+
+export const patchFormsTemplatesIdResponseDefinitionFieldsMax = 200;
+
+
+
+export const PatchFormsTemplatesIdResponse = zod.object({
+  "id": zod.number().int(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "definition": zod.object({
+  "fields": zod.array(zod.object({
+  "id": zod.string().min(1).max(patchFormsTemplatesIdResponseDefinitionFieldsItemIdMax),
+  "label": zod.string().min(1).max(patchFormsTemplatesIdResponseDefinitionFieldsItemLabelMax),
+  "type": zod.enum(['text', 'number', 'date', 'select', 'checkbox']),
+  "required": zod.boolean(),
+  "placeholder": zod.string().max(patchFormsTemplatesIdResponseDefinitionFieldsItemPlaceholderMax).optional(),
+  "options": zod.array(zod.string().min(1).max(patchFormsTemplatesIdResponseDefinitionFieldsItemOptionsItemMax)).max(patchFormsTemplatesIdResponseDefinitionFieldsItemOptionsMax).optional()
+})).min(1).max(patchFormsTemplatesIdResponseDefinitionFieldsMax)
+}),
+  "status": zod.enum(['draft', 'published', 'archived']),
+  "projectId": zod.number().int().nullable(),
+  "workflowId": zod.number().int().nullable(),
+  "organizationId": zod.number().int().optional(),
+  "createdBy": zod.number().int().optional(),
+  "updatedBy": zod.number().int().optional(),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date().optional(),
+  "deletedAt": zod.coerce.date().nullish()
+})
 
 
 /**
@@ -1956,7 +2097,44 @@ export const PostFormsTemplatesIdPublishParams = zod.object({
   "id": zod.coerce.number().int()
 })
 
-export const PostFormsTemplatesIdPublishResponse = zod.unknown()
+export const postFormsTemplatesIdPublishResponseDefinitionFieldsItemIdMax = 128;
+
+export const postFormsTemplatesIdPublishResponseDefinitionFieldsItemLabelMax = 256;
+
+export const postFormsTemplatesIdPublishResponseDefinitionFieldsItemPlaceholderMax = 512;
+
+export const postFormsTemplatesIdPublishResponseDefinitionFieldsItemOptionsItemMax = 256;
+
+export const postFormsTemplatesIdPublishResponseDefinitionFieldsItemOptionsMax = 100;
+
+export const postFormsTemplatesIdPublishResponseDefinitionFieldsMax = 200;
+
+
+
+export const PostFormsTemplatesIdPublishResponse = zod.object({
+  "id": zod.number().int(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "definition": zod.object({
+  "fields": zod.array(zod.object({
+  "id": zod.string().min(1).max(postFormsTemplatesIdPublishResponseDefinitionFieldsItemIdMax),
+  "label": zod.string().min(1).max(postFormsTemplatesIdPublishResponseDefinitionFieldsItemLabelMax),
+  "type": zod.enum(['text', 'number', 'date', 'select', 'checkbox']),
+  "required": zod.boolean(),
+  "placeholder": zod.string().max(postFormsTemplatesIdPublishResponseDefinitionFieldsItemPlaceholderMax).optional(),
+  "options": zod.array(zod.string().min(1).max(postFormsTemplatesIdPublishResponseDefinitionFieldsItemOptionsItemMax)).max(postFormsTemplatesIdPublishResponseDefinitionFieldsItemOptionsMax).optional()
+})).min(1).max(postFormsTemplatesIdPublishResponseDefinitionFieldsMax)
+}),
+  "status": zod.enum(['draft', 'published', 'archived']),
+  "projectId": zod.number().int().nullable(),
+  "workflowId": zod.number().int().nullable(),
+  "organizationId": zod.number().int().optional(),
+  "createdBy": zod.number().int().optional(),
+  "updatedBy": zod.number().int().optional(),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date().optional(),
+  "deletedAt": zod.coerce.date().nullish()
+})
 
 
 /**
@@ -1966,13 +2144,64 @@ export const PostFormsTemplatesIdArchiveParams = zod.object({
   "id": zod.coerce.number().int()
 })
 
-export const PostFormsTemplatesIdArchiveResponse = zod.unknown()
+export const postFormsTemplatesIdArchiveResponseDefinitionFieldsItemIdMax = 128;
+
+export const postFormsTemplatesIdArchiveResponseDefinitionFieldsItemLabelMax = 256;
+
+export const postFormsTemplatesIdArchiveResponseDefinitionFieldsItemPlaceholderMax = 512;
+
+export const postFormsTemplatesIdArchiveResponseDefinitionFieldsItemOptionsItemMax = 256;
+
+export const postFormsTemplatesIdArchiveResponseDefinitionFieldsItemOptionsMax = 100;
+
+export const postFormsTemplatesIdArchiveResponseDefinitionFieldsMax = 200;
+
+
+
+export const PostFormsTemplatesIdArchiveResponse = zod.object({
+  "id": zod.number().int(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "definition": zod.object({
+  "fields": zod.array(zod.object({
+  "id": zod.string().min(1).max(postFormsTemplatesIdArchiveResponseDefinitionFieldsItemIdMax),
+  "label": zod.string().min(1).max(postFormsTemplatesIdArchiveResponseDefinitionFieldsItemLabelMax),
+  "type": zod.enum(['text', 'number', 'date', 'select', 'checkbox']),
+  "required": zod.boolean(),
+  "placeholder": zod.string().max(postFormsTemplatesIdArchiveResponseDefinitionFieldsItemPlaceholderMax).optional(),
+  "options": zod.array(zod.string().min(1).max(postFormsTemplatesIdArchiveResponseDefinitionFieldsItemOptionsItemMax)).max(postFormsTemplatesIdArchiveResponseDefinitionFieldsItemOptionsMax).optional()
+})).min(1).max(postFormsTemplatesIdArchiveResponseDefinitionFieldsMax)
+}),
+  "status": zod.enum(['draft', 'published', 'archived']),
+  "projectId": zod.number().int().nullable(),
+  "workflowId": zod.number().int().nullable(),
+  "organizationId": zod.number().int().optional(),
+  "createdBy": zod.number().int().optional(),
+  "updatedBy": zod.number().int().optional(),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date().optional(),
+  "deletedAt": zod.coerce.date().nullish()
+})
 
 
 /**
  * @summary List tenant form submissions
  */
-export const GetFormSubmissionsResponse = zod.unknown()
+export const GetFormSubmissionsResponseItem = zod.object({
+  "id": zod.number().int(),
+  "templateId": zod.number().int(),
+  "templateVersionId": zod.number().int(),
+  "status": zod.enum(['draft', 'submitted', 'approved', 'rejected', 'revision_requested']),
+  "answers": zod.record(zod.string(), zod.unknown()),
+  "workflowRunId": zod.number().int().nullish(),
+  "projectId": zod.number().int().nullish(),
+  "organizationId": zod.number().int(),
+  "submittedBy": zod.number().int(),
+  "submittedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date()
+})
+export const GetFormSubmissionsResponse = zod.array(GetFormSubmissionsResponseItem)
 
 
 /**
@@ -1986,7 +2215,20 @@ export const PostFormSubmissionsBody = zod.object({
   "answers": zod.record(zod.string(), zod.unknown())
 })
 
-export const PostFormSubmissionsResponse = zod.void()
+export const PostFormSubmissionsResponse = zod.object({
+  "id": zod.number().int(),
+  "templateId": zod.number().int(),
+  "templateVersionId": zod.number().int(),
+  "status": zod.enum(['draft', 'submitted', 'approved', 'rejected', 'revision_requested']),
+  "answers": zod.record(zod.string(), zod.unknown()),
+  "workflowRunId": zod.number().int().nullish(),
+  "projectId": zod.number().int().nullish(),
+  "organizationId": zod.number().int(),
+  "submittedBy": zod.number().int(),
+  "submittedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date()
+})
 
 
 /**
@@ -1996,7 +2238,20 @@ export const GetFormSubmissionsIdParams = zod.object({
   "id": zod.coerce.number().int()
 })
 
-export const GetFormSubmissionsIdResponse = zod.unknown()
+export const GetFormSubmissionsIdResponse = zod.object({
+  "id": zod.number().int(),
+  "templateId": zod.number().int(),
+  "templateVersionId": zod.number().int(),
+  "status": zod.enum(['draft', 'submitted', 'approved', 'rejected', 'revision_requested']),
+  "answers": zod.record(zod.string(), zod.unknown()),
+  "workflowRunId": zod.number().int().nullish(),
+  "projectId": zod.number().int().nullish(),
+  "organizationId": zod.number().int(),
+  "submittedBy": zod.number().int(),
+  "submittedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date()
+})
 
 
 /**
@@ -2020,7 +2275,20 @@ export const PatchFormSubmissionsIdBody = zod.object({
   "answers": zod.record(zod.string(), zod.unknown())
 })
 
-export const PatchFormSubmissionsIdResponse = zod.unknown()
+export const PatchFormSubmissionsIdResponse = zod.object({
+  "id": zod.number().int(),
+  "templateId": zod.number().int(),
+  "templateVersionId": zod.number().int(),
+  "status": zod.enum(['draft', 'submitted', 'approved', 'rejected', 'revision_requested']),
+  "answers": zod.record(zod.string(), zod.unknown()),
+  "workflowRunId": zod.number().int().nullish(),
+  "projectId": zod.number().int().nullish(),
+  "organizationId": zod.number().int(),
+  "submittedBy": zod.number().int(),
+  "submittedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date()
+})
 
 
 /**
@@ -2030,7 +2298,20 @@ export const PostFormSubmissionsIdSubmitParams = zod.object({
   "id": zod.coerce.number().int()
 })
 
-export const PostFormSubmissionsIdSubmitResponse = zod.unknown()
+export const PostFormSubmissionsIdSubmitResponse = zod.object({
+  "id": zod.number().int(),
+  "templateId": zod.number().int(),
+  "templateVersionId": zod.number().int(),
+  "status": zod.enum(['draft', 'submitted', 'approved', 'rejected', 'revision_requested']),
+  "answers": zod.record(zod.string(), zod.unknown()),
+  "workflowRunId": zod.number().int().nullish(),
+  "projectId": zod.number().int().nullish(),
+  "organizationId": zod.number().int(),
+  "submittedBy": zod.number().int(),
+  "submittedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date()
+})
 
 
 /**

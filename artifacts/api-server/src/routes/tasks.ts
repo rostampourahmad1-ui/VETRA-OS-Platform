@@ -5,6 +5,7 @@ import { CreateTaskBody, UpdateTaskBody } from "@workspace/api-zod";
 import { requirePermission } from "../middlewares/permissions";
 import { tenantId } from "../middlewares/tenant";
 import { audit } from "../lib/audit";
+import { notifyTaskAssigned } from "../lib/notifications";
 
 const router = Router();
 function formatTask(t: typeof tasksTable.$inferSelect, projectName: string, assigneeName: string | null) {
@@ -40,6 +41,7 @@ router.post("/tasks", requirePermission("tasks.create"), async (req, res): Promi
   const [assignee] = row.assigneeId ? await db.select().from(usersTable).where(and(eq(usersTable.id, row.assigneeId), eq(usersTable.organizationId, tenantId(req)))) : [];
   res.status(201).json(formatTask(row, project.name, assignee?.name ?? null));
   audit(req, "task.created", "task", { resourceId: row.id, newValues: { title: row.title, status: row.status, priority: row.priority, projectId: row.projectId } });
+  if (row.assigneeId) { notifyTaskAssigned(req, row.id, row.assigneeId, row.title, row.projectId); }
 });
 
 router.get("/tasks/summary", requirePermission("tasks.read"), async (req, res): Promise<void> => {
@@ -58,7 +60,7 @@ router.patch("/tasks/:id", requirePermission("tasks.update"), async (req, res): 
   const parsed = UpdateTaskBody.safeParse(req.body); if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const d = parsed.data; const updates: Record<string, unknown> = {}; for (const key of ["title", "description", "status", "priority", "assigneeId", "dueDate"] as const) if (d[key] !== undefined) updates[key] = d[key];
   // VETRA-SEC-06: Capture old values for audit before update
-  const [oldTask] = await db.select({ title: tasksTable.title, status: tasksTable.status, priority: tasksTable.priority })
+  const [oldTask] = await db.select({ title: tasksTable.title, status: tasksTable.status, priority: tasksTable.priority, assigneeId: tasksTable.assigneeId })
     .from(tasksTable).where(and(eq(tasksTable.id, Number(req.params.id)), eq(tasksTable.organizationId, tenantId(req))));
   if (!oldTask) { res.status(404).json({ error: "Not found" }); return; }
   const owned = await db.select({ id: tasksTable.id }).from(tasksTable).innerJoin(projectsTable, eq(tasksTable.projectId, projectsTable.id)).where(and(eq(tasksTable.id, Number(req.params.id)), eq(tasksTable.organizationId, tenantId(req)), eq(projectsTable.organizationId, tenantId(req))));
@@ -71,6 +73,7 @@ router.patch("/tasks/:id", requirePermission("tasks.update"), async (req, res): 
   const [project] = await db.select().from(projectsTable).where(and(eq(projectsTable.id, task.projectId), eq(projectsTable.organizationId, tenantId(req)))); const [assignee] = task.assigneeId ? await db.select().from(usersTable).where(and(eq(usersTable.id, task.assigneeId), eq(usersTable.organizationId, tenantId(req)))) : [];
   res.json(formatTask(task, project?.name ?? "Unknown", assignee?.name ?? null));
   audit(req, "task.updated", "task", { resourceId: task.id, oldValues: { title: oldTask.title, status: oldTask.status, priority: oldTask.priority }, newValues: { title: task.title, status: task.status, priority: task.priority, projectId: task.projectId } });
+  if (d.assigneeId !== undefined && d.assigneeId !== oldTask.assigneeId) { notifyTaskAssigned(req, task.id, task.assigneeId!, task.title, task.projectId); }
 });
 
 router.delete("/tasks/:id", requirePermission("tasks.delete"), async (req, res): Promise<void> => {

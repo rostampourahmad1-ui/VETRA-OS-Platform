@@ -1,9 +1,10 @@
 import { Router } from "express";
- import { and, eq, desc, isNull, sql, sum } from "drizzle-orm";
+import { and, eq, desc, isNull, sql, sum } from "drizzle-orm";
 import { db, employeesTable, attendanceTable, payrollTable, projectsTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requirePermission } from "../middlewares/permissions";
 import { audit } from "../lib/audit";
+import { createNotification } from "../lib/notifications";
 import { ownedProject, tenantId } from "../middlewares/tenant";
 
 const router = Router();
@@ -180,9 +181,15 @@ router.post("/payroll/:id/pay", requirePermission("hr.update"), async (req, res)
     .where(and(eq(payrollTable.id, id), eq(payrollTable.organizationId, tenantId(req)))).returning();
   res.json({ ...row, baseSalary: Number(row.baseSalary), overtime: Number(row.overtime), bonuses: Number(row.bonuses), deductions: Number(row.deductions), insurance: Number(row.insurance), tax: Number(row.tax), netPay: Number(row.netPay) });
   audit(req, "payroll.paid", "payroll", { resourceId: id, newValues: { status: "paid" } });
+  // Notify the linked user for this payroll
+  if (row.employeeId) {
+    const [emp] = await db.select({ userId: employeesTable.userId }).from(employeesTable)
+      .where(and(eq(employeesTable.id, row.employeeId), eq(employeesTable.organizationId, tenantId(req))));
+    if (emp?.userId) createNotification({ organizationId: tenantId(req), userId: emp.userId, title: "حقوق پرداخت شد", message: `حقوق دوره ${row.periodStart} تا ${row.periodEnd} پرداخت شد`, type: "payroll_paid", link: `/hr/payroll/${row.id}` });
+  }
 });
 
- // ─── Payroll Auto-Calculation ──────────────────────────────────────────────
+// ─── Payroll Auto-Calculation ──────────────────────────────────────────────
 
  /**
   * Auto-calculate payroll for an employee in a given period.

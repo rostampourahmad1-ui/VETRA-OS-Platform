@@ -10,6 +10,7 @@ import {
   workBreakdownStructuresTable,
 } from "@workspace/db";
 import { requirePermission } from "../middlewares/permissions";
+import { audit } from "../lib/audit";
 import { tenantId } from "../middlewares/tenant";
 
 const router = Router();
@@ -77,6 +78,7 @@ router.post("/projects/:projectId/wbs", requirePermission("planning.manage"), as
   }
   const [row] = await db.insert(workBreakdownStructuresTable).values({ ...parsed.data, projectId: projectId.data, organizationId, createdBy: req.vetraUser!.id, updatedBy: req.vetraUser!.id }).returning();
   res.status(201).json(row);
+  audit(req, "planning.wbs.created", "wbs", { resourceId: row.id, newValues: { code: row.code, name: row.name, projectId: row.projectId } });
 });
 
 router.post("/projects/:projectId/activities", requirePermission("planning.manage"), async (req, res): Promise<void> => {
@@ -91,6 +93,7 @@ router.post("/projects/:projectId/activities", requirePermission("planning.manag
   if (!wbs) { res.status(400).json({ error: "WBS is not in this project" }); return; }
   const [row] = await db.insert(planningActivitiesTable).values({ ...parsed.data, projectId: projectId.data, organizationId, createdBy: req.vetraUser!.id, updatedBy: req.vetraUser!.id }).returning();
   res.status(201).json(row);
+  audit(req, "planning.activity.created", "planning_activity", { resourceId: row.id, newValues: { code: row.code, name: row.name, projectId: row.projectId, activityType: row.activityType } });
 });
 
 router.post("/projects/:projectId/phases", requirePermission("planning.manage"), async (req, res): Promise<void> => {
@@ -100,6 +103,7 @@ router.post("/projects/:projectId/phases", requirePermission("planning.manage"),
   if (!parsed.success || parsed.data.endDate < parsed.data.startDate) { res.status(400).json({ error: "Invalid phase input" }); return; }
   const [row] = await db.insert(phasesTable).values({ ...parsed.data, projectId: projectId.data, organizationId: tenantId(req) }).returning();
   res.status(201).json(row);
+  audit(req, "planning.phase.created", "phase", { resourceId: row.id, newValues: { name: row.name, projectId: row.projectId } });
 });
 
 router.post("/projects/:projectId/milestones", requirePermission("planning.manage"), async (req, res): Promise<void> => {
@@ -108,6 +112,7 @@ router.post("/projects/:projectId/milestones", requirePermission("planning.manag
   if (!projectId.success || !parsed.success || !(await projectOwned(projectId.data, tenantId(req)))) { res.status(400).json({ error: "Invalid milestone input or project" }); return; }
   const [row] = await db.insert(milestonesTable).values({ ...parsed.data, projectId: projectId.data, organizationId: tenantId(req) }).returning();
   res.status(201).json(row);
+  audit(req, "planning.milestone.created", "milestone", { resourceId: row.id, newValues: { name: row.name, projectId: row.projectId } });
 });
 
 export default router;

@@ -1319,7 +1319,12 @@ paths:
         content:
           application/json:
             schema: { $ref: '#/components/schemas/FormTemplateInput' }
-      responses: { '201': { description: Created } }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FormTemplateResponse' }
   /forms/templates/{id}:
     parameters:
       - in: path
@@ -1328,7 +1333,12 @@ paths:
         schema: { type: integer }
     get:
       summary: Get a tenant form template
-      responses: { '200': { description: OK } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FormTemplateDetailResponse' }
     delete:
       summary: Soft-delete a draft form template
       responses: { '204': { description: Deleted } }
@@ -1339,7 +1349,12 @@ paths:
         content:
           application/json:
             schema: { $ref: '#/components/schemas/FormTemplateUpdate' }
-      responses: { '200': { description: Updated } }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FormTemplateResponse' }
   /forms/templates/{id}/publish:
     parameters:
       - in: path
@@ -1348,7 +1363,12 @@ paths:
         schema: { type: integer }
     post:
       summary: Publish a form template version
-      responses: { '200': { description: Published } }
+      responses:
+        '200':
+          description: Published
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FormTemplateResponse' }
   /forms/templates/{id}/archive:
     parameters:
       - in: path
@@ -1357,11 +1377,23 @@ paths:
         schema: { type: integer }
     post:
       summary: Archive a published form template
-      responses: { '200': { description: Archived } }
+      responses:
+        '200':
+          description: Archived
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FormTemplateResponse' }
   /form-submissions:
     get:
       summary: List tenant form submissions
-      responses: { '200': { description: OK } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/FormSubmissionResponse' }
     post:
       summary: Create a form submission draft
       requestBody:
@@ -1369,7 +1401,12 @@ paths:
         content:
           application/json:
             schema: { $ref: '#/components/schemas/FormSubmissionInput' }
-      responses: { '201': { description: Created } }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FormSubmissionResponse' }
   /form-submissions/{id}:
     parameters:
       - in: path
@@ -1378,7 +1415,12 @@ paths:
         schema: { type: integer }
     get:
       summary: Get a tenant form submission
-      responses: { '200': { description: OK } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FormSubmissionResponse' }
     delete:
       summary: Delete a draft or revision-requested submission (owner only)
       responses: { '204': { description: Deleted } }
@@ -1389,7 +1431,12 @@ paths:
         content:
           application/json:
             schema: { $ref: '#/components/schemas/FormSubmissionUpdate' }
-      responses: { '200': { description: Updated } }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FormSubmissionResponse' }
   /form-submissions/{id}/submit:
     parameters:
       - in: path
@@ -1398,7 +1445,12 @@ paths:
         schema: { type: integer }
     post:
       summary: Submit a form response for approval
-      responses: { '200': { description: Submitted } }
+      responses:
+        '200':
+          description: Submitted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FormSubmissionResponse' }
   /documents/upload:
     post:
       summary: Upload a document to local storage
@@ -1732,6 +1784,60 @@ components:
         answers:
           type: object
           additionalProperties: true
+    FormTemplateResponse:
+      type: object
+      required: [id, name, definition, status, projectId, workflowId]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        definition: { $ref: '#/components/schemas/FormDefinition' }
+        status: { type: string, enum: [draft, published, archived] }
+        projectId: { type: integer, nullable: true }
+        workflowId: { type: integer, nullable: true }
+        organizationId: { type: integer }
+        createdBy: { type: integer }
+        updatedBy: { type: integer }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        deletedAt: { type: string, format: date-time, nullable: true }
+    FormTemplateDetailResponse:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/FormTemplateResponse'
+        - type: object
+          required: [versions]
+          properties:
+            versions:
+              type: array
+              items:
+                type: object
+                required: [id, templateId, version, definition, publishedBy, publishedAt]
+                properties:
+                  id: { type: integer }
+                  templateId: { type: integer }
+                  version: { type: integer }
+                  definition: { $ref: '#/components/schemas/FormDefinition' }
+                  publishedBy: { type: integer }
+                  publishedAt: { type: string, format: date-time }
+    FormSubmissionResponse:
+      type: object
+      required: [id, templateId, templateVersionId, status, answers, organizationId, submittedBy, submittedAt, updatedAt]
+      properties:
+        id: { type: integer }
+        templateId: { type: integer }
+        templateVersionId: { type: integer }
+        status: { type: string, enum: [draft, submitted, approved, rejected, revision_requested] }
+        answers:
+          type: object
+          additionalProperties: true
+        workflowRunId: { type: integer, nullable: true }
+        projectId: { type: integer, nullable: true }
+        organizationId: { type: integer }
+        submittedBy: { type: integer }
+        submittedAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
 
     InspectionInput:
       type: object

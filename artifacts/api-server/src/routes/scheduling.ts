@@ -174,6 +174,31 @@ router.get("/projects/:projectId/cpm", requirePermission("planning.read"), async
   if (!projectId.success || !(await ownedProject(req, projectId.data))) { res.status(404).json({ error: "Project not found" }); return; }
   const orgId = tenantId(req);
 
+  // Optional calendar integration: pass ?calendarId= to get calendar-adjusted dates
+  const calendarId = req.query.calendarId ? idInput.safeParse(req.query.calendarId) : null;
+  if (calendarId && !calendarId.success) { res.status(400).json({ error: "Invalid calendarId" }); return; }
+
+  let calendar: (typeof projectCalendarsTable.$inferSelect) | null = null;
+  let calendarExceptions: { exceptionDate: string; isWorkingDay: number; description?: string | null }[] = [];
+  if (calendarId) {
+    const [cal] = await db.select().from(projectCalendarsTable).where(and(
+      eq(projectCalendarsTable.id, calendarId.data),
+      eq(projectCalendarsTable.organizationId, orgId),
+      isNull(projectCalendarsTable.deletedAt),
+    )).limit(1);
+    if (cal) {
+      calendar = cal;
+      calendarExceptions = await db.select({
+        exceptionDate: calendarExceptionsTable.exceptionDate,
+        isWorkingDay: calendarExceptionsTable.isWorkingDay,
+ description: calendarExceptionsTable.description,
+      }).from(calendarExceptionsTable).where(and(
+        eq(calendarExceptionsTable.calendarId, calendar.id),
+        eq(calendarExceptionsTable.organizationId, orgId),
+      ));
+    }
+  }
+
   const [activities, dependencies] = await Promise.all([
     db.select().from(planningActivitiesTable).where(and(
       eq(planningActivitiesTable.projectId, projectId.data),
@@ -232,22 +257,49 @@ router.get("/projects/:projectId/cpm", requirePermission("planning.read"), async
     node.totalFloat = node.lateStart - node.earlyStart;
   }
 
+  // Calendar-adjusted dates (populated when ?calendarId= is provided)
+  let calendarAdjusted = false;
+  let projectStartDate = "";
+  if (calendar && activities.length > 0) {
+    calendarAdjusted = true;
+    projectStartDate = activities[0].plannedStart;
+    const { offsetToCalendarDate } = await import("../lib/scheduling/calendar");
+    for (const a of activities) {
+      const node = activityMap.get(a.id)!;
+      (node as any).earlyStartDate = offsetToCalendarDate(calendar, calendarExceptions, projectStartDate, node.earlyStart);
+      (node as any).earlyFinishDate = offsetToCalendarDate(calendar, calendarExceptions, projectStartDate, node.earlyFinish);
+      (node as any).lateStartDate = offsetToCalendarDate(calendar, calendarExceptions, projectStartDate, node.lateStart);
+      (node as any).lateFinishDate = offsetToCalendarDate(calendar, calendarExceptions, projectStartDate, node.lateFinish);
+    }
+  }
+
   const criticalPath = activities.filter((a) => activityMap.get(a.id)!.totalFloat === 0).map((a) => a.id);
 
   res.json({
-    activities: activities.map((a) => ({
+    activities: activities.map((a) => {
+      const n = activityMap.get(a.id)!;
+      const nAny = n as any;
+      return {
       id: a.id,
       code: a.code,
       name: a.name,
-      earlyStart: activityMap.get(a.id)!.earlyStart,
-      earlyFinish: activityMap.get(a.id)!.earlyFinish,
-      lateStart: activityMap.get(a.id)!.lateStart,
-      lateFinish: activityMap.get(a.id)!.lateFinish,
-      totalFloat: activityMap.get(a.id)!.totalFloat,
       durationDays: a.durationDays,
-    })),
+      earlyStart: n.earlyStart,
+      earlyFinish: n.earlyFinish,
+      lateStart: n.lateStart,
+      lateFinish: n.lateFinish,
+      totalFloat: n.totalFloat,
+      earlyStartDate: nAny.earlyStartDate ?? null,
+      earlyFinishDate: nAny.earlyFinishDate ?? null,
+      lateStartDate: nAny.lateStartDate ?? null,
+      lateFinishDate: nAny.lateFinishDate ?? null,
+      };
+    }),
     criticalPath,
     projectFinishDays: projectFinish,
+    calendarAdjusted,
+    calendarId: calendar?.id ?? null,
+    calendarName: calendar?.name ?? null,
   });
 });
 
@@ -383,6 +435,129 @@ router.post("/projects/:projectId/progress", requirePermission("planning.manage"
   res.status(201).json(row);
   audit(req, "scheduling.progress.reported", "progress", { resourceId: row.id, newValues: { activityId: row.activityId, progressPercent: row.progressPercent, reportDate: row.reportDate } });
 });
+// --- Weighted Progress Summary -------------------------------------------------------
+
+router.get("/projects/:projectId/progress-summary", requirePermission("planning.read"), async (req, res): Promise<void> => {
+  const projectId = idInput.safeParse(req.params.projectId);
+  if (!projectId.success || !(await ownedProject(req, projectId.data))) { res.status(404).json({ error: "Project not found" }); return; }
+  const orgId = tenantId(req);
+
+  // Optional date-range filter for as-of-date progress reporting
+  const dateFrom = req.query.dateFrom ? String(req.query.dateFrom) : undefined;
+  const dateTo = req.query.dateTo ? String(req.query.dateTo) : undefined;
+
+  let progressConditions = and(
+    eq(actualProgressTable.projectId, projectId.data),
+    eq(actualProgressTable.organizationId, orgId),
+  );
+  if (dateFrom) {
+    progressConditions = and(progressConditions, sql`${actualProgressTable.reportDate} >= ${dateFrom}`);
+  }
+  if (dateTo) {
+    progressConditions = and(progressConditions, sql`${actualProgressTable.reportDate} <= ${dateTo}`);
+  }
+
+  const [activities, progressRecords, baselines] = await Promise.all([
+    db.select().from(planningActivitiesTable).where(and(
+      eq(planningActivitiesTable.projectId, projectId.data),
+      eq(planningActivitiesTable.organizationId, orgId),
+      isNull(planningActivitiesTable.deletedAt),
+    )),
+    db.select().from(actualProgressTable).where(progressConditions),
+    db.select().from(baselinesTable).where(and(
+      eq(baselinesTable.projectId, projectId.data),
+      eq(baselinesTable.organizationId, orgId),
+      eq(baselinesTable.isActive, 1),
+    )).limit(1),
+  ]);
+  // Latest progress per activity
+  const latestProgress = {} as Record<number, number>;
+  progressRecords.sort((a, b) => b.reportDate.localeCompare(a.reportDate));
+  for (const pr of progressRecords) {
+    if (latestProgress[pr.activityId] === undefined) latestProgress[pr.activityId] = pr.progressPercent;
+  }
+  // Compute weighted progress using durationDays as weight
+  const items = activities.map((a) => ({
+    activityId: a.id,
+    progressPercent: latestProgress[a.id] ?? 0,
+    weight: Math.max(1, a.durationDays),
+  }));
+  const { computeWeightedProgress } = await import("../lib/scheduling/progress");
+  const summary = computeWeightedProgress(items);
+  const activityMap = new Map(activities.map((a) => [a.id, a]));
+  res.json({
+    overallProgressPercent: summary.overallProgressPercent,
+    totalWeight: summary.totalWeight,
+    activities: summary.activities.map((a) => ({
+      ...a,
+      code: activityMap.get(a.activityId)?.code ?? "",
+      name: activityMap.get(a.activityId)?.name ?? "",
+      plannedStart: activityMap.get(a.activityId)?.plannedStart ?? "",
+      plannedFinish: activityMap.get(a.activityId)?.plannedFinish ?? "",
+      status: activityMap.get(a.activityId)?.status ?? "not_started",
+    })),
+    activityCount: activities.length,
+    reportedActivityCount: items.filter((a) => a.progressPercent > 0).length,
+    activeBaselineId: baselines[0]?.id ?? null,
+    dateFrom: dateFrom ?? null,
+    dateTo: dateTo ?? null,
+  });
+});
+
+
+
+// --- Calendar-Aware Scheduling ---------------------------------------------------------------------
+
+router.get("/projects/:projectId/calendar-schedule", requirePermission("planning.read"), async (req, res): Promise<void> => {
+  const projectId = idInput.safeParse(req.params.projectId);
+  if (!projectId.success || !(await ownedProject(req, projectId.data))) { res.status(404).json({ error: "Project not found" }); return; }
+  const orgId = tenantId(req);
+  const calendarId = req.query.calendarId ? idInput.safeParse(req.query.calendarId) : null;
+  if (calendarId && !calendarId.success) { res.status(400).json({ error: "Invalid calendarId" }); return; }
+  const [calendars, activities, dependencies] = await Promise.all([
+    db.select().from(projectCalendarsTable).where(and(
+      eq(projectCalendarsTable.projectId, projectId.data),
+      eq(projectCalendarsTable.organizationId, orgId),
+      isNull(projectCalendarsTable.deletedAt),
+      calendarId ? eq(projectCalendarsTable.id, calendarId.data) : sql`1=1`,
+    )).limit(1),
+    db.select().from(planningActivitiesTable).where(and(
+      eq(planningActivitiesTable.projectId, projectId.data),
+      eq(planningActivitiesTable.organizationId, orgId),
+      isNull(planningActivitiesTable.deletedAt),
+    )),
+    db.select().from(activityDependenciesTable).where(and(
+      eq(activityDependenciesTable.projectId, projectId.data),
+      eq(activityDependenciesTable.organizationId, orgId),
+      isNull(activityDependenciesTable.deletedAt),
+    )),
+  ]);
+  if (calendars.length === 0) { res.json({ warning: "No calendar defined for this project", calendarAdjusted: false, activities: activities.map(a => ({ ...a, calendarStart: a.plannedStart, calendarFinish: a.plannedFinish })) }); return; }
+  const calendar = calendars[0];
+  const exceptions = await db.select({ exceptionDate: calendarExceptionsTable.exceptionDate, isWorkingDay: calendarExceptionsTable.isWorkingDay, description: calendarExceptionsTable.description }).from(calendarExceptionsTable).where(and(
+    eq(calendarExceptionsTable.calendarId, calendar.id),
+    eq(calendarExceptionsTable.organizationId, orgId),
+  ));
+  const projectStartDate = activities.length > 0 ? activities[0].plannedStart : "";
+  const { offsetToCalendarDate } = await import("../lib/scheduling/calendar");
+  const adjusted = activities.map((a) => {
+    const dayOffset = (new Date(a.plannedStart).getTime() - new Date(projectStartDate).getTime()) / (1000 * 60 * 60 * 24);
+    const calendarStart = dayOffset > 0 ? offsetToCalendarDate(calendar, exceptions, projectStartDate, Math.round(dayOffset)) : projectStartDate;
+    const calStartDate = new Date(calendarStart + "T00:00:00Z");
+    const finishOffset = (new Date(a.plannedFinish).getTime() - new Date(a.plannedStart).getTime()) / (1000 * 60 * 60 * 24);
+    const calendarFinish = offsetToCalendarDate(calendar, exceptions, calendarStart, Math.round(Math.max(1, finishOffset)));
+    return { ...a, calendarStart, calendarFinish };
+  });
+  res.json({
+    calendarId: calendar.id,
+    calendarName: calendar.name,
+    workDays: calendar.workDays,
+    exceptionsCount: exceptions.length,
+    calendarAdjusted: true,
+    activities: adjusted,
+    projectStartDate,
+  });
+});
 
 // ─── EVM Metrics ──────────────────────────────────────────────────────────────
 
@@ -437,6 +612,64 @@ router.post("/projects/:projectId/evm", requirePermission("planning.manage"), as
   res.status(201).json(row);
   audit(req, "scheduling.evm.calculated", "evm", { resourceId: row.id, newValues: { reportDate: row.reportDate, cpi: row.costPerformanceIndex, spi: row.schedulePerformanceIndex } });
 });
+
+// --- EVM Forecast (All 3 EAC variants) ---
+
+router.get("/projects/:projectId/evm-forecast", requirePermission("planning.read"), async (req, res): Promise<void> => {
+  const projectId = idInput.safeParse(req.params.projectId);
+  if (!projectId.success || !(await ownedProject(req, projectId.data))) { res.status(404).json({ error: "Project not found" }); return; }
+  const orgId = tenantId(req);
+
+  // Fetch the latest EVM record for this project
+  const [latest] = await db.select().from(evmMetricsTable).where(and(
+    eq(evmMetricsTable.projectId, projectId.data),
+    eq(evmMetricsTable.organizationId, orgId),
+  )).orderBy(desc(evmMetricsTable.reportDate)).limit(1);
+
+  if (!latest) {
+    res.status(404).json({ error: "No EVM data found for this project. Record EVM metrics first via POST /projects/:projectId/evm" });
+    return;
+  }
+
+  const pv = parseFloat(String(latest.plannedValue));
+  const ev = parseFloat(String(latest.earnedValue));
+  const ac = parseFloat(String(latest.actualCost));
+  // Use PV as BAC when baseline is the plan; in practice BAC comes from baseline
+  const bac = pv;
+
+  const cpi = ac > 0 ? safeRound(ev / ac) : 1;
+  const spi = pv > 0 ? safeRound(ev / pv) : 1;
+
+  // 1. EAC (CPI) - assumes future performance matches past cost efficiency
+  const eacCpi = cpi > 0 ? safeRound(bac / cpi) : bac;
+
+  // 2. EAC (CPI*SPI) - accounts for both cost and schedule efficiency
+  const cpiTimesSpi = cpi * spi;
+  const eacCpiSpi = cpiTimesSpi > 0.001 ? safeRound(bac / cpiTimesSpi) : bac;
+
+  // 3. EAC (Bottom-up) - AC + bottom-up ETC derived from remaining budget / CPI
+  const remainingWork = Math.max(0, bac - ev);
+  const etcBottomUp = cpi > 0 ? safeRound(remainingWork / cpi) : remainingWork;
+  const eacBottomUp = safeRound(ac + etcBottomUp);
+
+  res.json({
+    projectId: projectId.data,
+    reportDate: latest.reportDate,
+    baselineId: latest.baselineId,
+    plannedValue: pv,
+    earnedValue: ev,
+    actualCost: ac,
+    cpi,
+    spi,
+    eacCpi,
+    eacCpiSpi,
+    eacBottomUp,
+  });
+});
+
+function safeRound(value: number): number {
+  return Math.round(value * 100) / 100;
+}
 
 // ─── Resource Types ───────────────────────────────────────────────────────────
 

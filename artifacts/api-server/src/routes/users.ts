@@ -4,6 +4,7 @@ import { db, usersTable, organizationsTable } from "@workspace/db";
 import { CreateUserBody, UpdateUserBody } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requirePermission } from "../middlewares/permissions";
+import { audit } from "../lib/audit";
 import { tenantId } from "../middlewares/tenant";
 
 const router = Router();
@@ -49,6 +50,7 @@ router.post("/users", requirePermission("users.create"), async (req, res): Promi
   }).returning();
   const [org] = await db.select().from(organizationsTable).where(eq(organizationsTable.id, organizationId));
   res.status(201).json(serialize(row, org?.name ?? null));
+  audit(req, "user.created", "user", { resourceId: row.id, newValues: { name: row.name, email: row.email, role: row.role } });
 });
 
 router.get("/users/:id", requirePermission("users.read"), async (req, res): Promise<void> => {
@@ -71,10 +73,19 @@ router.patch("/users/:id", requirePermission("users.update"), async (req, res): 
   if (d.department !== undefined) updates.department = d.department;
   if (d.phone !== undefined) updates.phone = d.phone;
   if (d.active !== undefined) updates.active = d.active;
+  // VETRA-SEC-06: Capture old values for audit before update
+  const [oldUser] = await db.select({ name: usersTable.name, email: usersTable.email, role: usersTable.role, active: usersTable.active })
+    .from(usersTable).where(and(eq(usersTable.id, id), eq(usersTable.organizationId, tenantId(req))));
+  if (!oldUser) { res.status(404).json({ error: "Not found" }); return; }
   const [row] = await db.update(usersTable).set(updates).where(and(eq(usersTable.id, id), eq(usersTable.organizationId, tenantId(req)))).returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
   const [org] = await db.select().from(organizationsTable).where(eq(organizationsTable.id, tenantId(req)));
   res.json(serialize(row, org?.name ?? null));
+  if (oldUser.role !== row.role || oldUser.active !== row.active) {
+    audit(req, "user.role_changed", "user", { resourceId: row.id, oldValues: { role: oldUser.role, active: oldUser.active }, newValues: { role: row.role, active: row.active } });
+  } else {
+    audit(req, "user.updated", "user", { resourceId: row.id, oldValues: { name: oldUser.name, email: oldUser.email }, newValues: { name: row.name, email: row.email } });
+  }
 });
 
 export default router;
