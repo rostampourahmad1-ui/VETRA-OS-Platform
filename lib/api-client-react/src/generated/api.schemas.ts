@@ -655,7 +655,7 @@ export interface DailyReportInput {
   issues?: string;
   notes?: string;
   projectId: number;
-  createdBy: string;
+  createdBy?: string;
 }
 
 export interface Meeting {

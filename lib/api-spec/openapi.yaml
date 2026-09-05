@@ -2332,7 +2332,6 @@ components:
         - weather
         - progress
         - projectId
-        - createdBy
       properties:
         date: { type: string }
         weather: { type: string }
@@ -2789,3 +2788,4 @@ components:
         projects: { type: object, additionalProperties: true }
         tasks: { type: object, additionalProperties: true }
         costs: { type: object, additionalProperties: true }
+

@@ -590,7 +590,7 @@ export const CreateDailyReportBody = zod.object({
   "issues": zod.string().optional(),
   "notes": zod.string().optional(),
   "projectId": zod.number().int(),
-  "createdBy": zod.string()
+  "createdBy": zod.string().optional()
 })
 
 export const CreateDailyReportResponse = zod.object({
