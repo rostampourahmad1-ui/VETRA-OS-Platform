@@ -141,6 +141,17 @@ export const AuditAction = {
   PAYMENT_CERTIFICATE_CREATED: "payment_certificate.created",
   PAYMENT_CERTIFICATE_UPDATED: "payment_certificate.updated",
   PAYMENT_CERTIFICATE_APPROVED: "payment_certificate.approved",
+  // Planning actions
+  PLANNING_WBS_CREATED: "planning.wbs.created",
+  PLANNING_ACTIVITY_CREATED: "planning.activity.created",
+  PLANNING_PHASE_CREATED: "planning.phase.created",
+  PLANNING_MILESTONE_CREATED: "planning.milestone.created",
+  // Cost control actions
+  COST_CONTROL_CATEGORY_CREATED: "cost_control.category.created",
+  COST_CONTROL_BUDGET_CREATED: "cost_control.budget.created",
+  COST_CONTROL_EXPENSE_CREATED: "cost_control.expense.created",
+  // Organization actions
+  ORGANIZATION_UPDATED: "organization.updated",
 } as const;
 
 export type AuditActionType = (typeof AuditAction)[keyof typeof AuditAction];
