@@ -45,8 +45,11 @@ import type {
   ExpenseCategoryInput,
   ExpenseInput,
   FormSubmissionInput,
+  FormSubmissionResponse,
   FormSubmissionUpdate,
+  FormTemplateDetailResponse,
   FormTemplateInput,
+  FormTemplateResponse,
   FormTemplateUpdate,
   GetCostControlSummaryParams,
   GlobalSearchParams,
@@ -6820,9 +6823,9 @@ export const getPostFormsTemplatesUrl = () => {
 /**
  * @summary Create a form template draft
  */
-export const postFormsTemplates = async (formTemplateInput: FormTemplateInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+export const postFormsTemplates = async (formTemplateInput: FormTemplateInput, options?: Parameters<typeof customFetch>[1]): Promise<FormTemplateResponse> => {
 
-  return customFetch<void>(getPostFormsTemplatesUrl(),
+  return customFetch<FormTemplateResponse>(getPostFormsTemplatesUrl(),
   {
     ...options,
     method: 'POST',
@@ -6891,9 +6894,9 @@ export const getGetFormsTemplatesIdUrl = (id: number,) => {
 /**
  * @summary Get a tenant form template
  */
-export const getFormsTemplatesId = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+export const getFormsTemplatesId = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<FormTemplateDetailResponse> => {
 
-  return customFetch<void>(getGetFormsTemplatesIdUrl(id),
+  return customFetch<FormTemplateDetailResponse>(getGetFormsTemplatesIdUrl(id),
   {
     ...options,
     method: 'GET'
@@ -7040,9 +7043,9 @@ export const getPatchFormsTemplatesIdUrl = (id: number,) => {
  * @summary Update a draft form template
  */
 export const patchFormsTemplatesId = async (id: number,
-    formTemplateUpdate: FormTemplateUpdate, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+    formTemplateUpdate: FormTemplateUpdate, options?: Parameters<typeof customFetch>[1]): Promise<FormTemplateResponse> => {
 
-  return customFetch<void>(getPatchFormsTemplatesIdUrl(id),
+  return customFetch<FormTemplateResponse>(getPatchFormsTemplatesIdUrl(id),
   {
     ...options,
     method: 'PATCH',
@@ -7111,9 +7114,9 @@ export const getPostFormsTemplatesIdPublishUrl = (id: number,) => {
 /**
  * @summary Publish a form template version
  */
-export const postFormsTemplatesIdPublish = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+export const postFormsTemplatesIdPublish = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<FormTemplateResponse> => {
 
-  return customFetch<void>(getPostFormsTemplatesIdPublishUrl(id),
+  return customFetch<FormTemplateResponse>(getPostFormsTemplatesIdPublishUrl(id),
   {
     ...options,
     method: 'POST'
@@ -7182,9 +7185,9 @@ export const getPostFormsTemplatesIdArchiveUrl = (id: number,) => {
 /**
  * @summary Archive a published form template
  */
-export const postFormsTemplatesIdArchive = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+export const postFormsTemplatesIdArchive = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<FormTemplateResponse> => {
 
-  return customFetch<void>(getPostFormsTemplatesIdArchiveUrl(id),
+  return customFetch<FormTemplateResponse>(getPostFormsTemplatesIdArchiveUrl(id),
   {
     ...options,
     method: 'POST'
@@ -7253,9 +7256,9 @@ export const getGetFormSubmissionsUrl = () => {
 /**
  * @summary List tenant form submissions
  */
-export const getFormSubmissions = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+export const getFormSubmissions = async ( options?: Parameters<typeof customFetch>[1]): Promise<FormSubmissionResponse[]> => {
 
-  return customFetch<void>(getGetFormSubmissionsUrl(),
+  return customFetch<FormSubmissionResponse[]>(getGetFormSubmissionsUrl(),
   {
     ...options,
     method: 'GET'
@@ -7330,9 +7333,9 @@ export const getPostFormSubmissionsUrl = () => {
 /**
  * @summary Create a form submission draft
  */
-export const postFormSubmissions = async (formSubmissionInput: FormSubmissionInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+export const postFormSubmissions = async (formSubmissionInput: FormSubmissionInput, options?: Parameters<typeof customFetch>[1]): Promise<FormSubmissionResponse> => {
 
-  return customFetch<void>(getPostFormSubmissionsUrl(),
+  return customFetch<FormSubmissionResponse>(getPostFormSubmissionsUrl(),
   {
     ...options,
     method: 'POST',
@@ -7401,9 +7404,9 @@ export const getGetFormSubmissionsIdUrl = (id: number,) => {
 /**
  * @summary Get a tenant form submission
  */
-export const getFormSubmissionsId = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+export const getFormSubmissionsId = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<FormSubmissionResponse> => {
 
-  return customFetch<void>(getGetFormSubmissionsIdUrl(id),
+  return customFetch<FormSubmissionResponse>(getGetFormSubmissionsIdUrl(id),
   {
     ...options,
     method: 'GET'
@@ -7550,9 +7553,9 @@ export const getPatchFormSubmissionsIdUrl = (id: number,) => {
  * @summary Update a draft or revision-requested submission
  */
 export const patchFormSubmissionsId = async (id: number,
-    formSubmissionUpdate: FormSubmissionUpdate, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+    formSubmissionUpdate: FormSubmissionUpdate, options?: Parameters<typeof customFetch>[1]): Promise<FormSubmissionResponse> => {
 
-  return customFetch<void>(getPatchFormSubmissionsIdUrl(id),
+  return customFetch<FormSubmissionResponse>(getPatchFormSubmissionsIdUrl(id),
   {
     ...options,
     method: 'PATCH',
@@ -7621,9 +7624,9 @@ export const getPostFormSubmissionsIdSubmitUrl = (id: number,) => {
 /**
  * @summary Submit a form response for approval
  */
-export const postFormSubmissionsIdSubmit = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+export const postFormSubmissionsIdSubmit = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<FormSubmissionResponse> => {
 
-  return customFetch<void>(getPostFormSubmissionsIdSubmitUrl(id),
+  return customFetch<FormSubmissionResponse>(getPostFormSubmissionsIdSubmitUrl(id),
   {
     ...options,
     method: 'POST'

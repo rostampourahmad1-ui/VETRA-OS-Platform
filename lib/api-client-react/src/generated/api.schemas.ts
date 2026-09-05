@@ -91,6 +91,72 @@ export interface FormSubmissionUpdate {
   answers: FormSubmissionUpdateAnswers;
 }
 
+export type FormTemplateResponseStatus = typeof FormTemplateResponseStatus[keyof typeof FormTemplateResponseStatus];
+
+
+export const FormTemplateResponseStatus = {
+  draft: 'draft',
+  published: 'published',
+  archived: 'archived',
+} as const;
+
+export interface FormTemplateResponse {
+  id: number;
+  name: string;
+  description?: string | null;
+  definition: FormDefinition;
+  status: FormTemplateResponseStatus;
+  projectId: number | null;
+  workflowId: number | null;
+  organizationId?: number;
+  createdBy?: number;
+  updatedBy?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  deletedAt?: string | null;
+}
+
+export type FormTemplateDetailResponseVersionsItem = {
+  id: number;
+  templateId: number;
+  version: number;
+  definition: FormDefinition;
+  publishedBy: number;
+  publishedAt: string;
+};
+
+export type FormTemplateDetailResponse = FormTemplateResponse & {
+  versions: FormTemplateDetailResponseVersionsItem[];
+};
+
+export type FormSubmissionResponseStatus = typeof FormSubmissionResponseStatus[keyof typeof FormSubmissionResponseStatus];
+
+
+export const FormSubmissionResponseStatus = {
+  draft: 'draft',
+  submitted: 'submitted',
+  approved: 'approved',
+  rejected: 'rejected',
+  revision_requested: 'revision_requested',
+} as const;
+
+export type FormSubmissionResponseAnswers = { [key: string]: unknown };
+
+export interface FormSubmissionResponse {
+  id: number;
+  templateId: number;
+  templateVersionId: number;
+  status: FormSubmissionResponseStatus;
+  answers: FormSubmissionResponseAnswers;
+  workflowRunId?: number | null;
+  projectId?: number | null;
+  organizationId: number;
+  submittedBy: number;
+  submittedAt: string | null;
+  createdAt?: string;
+  updatedAt: string;
+}
+
 export type InspectionInputType = typeof InspectionInputType[keyof typeof InspectionInputType];
 
 
