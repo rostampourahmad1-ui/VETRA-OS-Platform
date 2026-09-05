@@ -1,3 +1,4 @@
+import { t } from '@/lib/i18n';
 import { useEffect, useMemo, useState } from 'react';
 import {
   Check,
@@ -84,8 +85,8 @@ function toDraft(template: FormTemplateResponse): FormDraft {
 }
 
 const initialDraft: FormDraft = {
-  name: 'بازرسی روزانه کارگاه',
-  description: 'ثبت مشاهدات کارگاه، پیشرفت و اقدامات پیگیری.',
+  name: t('forms.dailyInspectionName'),
+  description: t('forms.dailyInspectionDesc'),
   fields: [
     { id: 'project', label: 'Project', type: 'select', required: true, options: ['North Tower', 'West Campus', 'River Bridge'] },
     { id: 'inspection-date', label: 'Inspection date', type: 'date', required: true },
@@ -94,11 +95,11 @@ const initialDraft: FormDraft = {
 };
 
 const fieldTypes: Array<{ type: FieldType; label: string; icon: typeof Type }> = [
-  { type: 'text', label: 'متن', icon: Type },
-  { type: 'number', label: 'عدد', icon: Hash },
-  { type: 'date', label: 'تاریخ', icon: CalendarDays },
-  { type: 'select', label: 'فهرست انتخاب', icon: List },
-  { type: 'checkbox', label: 'تأیید', icon: ToggleLeft },
+  { type: 'text', label: t('forms.fieldText'), icon: Type },
+  { type: 'number', label: t('forms.fieldNumber'), icon: Hash },
+  { type: 'date', label: t('forms.fieldDate'), icon: CalendarDays },
+  { type: 'select', label: t('forms.fieldSelect'), icon: List },
+  { type: 'checkbox', label: t('forms.approve'), icon: ToggleLeft },
 ];
 
 function makeId() {
@@ -107,11 +108,11 @@ function makeId() {
 
 function createField(type: FieldType): FormField {
   const labels: Record<FieldType, string> = {
-    text: 'فیلد متنی جدید',
-    number: 'فیلد عددی جدید',
-    date: 'فیلد تاریخ جدید',
-    select: 'فهرست انتخاب جدید',
-    checkbox: 'فیلد تأیید جدید',
+    text: t('forms.newText'),
+    number: t('forms.newNumber'),
+    date: t('forms.newDate'),
+    select: t('forms.newSelect'),
+    checkbox: t('forms.newCheckbox'),
   };
   return {
     id: makeId(),
@@ -205,7 +206,7 @@ export default function FormsBuilder() {
     const payload = { name: draft.name, description: draft.description || undefined, definition: { fields: draft.fields }, projectId: project?.id };
     try {
       if (!project) {
-        setError('ابتدا پروژهٔ فعال را انتخاب کنید.');
+        setError(t('forms.noProjectError'));
         return;
       }
       const saved = draft.id
@@ -240,7 +241,7 @@ export default function FormsBuilder() {
       setSubmissionAnswers({});
       await refreshSubmissions();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'ارسال فرم انجام نشد.');
+      setError(cause instanceof Error ? cause.message : t('forms.submitError'));
     } finally {
       setSubmissionBusy(null);
     }
@@ -248,7 +249,7 @@ export default function FormsBuilder() {
 
   const decideSubmission = async (submission: FormSubmissionResponse, decision: 'approve' | 'reject' | 'request_revision') => {
     if (!submission.workflowRunId) return;
-    const comment = decision === 'request_revision' ? window.prompt('توضیح درخواست اصلاح را وارد کنید:')?.trim() : undefined;
+    const comment = decision === 'request_revision' ? window.prompt(t('forms.revisionPrompt'))?.trim() : undefined;
     if (decision === 'request_revision' && !comment) return;
     setSubmissionBusy(submission.id);
     setError('');
@@ -256,7 +257,7 @@ export default function FormsBuilder() {
       await post(`/workflow-runs/${submission.workflowRunId}/decision`, { decision, comment });
       await refreshSubmissions();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'تصمیم گردش‌کار ثبت نشد.');
+      setError(cause instanceof Error ? cause.message : t('forms.workflowError'));
     } finally {
       setSubmissionBusy(null);
     }
@@ -281,35 +282,35 @@ export default function FormsBuilder() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="mb-2 flex items-center gap-2 text-xs font-mono uppercase tracking-[0.18em] text-primary">
-            <Sparkles className="h-3.5 w-3.5" /> فضای کاری فرم‌ها
+            <Sparkles className="h-3.5 w-3.5" /> {t('forms.workspace')}
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">فرم‌ساز</h1>
-          <p className="mt-1 max-w-2xl text-muted-foreground">فرم‌های قابل استفادهٔ مجدد برای بازرسی، گزارش روزانه، تأیید و گردش کار پروژه بسازید.</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t('forms.title')}</h1>
+          <p className="mt-1 max-w-2xl text-muted-foreground">{t('forms.desc')}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant={mode === 'build' ? 'default' : 'outline'} onClick={() => setMode('build')} className="gap-2"><Settings2 className="h-4 w-4" /> ساخت</Button>
-          <Button variant={mode === 'preview' ? 'default' : 'outline'} onClick={() => setMode('preview')} className="gap-2"><Eye className="h-4 w-4" /> پیش‌نمایش</Button>
-          <Button disabled={saving || loading} onClick={() => void saveDraft()} className="gap-2"><Save className="h-4 w-4" /> {saving ? 'در حال ذخیره…' : 'ذخیرهٔ پیش‌نویس'}</Button>
-          {draft.id && draft.status === 'draft' && <Button disabled={saving || loading} variant="outline" onClick={() => void publishDraft()}>انتشار</Button>}
+          <Button variant={mode === 'build' ? 'default' : 'outline'} onClick={() => setMode('build')} className="gap-2"><Settings2 className="h-4 w-4" /> {t('forms.build')}</Button>
+          <Button variant={mode === 'preview' ? 'default' : 'outline'} onClick={() => setMode('preview')} className="gap-2"><Eye className="h-4 w-4" /> {t('forms.preview')}</Button>
+          <Button disabled={saving || loading} onClick={() => void saveDraft()} className="gap-2"><Save className="h-4 w-4" /> {saving ? t('forms.saving') : t('forms.saveDraft')}</Button>
+          {draft.id && draft.status === 'draft' && <Button disabled={saving || loading} variant="outline" onClick={() => void publishDraft()}>{t('forms.publish')}</Button>}
         </div>
       </div>
 
       {error && <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>}
-      {loading && <div className="rounded-lg border border-dashed px-4 py-3 text-sm text-muted-foreground">در حال بارگذاری فرم‌های ذخیره‌شده…</div>}
+      {loading && <div className="rounded-lg border border-dashed px-4 py-3 text-sm text-muted-foreground">{t('forms.loadingTemplates')}</div>}
 
       <Card className="border-border/70 bg-card/80">
-        <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Send className="h-4 w-4 text-primary" /> ارسال و تأیید فرم‌ها</CardTitle><p className="text-sm text-muted-foreground">فرم منتشرشدهٔ پروژهٔ فعال را تکمیل کنید یا submissionهای در انتظار را بررسی کنید.</p></CardHeader>
+        <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Send className="h-4 w-4 text-primary" /> {t('forms.submitTitle')}</CardTitle><p className="text-sm text-muted-foreground">{t('forms.submitDesc')}</p></CardHeader>
         <CardContent className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <div className="space-y-4 rounded-lg border p-4">
-            <div className="space-y-2"><Label htmlFor="submission-template">الگوی منتشرشده</Label><select id="submission-template" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={selectedSubmissionTemplateId} onChange={(event) => { setSelectedSubmissionTemplateId(event.target.value); setSubmissionAnswers({}); }}><option value="">انتخاب الگو</option>{templates.filter((template) => template.status === 'published').map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select></div>
-            {selectedSubmissionTemplate?.definition.fields.map((field) => <div key={field.id} className="space-y-2"><Label>{field.label}{field.required && <span className="text-primary"> *</span>}</Label>{field.type === 'checkbox' ? <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={submissionAnswers[field.id] === true} onChange={(event) => setSubmissionAnswers((current) => ({ ...current, [field.id]: event.target.checked }))} className="h-4 w-4 accent-primary" /> تأیید</label> : field.type === 'select' ? <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={String(submissionAnswers[field.id] ?? '')} onChange={(event) => setSubmissionAnswers((current) => ({ ...current, [field.id]: event.target.value }))}><option value="">انتخاب کنید</option>{field.options?.map((option) => <option key={option} value={option}>{option}</option>)}</select> : <Input type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'} placeholder={field.placeholder} value={String(submissionAnswers[field.id] ?? '')} onChange={(event) => setSubmissionAnswers((current) => ({ ...current, [field.id]: field.type === 'number' ? Number(event.target.value) : event.target.value }))} />}</div>)}
-            <Button disabled={!selectedSubmissionTemplate || submissionBusy === 'new'} onClick={() => void createSubmission()} className="gap-2"><Send className="h-4 w-4" />{submissionBusy === 'new' ? 'در حال ارسال…' : 'ارسال برای تأیید'}</Button>
+            <div className="space-y-2"><Label htmlFor="submission-template">{t('forms.publishedTemplate')}</Label><select id="submission-template" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={selectedSubmissionTemplateId} onChange={(event) => { setSelectedSubmissionTemplateId(event.target.value); setSubmissionAnswers({}); }}><option value="">{t('forms.selectTemplate')}</option>{templates.filter((template) => template.status === 'published').map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select></div>
+            {selectedSubmissionTemplate?.definition.fields.map((field) => <div key={field.id} className="space-y-2"><Label>{field.label}{field.required && <span className="text-primary"> *</span>}</Label>{field.type === 'checkbox' ? <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={submissionAnswers[field.id] === true} onChange={(event) => setSubmissionAnswers((current) => ({ ...current, [field.id]: event.target.checked }))} className="h-4 w-4 accent-primary" /> {t('forms.approve')}</label> : field.type === 'select' ? <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={String(submissionAnswers[field.id] ?? '')} onChange={(event) => setSubmissionAnswers((current) => ({ ...current, [field.id]: event.target.value }))}><option value="">{t('forms.selectOption')}</option>{field.options?.map((option) => <option key={option} value={option}>{option}</option>)}</select> : <Input type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'} placeholder={field.placeholder} value={String(submissionAnswers[field.id] ?? '')} onChange={(event) => setSubmissionAnswers((current) => ({ ...current, [field.id]: field.type === 'number' ? Number(event.target.value) : event.target.value }))} />}</div>)}
+            <Button disabled={!selectedSubmissionTemplate || submissionBusy === 'new'} onClick={() => void createSubmission()} className="gap-2"><Send className="h-4 w-4" />{submissionBusy === 'new' ? t('forms.sending') : t('forms.submitForApproval')}</Button>
           </div>
           <div className="space-y-3">
-            {submissions.length === 0 ? <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">هنوز submissionای برای پروژهٔ فعال ثبت نشده است.</div> : submissions.map((submission) => {
+            {submissions.length === 0 ? <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">{t('forms.noSubmissions')}</div> : submissions.map((submission) => {
               const template = templates.find((item) => item.id === submission.templateId);
               const pending = submission.status === 'submitted' && submission.workflowRunId;
-              return <div key={submission.id} className="rounded-lg border p-4"><div className="flex items-center justify-between gap-3"><div><p className="font-medium">{template?.name ?? `Submission #${submission.id}`}</p><p className="text-xs text-muted-foreground">#{submission.id} · {submission.status}</p></div><Badge variant={submission.status === 'approved' ? 'default' : 'secondary'}>{submission.status}</Badge></div>{pending && <div className="mt-3 flex flex-wrap gap-2"><Button size="sm" disabled={submissionBusy === submission.id} onClick={() => void decideSubmission(submission, 'approve')} className="gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> تأیید</Button><Button size="sm" variant="outline" disabled={submissionBusy === submission.id} onClick={() => void decideSubmission(submission, 'request_revision')} className="gap-1"><RotateCcw className="h-3.5 w-3.5" /> درخواست اصلاح</Button><Button size="sm" variant="destructive" disabled={submissionBusy === submission.id} onClick={() => void decideSubmission(submission, 'reject')} className="gap-1"><XCircle className="h-3.5 w-3.5" /> رد</Button></div>}</div>;
+              return <div key={submission.id} className="rounded-lg border p-4"><div className="flex items-center justify-between gap-3"><div><p className="font-medium">{template?.name ?? `Submission #${submission.id}`}</p><p className="text-xs text-muted-foreground">#{submission.id} · {submission.status}</p></div><Badge variant={submission.status === 'approved' ? 'default' : 'secondary'}>{submission.status}</Badge></div>{pending && <div className="mt-3 flex flex-wrap gap-2"><Button size="sm" disabled={submissionBusy === submission.id} onClick={() => void decideSubmission(submission, 'approve')} className="gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> {t('forms.approve')}</Button><Button size="sm" variant="outline" disabled={submissionBusy === submission.id} onClick={() => void decideSubmission(submission, 'request_revision')} className="gap-1"><RotateCcw className="h-3.5 w-3.5" /> {t('forms.requestRevision')}</Button><Button size="sm" variant="destructive" disabled={submissionBusy === submission.id} onClick={() => void decideSubmission(submission, 'reject')} className="gap-1"><XCircle className="h-3.5 w-3.5" /> {t('forms.reject')}</Button></div>}</div>;
             })}
           </div>
         </CardContent>
@@ -347,34 +348,34 @@ export default function FormsBuilder() {
               <div className="mx-auto max-w-xl space-y-5 rounded-xl border bg-background p-6 shadow-sm">
                 <div><h2 className="text-xl font-semibold">{draft.name || 'Untitled form'}</h2><p className="mt-1 text-sm text-muted-foreground">{draft.description}</p></div>
                 {draft.fields.map((field) => <PreviewField key={field.id} field={field} />)}
-                <Button className="w-full">Submit form</Button>
+                <Button className="w-full">{t('forms.submitForm')}</Button>
               </div>
             ) : (
               <>
-                {draft.fields.length === 0 && <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">Your form is empty. Add a field from the palette to get started.</div>}
+                {draft.fields.length === 0 && <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">{t('forms.yourFormIsEmpty')}</div>}
                 {draft.fields.map((field, index) => (
                   <button key={field.id} type="button" onClick={() => setSelectedId(field.id)} className={`group flex w-full items-center gap-3 rounded-xl border p-4 text-left transition-all ${selectedField?.id === field.id ? 'border-primary bg-primary/5 shadow-sm' : 'border-border/70 hover:border-primary/40'}`}>
                     <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-muted-foreground/60" />
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-primary"><FieldIcon type={field.type} /></span>
-                    <span className="min-w-0 flex-1"><span className="flex items-center gap-2 font-medium">{field.label || 'Untitled field'} {field.required && <span className="text-xs text-primary">Required</span>}</span><span className="text-xs capitalize text-muted-foreground">{field.type} response {index + 1}</span></span>
+                    <span className="min-w-0 flex-1"><span className="flex items-center gap-2 font-medium">{field.label || t('forms.untitledField')} {field.required && <span className="text-xs text-primary">{t('forms.fieldRequiredBadge')}</span>}</span><span className="text-xs capitalize text-muted-foreground">{t('forms.responseType', {type: field.type})} {index + 1}</span></span>
                     <Trash2 onClick={(event) => { event.stopPropagation(); removeField(field.id); }} className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100" />
                   </button>
                 ))}
-                <button type="button" onClick={() => addField('text')} className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed py-3 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-primary"><Plus className="h-4 w-4" /> Add field</button>
+                <button type="button" onClick={() => addField('text')} className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed py-3 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-primary"><Plus className="h-4 w-4" />{t('forms.addField')}</button>
               </>
             )}
           </CardContent>
         </Card>
 
         {mode === 'build' && <Card className="h-fit border-border/70 bg-card/80">
-          <CardHeader className="pb-3"><CardTitle className="text-sm">Field settings</CardTitle></CardHeader>
+          <CardHeader className="pb-3"><CardTitle className="text-sm">{t('forms.fieldSettings')}</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            {!selectedField ? <p className="text-sm text-muted-foreground">Select a field to edit its settings.</p> : <>
-              <div className="space-y-2"><Label htmlFor="field-label">Label</Label><Input id="field-label" value={selectedField.label} onChange={(event) => updateField({ label: event.target.value })} /></div>
-              <div className="space-y-2"><Label htmlFor="field-type">Field type</Label><select id="field-type" value={selectedField.type} onChange={(event) => updateField({ type: event.target.value as FieldType })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"><option value="text">Text</option><option value="number">Number</option><option value="date">Date</option><option value="select">Dropdown</option><option value="checkbox">Checkbox</option></select></div>
-              {selectedField.type === 'text' && <div className="space-y-2"><Label htmlFor="field-placeholder">Placeholder</Label><Input id="field-placeholder" value={selectedField.placeholder ?? ''} onChange={(event) => updateField({ placeholder: event.target.value })} /></div>}
-              {selectedField.type === 'select' && <div className="space-y-2"><Label htmlFor="field-options">Options</Label><Textarea id="field-options" value={(selectedField.options ?? []).join('\n')} onChange={(event) => updateField({ options: event.target.value.split('\n').filter(Boolean) })} className="min-h-20" /><p className="text-xs text-muted-foreground">One option per line.</p></div>}
-              <label className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-sm"><input type="checkbox" checked={selectedField.required} onChange={(event) => updateField({ required: event.target.checked })} className="h-4 w-4 accent-primary" /><span className="flex-1">Required field</span>{selectedField.required && <Check className="h-4 w-4 text-primary" />}</label>
+            {!selectedField ? <p className="text-sm text-muted-foreground">{t('forms.selectFieldToEdit')}</p> : <>
+              <div className="space-y-2"><Label htmlFor="field-label">{t('forms.label')}</Label><Input id="field-label" value={selectedField.label} onChange={(event) => updateField({ label: event.target.value })} /></div>
+              <div className="space-y-2"><Label htmlFor="field-type">{t('forms.fieldType')}</Label><select id="field-type" value={selectedField.type} onChange={(event) => updateField({ type: event.target.value as FieldType })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"><option value="text">{t('forms.fieldText')}</option><option value="number">{t('forms.fieldNumber')}</option><option value="date">{t('forms.fieldDate')}</option><option value="select">{t('forms.fieldSelect')}</option><option value="checkbox">{t('forms.fieldCheckbox')}</option></select></div>
+              {selectedField.type === 'text' && <div className="space-y-2"><Label htmlFor="field-placeholder">{t('forms.placeholder')}</Label><Input id="field-placeholder" value={selectedField.placeholder ?? ''} onChange={(event) => updateField({ placeholder: event.target.value })} /></div>}
+              {selectedField.type === 'select' && <div className="space-y-2"><Label htmlFor="field-options">{t('forms.options')}</Label><Textarea id="field-options" value={(selectedField.options ?? []).join('\n')} onChange={(event) => updateField({ options: event.target.value.split('\n').filter(Boolean) })} className="min-h-20" /><p className="text-xs text-muted-foreground">{t('forms.oneOptionPerLine')}</p></div>}
+              <label className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-sm"><input type="checkbox" checked={selectedField.required} onChange={(event) => updateField({ required: event.target.checked })} className="h-4 w-4 accent-primary" /><span className="flex-1">{t('forms.requiredField')}</span>{selectedField.required && <Check className="h-4 w-4 text-primary" />}</label>
             </>}
           </CardContent>
         </Card>}
@@ -384,8 +385,8 @@ export default function FormsBuilder() {
 }
 
 function PreviewField({ field }: { field: FormField }) {
-  const label = <Label>{field.label}{field.required && <span className="ml-1 text-primary">*</span>}</Label>;
+  const label = <Label>{field.label}{field.required && <span className="mr-1 text-primary">*</span>}</Label>;
   if (field.type === 'checkbox') return <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4 accent-primary" /> {field.label}</label>;
-  if (field.type === 'select') return <div className="space-y-2">{label}<select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"><option>Select an option</option>{field.options?.map((option) => <option key={option}>{option}</option>)}</select></div>;
+  if (field.type === 'select') return <div className="space-y-2">{label}<select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"><option>{t('forms.selectOption')}</option>{field.options?.map((option) => <option key={option}>{option}</option>)}</select></div>;
   return <div className="space-y-2">{label}{field.type === 'text' ? <Textarea placeholder={field.placeholder} /> : <Input type={field.type} placeholder={field.placeholder} />}</div>;
 }

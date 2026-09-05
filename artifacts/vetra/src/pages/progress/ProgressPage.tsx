@@ -1,3 +1,4 @@
+import { t } from '@/lib/i18n';
 import { FormEvent, useEffect, useState } from 'react';
 import { BarChart3, Plus, RefreshCw, Target, TrendingUp } from 'lucide-react';
 import { get, post, apiRequest } from '@/lib/phase2-api';
@@ -16,7 +17,7 @@ interface ProgressRecord {
   id: number; activityId: number; reportDate: string; progressPercent: number; actualStart?: string | null; actualFinish?: string | null; actualCost: string; actualLaborHours: string; notes?: string | null;
 }
 interface EvmMetric {
-  id: number; reportDate: string; plannedValue: string; earnedValue: string; actualCost: string; costVariance: string; scheduleVariance: string; costPerformanceIndex: string; schedulePerformanceIndex: string; estimateAtCompletion: string; estimateToComplete: string;
+  id: number; reportDate: string; plannedValue: string; earnedValue: string; actualCost: string; costVariance: string; scheduleVariance: string; costPerformanceIndex: string; schedulePerformanceIndex: string; estimateAtCompletion: string; estimateToComplete: string; eacCpiSpi?: string; eacBottomUp?: string; etcBottomUp?: string;
 }
 
 export default function ProgressPage() {
@@ -29,6 +30,7 @@ export default function ProgressPage() {
   const [error, setError] = useState('');
   const [blForm, setBlForm] = useState({ name: '', description: '' });
   const [prForm, setPrForm] = useState({ activityId: '', reportDate: '', progressPercent: '0', actualCost: '0', actualLaborHours: '0', notes: '' });
+  const [progressSummary, setProgressSummary] = useState<{ overallProgressPercent: number; activityCount: number; reportedActivityCount: number; totalWeight: number } | null>(null);
   const [evmForm, setEvmForm] = useState({ baselineId: '', reportDate: '', plannedValue: '0', earnedValue: '0', actualCost: '0' });
 
   const load = async (pid: number) => {
@@ -41,6 +43,10 @@ export default function ProgressPage() {
         get<EvmMetric[]>(`/projects/${pid}/evm`).catch(() => []),
       ]);
       setBaselines(bl); setProgress(pr); setEvm(em);
+      try {
+        const ps = await get<{ overallProgressPercent: number; activityCount: number; reportedActivityCount: number; totalWeight: number; }>(`/projects/${pid}/progress-summary`);
+        setProgressSummary(ps);
+      } catch { setProgressSummary(null); }
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Unable to load progress data.'); }
     finally { setLoading(false); }
   };
@@ -71,20 +77,24 @@ export default function ProgressPage() {
     catch (cause) { setError(cause instanceof Error ? cause.message : 'Unable to calculate EVM.'); }
   };
 
-  const cpi = evm.length > 0 ? Number(evm[0].costPerformanceIndex) : 1;
+    const cpi = evm.length > 0 ? Number(evm[0].costPerformanceIndex) : 1;
   const spi = evm.length > 0 ? Number(evm[0].schedulePerformanceIndex) : 1;
+  const eac = evm.length > 0 ? Number(evm[0].estimateAtCompletion) : 0;
+  const eacCpiSpi = evm.length > 0 ? Number(evm[0].eacCpiSpi) : 0;
+  const eacBottomUp = evm.length > 0 ? Number(evm[0].eacBottomUp) : 0;
+
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-primary">کنترل پروژه / پیشرفت</p>
-          <h1 className="text-3xl font-semibold tracking-tight">پیشرفت و خط مبنا</h1>
+          <p className="text-sm font-medium text-primary">{t('progress.breadcrumb')}</p>
+          <h1 className="text-3xl font-semibold tracking-tight">{t('progress.title')}</h1>
           <p className="mt-1 text-muted-foreground">Track actual progress, manage baselines, and compute EVM metrics.</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm" aria-label="پروژهٔ فعال">پروژهٔ فعال: {project?.name ?? 'انتخاب نشده'}</div>
-          <Button variant="outline" onClick={() => projectId && load(projectId)} disabled={!projectId}><RefreshCw className="mr-2 h-4 w-4" />بارگذاری</Button>
+          <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm" aria-label={t('progress.activeProject')}>{t('progress.activeProject')}: {project?.name ?? t('progress.notSelected')}</div>
+          <Button variant="outline" onClick={() => projectId && load(projectId)} disabled={!projectId}><RefreshCw className="mr-2 h-4 w-4" />{t('progress.load')}</Button>
         </div>
       </div>
       {error && <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>}
@@ -97,7 +107,55 @@ export default function ProgressPage() {
         ].map(([label, value, desc, variant]) => <Card key={label}><CardContent className="p-5"><div className="flex items-center justify-between"><p className="text-sm text-muted-foreground">{label}</p><Badge variant={variant as any}>{desc}</Badge></div><p className="text-2xl font-semibold mt-2">{value}</p></CardContent></Card>)}
       </div>}
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      
+{progressSummary && (
+  <Card>
+    <CardHeader><CardTitle className="flex items-center gap-2"><Target className="h-5 w-5" />Weighted Progress Summary</CardTitle></CardHeader>
+    <CardContent>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="rounded-lg border p-4 text-center">
+          <p className="text-2xl font-bold">{progressSummary.overallProgressPercent}%</p>
+          <p className="text-xs text-muted-foreground">Overall Progress (Weighted)</p>
+        </div>
+        <div className="rounded-lg border p-4 text-center">
+          <p className="text-2xl font-bold">{progressSummary.reportedActivityCount}/{progressSummary.activityCount}</p>
+          <p className="text-xs text-muted-foreground">Activities with Progress</p>
+        </div>
+        <div className="rounded-lg border p-4 text-center">
+          <p className="text-2xl font-bold">{progressSummary.totalWeight}</p>
+          <p className="text-xs text-muted-foreground">Total Weight (Days)</p>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+)}
+
+{evm.length > 0 && (
+  <Card>
+    <CardHeader><CardTitle className="flex items-center gap-2"><TrendingUp className="h-5 w-5" />EAC Forecast Variants</CardTitle></CardHeader>
+    <CardContent>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="rounded-lg border p-4">
+          <p className="text-xs text-muted-foreground">EAC (CPI-based)</p>
+          <p className="mt-1 font-mono text-lg font-bold">{Number(evm[0].estimateAtCompletion).toLocaleString()}</p>
+          <p className="text-xs text-muted-foreground">BAC / CPI</p>
+        </div>
+        <div className="rounded-lg border p-4">
+          <p className="text-xs text-muted-foreground">EAC (CPI x SPI)</p>
+          <p className="mt-1 font-mono text-lg font-bold">{Number(evm[0].eacCpiSpi ?? 0).toLocaleString()}</p>
+          <p className="text-xs text-muted-foreground">BAC / (CPI x SPI)</p>
+        </div>
+        <div className="rounded-lg border p-4">
+          <p className="text-xs text-muted-foreground">EAC (Bottom-up)</p>
+          <p className="mt-1 font-mono text-lg font-bold">{Number(evm[0].eacBottomUp ?? 0).toLocaleString()}</p>
+          <p className="text-xs text-muted-foreground">AC + Bottom-up ETC</p>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+)}
+
+<div className="grid gap-6 lg:grid-cols-3">
         <Card>
           <CardHeader><CardTitle className="flex items-center gap-2"><Target className="h-5 w-5" />New baseline</CardTitle></CardHeader>
           <CardContent>
@@ -110,7 +168,7 @@ export default function ProgressPage() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><TrendingUp className="h-5 w-5" />Report progress</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2"><TrendingUp className="h-5 w-5" />{t('progress.activities')}</CardTitle></CardHeader>
           <CardContent>
             <form className="grid gap-3" onSubmit={reportProgress}>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -129,7 +187,7 @@ export default function ProgressPage() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" />Calculate EVM</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" />{t('progress.calculateEvm')}</CardTitle></CardHeader>
           <CardContent>
             <form className="grid gap-3" onSubmit={calculateEvm}>
               <Input required type="number" min="1" placeholder="Baseline ID" value={evmForm.baselineId} onChange={(e) => setEvmForm({ ...evmForm, baselineId: e.target.value })} />
@@ -139,7 +197,7 @@ export default function ProgressPage() {
                 <Input placeholder="Earned value (EV)" value={evmForm.earnedValue} onChange={(e) => setEvmForm({ ...evmForm, earnedValue: e.target.value })} />
                 <Input placeholder="Actual cost (AC)" value={evmForm.actualCost} onChange={(e) => setEvmForm({ ...evmForm, actualCost: e.target.value })} />
               </div>
-              <Button type="submit"><BarChart3 className="mr-2 h-4 w-4" />Calculate</Button>
+              <Button type="submit"><BarChart3 className="mr-2 h-4 w-4" />{t('common.submit')}</Button>
             </form>
           </CardContent>
         </Card>

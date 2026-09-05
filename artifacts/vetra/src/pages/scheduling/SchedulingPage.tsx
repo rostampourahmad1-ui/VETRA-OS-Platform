@@ -1,3 +1,4 @@
+import { t } from '@/lib/i18n';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Calendar, GitBranch, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { get, post, apiRequest } from '@/lib/phase2-api';
@@ -23,6 +24,7 @@ export default function SchedulingPage() {
   const [calendars, setCalendars] = useState<Calendar[]>([]);
   const [dependencies, setDependencies] = useState<Dependency[]>([]);
   const [cpm, setCpm] = useState<{ activities: CpmActivity[]; criticalPath: number[]; projectFinishDays: number } | null>(null);
+  const [calendarSchedule, setCalendarSchedule] = useState<{ calendarAdjusted: boolean; activities: any[]; workDays?: string } | null>(null);
   const { project } = useOrganizationProject();
   const projectId = project?.id;
   const [loading, setLoading] = useState(false);
@@ -34,12 +36,13 @@ export default function SchedulingPage() {
     if (!pid) return;
     setLoading(true); setError('');
     try {
-      const [cals, deps, cpmData] = await Promise.all([
+      const [cals, deps, cpmData, calSched] = await Promise.all([
         get<Calendar[]>(`/projects/${pid}/calendars`).catch(() => []),
         get<Dependency[]>(`/projects/${pid}/dependencies`).catch(() => []),
         get<{ activities: CpmActivity[]; criticalPath: number[]; projectFinishDays: number }>(`/projects/${pid}/cpm`).catch(() => null),
+      get<{ calendarAdjusted: boolean; activities: any[]; workDays?: string } | null>(`/projects/${pid}/calendar-schedule`).catch(() => null),
       ]);
-      setCalendars(cals); setDependencies(deps); setCpm(cpmData);
+      setCalendars(cals); setDependencies(deps); setCpm(cpmData); setCalendarSchedule(calSched);
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Unable to load scheduling data.'); }
     finally { setLoading(false); }
   };
@@ -67,13 +70,13 @@ export default function SchedulingPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-primary">کنترل پروژه / زمان‌بندی</p>
-          <h1 className="text-3xl font-semibold tracking-tight">زمان‌بندی و گانت</h1>
-          <p className="mt-1 text-muted-foreground">تقویم‌ها، وابستگی فعالیت‌ها و محاسبات CPM پروژهٔ فعال را مدیریت کنید.</p>
+          <p className="text-sm font-medium text-primary">{t('scheduling.breadcrumb')}</p>
+          <h1 className="text-3xl font-semibold tracking-tight">{t('scheduling.title')}</h1>
+          <p className="mt-1 text-muted-foreground">{t('scheduling.desc')}</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm" aria-label="پروژهٔ فعال">پروژهٔ فعال: {project?.name ?? 'انتخاب نشده'}</div>
-          <Button variant="outline" onClick={() => projectId && load(projectId)} disabled={!projectId}><RefreshCw className="mr-2 h-4 w-4" />بارگذاری</Button>
+          <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm" aria-label="{t('scheduling.activeProject')}">{t('scheduling.activeProject')}: {project?.name ?? t('scheduling.notSelected')}</div>
+          <Button variant="outline" onClick={() => projectId && load(projectId)} disabled={!projectId}><RefreshCw className="mr-2 h-4 w-4" />{t('scheduling.load')}</Button>
         </div>
       </div>
       {error && <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>}
@@ -117,16 +120,16 @@ export default function SchedulingPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle>Calendars <span className="text-sm font-normal text-muted-foreground">({calendars.length})</span></CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t('scheduling.calendars')} <span className="text-sm font-normal text-muted-foreground">({calendars.length})</span></CardTitle></CardHeader>
           <CardContent>
-            {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : calendars.length === 0 ? <p className="text-sm text-muted-foreground">No calendars defined.</p> : <div className="space-y-3">{calendars.map((cal) => <div key={cal.id} className="rounded-lg border p-4"><div className="flex items-start justify-between gap-3"><div><h3 className="font-medium">{cal.name}</h3><p className="text-sm text-muted-foreground">Days: {cal.workDays} · {cal.workStartHour}–{cal.workEndHour}</p></div><div className="flex items-center gap-2">{cal.isDefault ? <Badge variant="default">پیش‌فرض</Badge> : null}<Button variant="ghost" size="icon" onClick={() => removeCalendar(cal.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></div></div></div>)}</div>}
+            {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : calendars.length === 0 ? <p className="text-sm text-muted-foreground">{t('scheduling.noCalendars')}</p> : <div className="space-y-3">{calendars.map((cal) => <div key={cal.id} className="rounded-lg border p-4"><div className="flex items-start justify-between gap-3"><div><h3 className="font-medium">{cal.name}</h3><p className="text-sm text-muted-foreground">Days: {cal.workDays} · {cal.workStartHour}–{cal.workEndHour}</p></div><div className="flex items-center gap-2">{cal.isDefault ? <Badge variant="default">{t('scheduling.default')}</Badge> : null}<Button variant="ghost" size="icon" onClick={() => removeCalendar(cal.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></div></div></div>)}</div>}
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>Dependencies <span className="text-sm font-normal text-muted-foreground">({dependencies.length})</span></CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t('scheduling.dependencies')} <span className="text-sm font-normal text-muted-foreground">({dependencies.length})</span></CardTitle></CardHeader>
           <CardContent>
-            {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : dependencies.length === 0 ? <p className="text-sm text-muted-foreground">No dependencies defined.</p> : <div className="space-y-3">{dependencies.map((dep) => <div key={dep.id} className="rounded-lg border p-4"><div className="flex items-start justify-between gap-3"><div><h3 className="font-medium text-sm">Activity #{dep.predecessorId} → #{dep.successorId}</h3><p className="text-xs text-muted-foreground">{dep.dependencyType} · Lag: {dep.lagDays} day(s)</p></div><Button variant="ghost" size="icon" onClick={() => removeDependency(dep.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></div></div>)}</div>}
+            {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : dependencies.length === 0 ? <p className="text-sm text-muted-foreground">{t('scheduling.noDependencies')}</p> : <div className="space-y-3">{dependencies.map((dep) => <div key={dep.id} className="rounded-lg border p-4"><div className="flex items-start justify-between gap-3"><div><h3 className="font-medium text-sm">Activity #{dep.predecessorId} → #{dep.successorId}</h3><p className="text-xs text-muted-foreground">{dep.dependencyType} · Lag: {dep.lagDays} day(s)</p></div><Button variant="ghost" size="icon" onClick={() => removeDependency(dep.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></div></div>)}</div>}
           </CardContent>
         </Card>
       </div>
@@ -138,6 +141,17 @@ export default function SchedulingPage() {
           </CardHeader>
           <CardContent>
             {cpm.activities.length === 0 ? <p className="text-sm text-muted-foreground">No activities found.</p> : <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b text-left"><th className="pb-2 font-medium">Code</th><th className="pb-2 font-medium">Name</th><th className="pb-2 font-medium">ES</th><th className="pb-2 font-medium">EF</th><th className="pb-2 font-medium">LS</th><th className="pb-2 font-medium">LF</th><th className="pb-2 font-medium">Float</th><th className="pb-2 font-medium">Duration</th><th className="pb-2 font-medium">Critical</th></tr></thead><tbody>{cpm.activities.map((a) => <tr key={a.id} className={`border-b last:border-0 ${criticalIds.has(a.id) ? 'bg-destructive/5' : ''}`}><td className="py-2 font-mono text-xs">{a.code}</td><td className="py-2">{a.name}</td><td className="py-2 font-mono">{a.earlyStart}</td><td className="py-2 font-mono">{a.earlyFinish}</td><td className="py-2 font-mono">{a.lateStart}</td><td className="py-2 font-mono">{a.lateFinish}</td><td className="py-2 font-mono">{a.totalFloat}</td><td className="py-2 font-mono">{a.durationDays}</td><td className="py-2">{criticalIds.has(a.id) ? <Badge variant="destructive">Critical</Badge> : <Badge variant="outline">—</Badge>}</td></tr>)}</tbody></table></div>}
+          </CardContent>
+        </Card>
+      )}
+
+      {calendarSchedule && calendarSchedule.calendarAdjusted && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Calendar-Aware Schedule <span className="text-sm font-normal text-muted-foreground">· {calendarSchedule.workDays} work days</span></CardTitle>
+          </CardHeader>
+          <CardContent>
+            {calendarSchedule.activities.length === 0 ? <p className="text-sm text-muted-foreground">No activities found.</p> : <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b text-left"><th className="pb-2 font-medium">Code</th><th className="pb-2 font-medium">Name</th><th className="pb-2 font-medium">Calendar Start</th><th className="pb-2 font-medium">Calendar Finish</th></tr></thead><tbody>{calendarSchedule.activities.slice(0, 20).map((a: any) => <tr key={a.id} className="border-b last:border-0"><td className="py-2 font-mono text-xs">{a.code}</td><td className="py-2">{a.name}</td><td className="py-2 font-mono text-xs">{a.calendarStart}</td><td className="py-2 font-mono text-xs">{a.calendarFinish}</td></tr>)}</tbody></table><p className="mt-2 text-xs text-muted-foreground">Showing first 20 activities. Calendar adjusts for working days and exceptions.</p></div>}
           </CardContent>
         </Card>
       )}

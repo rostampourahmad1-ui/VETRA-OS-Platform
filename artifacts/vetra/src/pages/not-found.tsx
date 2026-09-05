@@ -1,3 +1,4 @@
+import { t } from '@/lib/i18n';
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
@@ -15,11 +16,11 @@ export default function NotFound() {
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">404</h1>
           <p className="text-muted-foreground text-sm font-mono uppercase tracking-wider">
-            Page Not Found
+            {t('app.notFound')}
           </p>
           <div className="pt-4 border-t border-border mt-6">
             <Link href="/" className="text-sm font-medium text-primary hover:underline underline-offset-4">
-              Return to Dashboard
+              {t('app.goHome')}
             </Link>
           </div>
         </CardContent>

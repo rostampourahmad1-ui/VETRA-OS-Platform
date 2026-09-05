@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { t } from '@/lib/i18n';
 import { Plus, Search, Clock, Calendar, User, Filter, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,10 +11,10 @@ import { formatJalali, persianNumber } from '@/lib/jalali';
 import { get, post } from '@/lib/phase2-api';
 
 const STATUS_OPTIONS = [
-  { value: 'present', label: 'حاضر', icon: CheckCircle2, color: 'text-emerald-500' },
-  { value: 'absent', label: 'غایب', icon: XCircle, color: 'text-destructive' },
-  { value: 'late', label: 'تأخیر', icon: AlertCircle, color: 'text-amber-500' },
-  { value: 'leave', label: 'مرخصی', icon: Clock, color: 'text-sky-500' },
+  { value: 'present', label: t('hr.attendance.statusPresent'), icon: CheckCircle2, color: 'text-emerald-500' },
+  { value: 'absent', label: t('hr.attendance.statusAbsent'), icon: XCircle, color: 'text-destructive' },
+  { value: 'late', label: t('hr.attendance.statusLate'), icon: AlertCircle, color: 'text-amber-500' },
+  { value: 'leave', label: t('hr.attendance.statusLeave'), icon: Clock, color: 'text-sky-500' },
 ] as const;
 
 interface AttendanceRecord {
@@ -119,25 +120,25 @@ export default function AttendanceForm() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">فرم حضور و غیاب</h1>
-          <p className="text-muted-foreground">مدیریت حضور و غیاب پرسنل سازمان</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t('hr.attendance.title')}</h1>
+          <p className="text-muted-foreground">{t('hr.attendance.subtitle')}</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button className="shrink-0 gap-2">
-              <Plus className="h-4 w-4" /> ثبت حضور
+              <Plus className="h-4 w-4" /> {t('hr.attendance.register')}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle>ثبت حضور و غیاب</DialogTitle>
+              {t('hr.attendance.registerDialog')}
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4" dir="rtl">
               <div className="space-y-2">
-                <Label htmlFor="employee">پرسنل</Label>
+                <Label htmlFor="employee">{t("hr.attendance.employee")}</Label>
                 <Select value={form.employeeId} onValueChange={(v) => setForm(f => ({ ...f, employeeId: v }))}>
                   <SelectTrigger id="employee" className="font-sans">
-                    <SelectValue placeholder="انتخاب پرسنل" />
+                    <SelectValue placeholder="{t('hr.attendance.selectEmployee')}" />
                   </SelectTrigger>
                   <SelectContent>
                     {employees.map(emp => (
@@ -149,7 +150,7 @@ export default function AttendanceForm() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="date">تاریخ</Label>
+                <Label htmlFor="date">{t("common.date")}</Label>
                 <Input
                   id="date"
                   type="date"
@@ -159,12 +160,12 @@ export default function AttendanceForm() {
                   className="font-sans"
                 />
                 <p className="text-xs text-muted-foreground">
-                  {formatJalali(form.date, 'yyyy/MM/dd')} شمسی
+                  {formatJalali(form.date, 'yyyy/MM/dd')} 
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="checkIn">ورود</Label>
+                  <Label htmlFor="checkIn">{t("hr.attendance.colCheckIn")}</Label>
                   <Input
                     id="checkIn"
                     type="time"
@@ -174,7 +175,7 @@ export default function AttendanceForm() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="checkOut">خروج</Label>
+                  <Label htmlFor="checkOut">{t("hr.attendance.colCheckOut")}</Label>
                   <Input
                     id="checkOut"
                     type="time"
@@ -185,10 +186,10 @@ export default function AttendanceForm() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="status">وضعیت</Label>
+                <Label htmlFor="status">{t("hr.attendance.colStatus")}</Label>
                 <Select value={form.status} onValueChange={(v) => setForm(f => ({ ...f, status: v }))}>
                   <SelectTrigger id="status" className="font-sans">
-                    <SelectValue placeholder="وضعیت" />
+                    <SelectValue placeholder={t("hr.attendance.colStatus")} />
                   </SelectTrigger>
                   <SelectContent>
                     {STATUS_OPTIONS.map(opt => (
@@ -201,24 +202,24 @@ export default function AttendanceForm() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="hoursWorked">ساعت کار</Label>
+                  <Label htmlFor="hoursWorked">{t("hr.attendance.hoursWorked")}</Label>
                   <Input
                     id="hoursWorked"
                     type="number"
                     step="0.5"
-                    placeholder="مثلاً ۸"
+                    placeholder={t('hr.attendance.overtimePlaceholder')}
                     value={form.hoursWorked}
                     onChange={(e) => setForm(f => ({ ...f, hoursWorked: e.target.value }))}
                     className="font-sans"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="overtimeHours">اضافه‌کاری</Label>
+                  <Label htmlFor="overtimeHours">{t("hr.attendance.overtime")}</Label>
                   <Input
                     id="overtimeHours"
                     type="number"
                     step="0.5"
-                    placeholder="مثلاً ۲"
+                    placeholder={t('hr.attendance.notesPlaceholder')}
                     value={form.overtimeHours}
                     onChange={(e) => setForm(f => ({ ...f, overtimeHours: e.target.value }))}
                     className="font-sans"
@@ -226,17 +227,17 @@ export default function AttendanceForm() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="notes">توضیحات</Label>
+                <Label htmlFor="notes">{t("hr.attendance.colNotes")}</Label>
                 <Input
                   id="notes"
-                  placeholder="توضیحات اضافی..."
+                  placeholder="{t('hr.attendance.notesPlaceholder')}"
                   value={form.notes}
                   onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))}
                   className="font-sans"
                 />
               </div>
               <Button type="submit" className="w-full gap-2">
-                <Clock className="h-4 w-4" /> ثبت حضور و غیاب
+                <Clock className="h-4 w-4" /> {t('hr.attendance.registerDialog')}
               </Button>
             </form>
           </DialogContent>
@@ -247,7 +248,7 @@ export default function AttendanceForm() {
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="جستجوی پرسنل..."
+            placeholder="{t('hr.attendance.searchPlaceholder')}"
             className="pl-9 font-sans text-right"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -257,10 +258,10 @@ export default function AttendanceForm() {
           <Filter className="h-4 w-4 text-muted-foreground" />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-36 font-sans">
-              <SelectValue placeholder="همه وضعیت‌ها" />
+              <SelectValue placeholder="{t('hr.attendance.allStatuses')}" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value=" " className="font-sans">همه</SelectItem>
+              <SelectItem value=" " className="font-sans">{t('hr.attendance.all')}</SelectItem>
               {STATUS_OPTIONS.map(opt => (
                 <SelectItem key={opt.value} value={opt.value} className="font-sans">{opt.label}</SelectItem>
               ))}
@@ -271,26 +272,26 @@ export default function AttendanceForm() {
 
       <div className="bg-card border rounded-lg shadow-sm overflow-hidden">
         {loading ? (
-          <div className="py-20 text-center font-mono text-muted-foreground">در حال بارگذاری...</div>
+          <div className="py-20 text-center font-mono text-muted-foreground">{t('hr.attendance.loading')}</div>
         ) : filteredRecords.length === 0 ? (
           <div className="py-20 text-center">
             <Clock className="h-12 w-12 mx-auto text-muted-foreground/40 mb-3" />
-            <p className="text-muted-foreground">هیچ رکورد حضور و غیابی یافت نشد</p>
-            <p className="text-sm text-muted-foreground/60 mt-1">با دکمه «ثبت حضور» اولین ورودی را اضافه کنید</p>
+            <p className="text-muted-foreground">{t('hr.attendance.noData')}</p>
+            <p className="text-sm text-muted-foreground/60 mt-1">{t('hr.attendance.noDataHint')}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/50 text-right text-muted-foreground">
-                  <th className="py-3 px-4 font-medium">پرسنل</th>
-                  <th className="py-3 px-4 font-medium">تاریخ (شمسی)</th>
-                  <th className="py-3 px-4 font-medium">ورود</th>
-                  <th className="py-3 px-4 font-medium">خروج</th>
-                  <th className="py-3 px-4 font-medium">ساعت کار</th>
-                  <th className="py-3 px-4 font-medium">اضافه‌کاری</th>
-                  <th className="py-3 px-4 font-medium">وضعیت</th>
-                  <th className="py-3 px-4 font-medium">توضیحات</th>
+                  <th className="py-3 px-4 font-medium">{t("hr.attendance.employee")}</th>
+                  <th className="py-3 px-4 font-medium">{t("common.date")} ()</th>
+                  <th className="py-3 px-4 font-medium">{t("hr.attendance.colCheckIn")}</th>
+                  <th className="py-3 px-4 font-medium">{t("hr.attendance.colCheckOut")}</th>
+                  <th className="py-3 px-4 font-medium">{t("hr.attendance.hoursWorked")}</th>
+                  <th className="py-3 px-4 font-medium">{t("hr.attendance.overtime")}</th>
+                  <th className="py-3 px-4 font-medium">{t("hr.attendance.colStatus")}</th>
+                  <th className="py-3 px-4 font-medium">{t("hr.attendance.colNotes")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
