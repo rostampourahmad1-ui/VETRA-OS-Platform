@@ -6,7 +6,7 @@ import { and, eq } from "drizzle-orm";
 import { db, documentsTable, projectsTable } from "@workspace/db";
 import { CreateDocumentBody } from "@workspace/api-zod";
 import { requirePermission } from "../middlewares/permissions";
-import { tenantId } from "../middlewares/tenant";
+import { isProjectMember, tenantId } from "../middlewares/tenant";
 import { audit } from "../lib/audit";
 import { notifyDocumentUploaded } from "../lib/notifications";
 import {
@@ -47,6 +47,7 @@ router.post("/documents", requirePermission("documents.create"), async (req, res
   const parsed = CreateDocumentBody.safeParse(req.body); if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const d = parsed.data; const [project] = await db.select().from(projectsTable).where(and(eq(projectsTable.id, d.projectId), eq(projectsTable.organizationId, tenantId(req))));
   if (!project) { res.status(404).json({ error: "Project not found" }); return; }
+  if (!(await isProjectMember(req, d.projectId))) { res.status(403).json({ error: "Forbidden: not a member of this project" }); return; }
   const [row] = await db.insert(documentsTable).values({ name: d.name, type: d.type, size: d.size, projectId: d.projectId, organizationId: tenantId(req), uploadedBy: d.uploadedBy, url: d.url }).returning();
   res.status(201).json({ ...row, projectName: project.name, createdAt: row.createdAt.toISOString() });
   audit(req, "document.created", "document", { resourceId: row.id, newValues: { name: row.name, type: row.type, projectId: row.projectId } });
@@ -56,6 +57,7 @@ router.post("/documents", requirePermission("documents.create"), async (req, res
 router.post("/documents/upload", requirePermission("documents.create"), upload.single("file"), async (req, res): Promise<void> => {
   const projectId = Number(req.body.projectId); if (!req.file || !projectId) { res.status(400).json({ error: "file and projectId are required" }); return; }
   const [project] = await db.select().from(projectsTable).where(and(eq(projectsTable.id, projectId), eq(projectsTable.organizationId, tenantId(req)))); if (!project) { res.status(404).json({ error: "Project not found" }); return; }
+  if (!(await isProjectMember(req, projectId))) { res.status(403).json({ error: "Forbidden: not a member of this project" }); return; }
   await fs.mkdir(uploadDir, { recursive: true });
   const storageFilename = generateStorageFilename(req.file.originalname);
   const storagePath = resolveSafeStoragePath(uploadDir, storageFilename);

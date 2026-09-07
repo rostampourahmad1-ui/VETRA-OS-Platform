@@ -6,9 +6,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { GlassContainer } from '@/components/ui/glass-container';
 import { formatCurrency } from '@/lib/jalali';
 
-import { get } from '@/lib/phase2-api';
-import { useEffect, useState } from 'react';
-
 export default function Dashboard() {
   const { data: summary, isLoading } = useGetDashboardSummary();
   const { data: health } = useGetDashboardProjectHealth();

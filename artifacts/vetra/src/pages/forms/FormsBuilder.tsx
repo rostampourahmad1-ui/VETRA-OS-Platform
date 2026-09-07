@@ -1,6 +1,8 @@
 import { t } from '@/lib/i18n';
 import { useEffect, useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
+  AlertTriangle,
   Check,
   ChevronDown,
   GripVertical,
@@ -21,14 +23,32 @@ import {
   XCircle,
   RotateCcw,
 } from 'lucide-react';
+import {
+  useGetFormsTemplates,
+  usePostFormsTemplates,
+  usePatchFormsTemplatesId,
+  usePostFormsTemplatesIdPublish,
+  usePostFormsTemplatesIdArchive,
+  useGetFormSubmissions,
+  usePostFormSubmissions,
+  usePatchFormSubmissionsId,
+  usePostFormSubmissionsIdSubmit,
+  useDeleteFormSubmissionsId,
+  getGetFormsTemplatesQueryKey,
+  getGetFormSubmissionsQueryKey,
+} from '@workspace/api-client-react';
+import type {
+  FormTemplateResponse,
+  FormSubmissionResponse,
+} from '@workspace/api-client-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { get, patch, post } from '@/lib/phase2-api';
 import { useOrganizationProject } from '@/contexts/OrganizationProjectContext';
+import { get, post, patch } from '@/lib/phase2-api';
 
 type FieldType = 'text' | 'number' | 'date' | 'select' | 'checkbox';
 
@@ -47,51 +67,6 @@ type FormDraft = {
   description: string;
   fields: FormField[];
   status?: 'draft' | 'published' | 'archived';
-  projectId?: number | null;
-  workflowId?: number | null;
-};
-
-type FormTemplateResponse = {
-  id: number;
-  name: string;
-  description: string | null;
-  definition: { fields: FormField[] };
-  status: 'draft' | 'published' | 'archived';
-  projectId: number | null;
-  workflowId: number | null;
-};
-
-type FormSubmissionResponse = {
-  id: number;
-  projectId: number | null;
-  templateId: number;
-  status: 'draft' | 'submitted' | 'approved' | 'rejected' | 'revision_requested';
-  answers: Record<string, unknown>;
-  workflowRunId: number | null;
-  submittedAt: string | null;
-  updatedAt: string;
-};
-
-function toDraft(template: FormTemplateResponse): FormDraft {
-  return {
-    id: template.id,
-    name: template.name,
-    description: template.description ?? '',
-    fields: template.definition.fields,
-    status: template.status,
-    projectId: template.projectId,
-    workflowId: template.workflowId,
-  };
-}
-
-const initialDraft: FormDraft = {
-  name: t('forms.dailyInspectionName'),
-  description: t('forms.dailyInspectionDesc'),
-  fields: [
-    { id: 'project', label: 'Project', type: 'select', required: true, options: ['North Tower', 'West Campus', 'River Bridge'] },
-    { id: 'inspection-date', label: 'Inspection date', type: 'date', required: true },
-    { id: 'observations', label: 'Key observations', type: 'text', required: true, placeholder: 'Describe the current site condition...' },
-  ],
 };
 
 const fieldTypes: Array<{ type: FieldType; label: string; icon: typeof Type }> = [
@@ -101,6 +76,22 @@ const fieldTypes: Array<{ type: FieldType; label: string; icon: typeof Type }> =
   { type: 'select', label: t('forms.fieldSelect'), icon: List },
   { type: 'checkbox', label: t('forms.approve'), icon: ToggleLeft },
 ];
+
+const EMPTY_DRAFT: FormDraft = {
+  name: '',
+  description: '',
+  fields: [],
+};
+
+function toDraft(template: FormTemplateResponse): FormDraft {
+  return {
+    id: template.id,
+    name: template.name,
+    description: template.description ?? '',
+    fields: template.definition.fields as FormField[],
+    status: template.status,
+  };
+}
 
 function makeId() {
   return `field-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -130,7 +121,7 @@ function FieldIcon({ type }: { type: FieldType }) {
 }
 
 export default function FormsBuilder() {
-  const [draft, setDraft] = useState<FormDraft>(initialDraft);
+  const [draft, setDraft] = useState<FormDraft>(EMPTY_DRAFT);
   const [selectedId, setSelectedId] = useState(draft.fields[0]?.id ?? '');
   const [mode, setMode] = useState<'build' | 'preview'>('build');
   const [saving, setSaving] = useState(false);
@@ -182,12 +173,12 @@ export default function FormsBuilder() {
       get<FormSubmissionResponse[]>('/form-submissions', { projectId: project?.id }),
     ])
       .then(([templateRows, submissionRows]) => {
-        const template = templateRows.find((item) => item.status === 'draft') ?? templateRows[0];
+        const template = templateRows.find((item: FormTemplateResponse) => item.status === 'draft') ?? templateRows[0];
         if (active) {
           setTemplates(templateRows);
           setSubmissions(submissionRows);
           if (template) setDraft(toDraft(template));
-          const published = templateRows.find((item) => item.status === 'published');
+          const published = templateRows.find((item: FormTemplateResponse) => item.status === 'published');
           if (published) setSelectedSubmissionTemplateId(String(published.id));
         }
       })

@@ -22,4 +22,11 @@ export interface DailyReport {
   projectName: string;
   createdBy: string;
   createdAt: string;
+  status?: string;
+  /** @nullable */
+  workflowRunId?: number | null;
+  /** @nullable */
+  submittedBy?: number | null;
+  /** @nullable */
+  submittedAt?: string | null;
 }

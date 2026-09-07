@@ -5,6 +5,7 @@ import {
   createOrganizationDatabaseSession,
   db,
   projectsTable,
+  projectMembersTable,
   resolveActiveUserByClerkId,
   runWithRequestDatabaseContext,
   type OrganizationDatabaseSession,
@@ -90,7 +91,7 @@ export function tenantId(req: Request): number {
 }
 
 /** Ensures a route is executing with an authenticated tenant context. */
-export function requireTenant(req: Request, res: Response, next: NextFunction): void {
+export function requireTenant(req: Request, res: Response, next: NextFunction) {
   if (!req.organizationId || !req.organizationDatabaseSession) {
     res.status(403).json({ error: "Forbidden: tenant context is required" });
     return;
@@ -98,10 +99,74 @@ export function requireTenant(req: Request, res: Response, next: NextFunction): 
   next();
 }
 
+/**
+ * VETRA-SEC-07: requireProjectMembership
+ *
+ * Verifies that the authenticated user is a member of the target project.
+ * Must be used after `attachTenant` has resolved the user context.
+ *
+ * Pass the projectId explicitly (from params or body) to avoid trusting
+ * client-supplied membership claims.
+ */
+export async function isProjectMember(
+  req: Request,
+  projectId: number,
+): Promise<boolean> {
+  if (!req.vetraUser) {
+    return false;
+  }
+
+  const [membership] = await db
+    .select()
+    .from(projectMembersTable)
+    .where(
+      and(
+        eq(projectMembersTable.projectId, projectId),
+        eq(projectMembersTable.userId, req.vetraUser.id),
+        eq(projectMembersTable.organizationId, req.vetraUser.organizationId),
+      ),
+    );
+
+  return Boolean(membership);
+}
+
+/** Returns a middleware that rejects users who are not project members. */
+export function requireProjectMembership(paramSource: "params" | "body" = "params") {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const projectId = paramSource === "params"
+      ? Number(req.params.id ?? req.params.projectId)
+      : Number(req.body.projectId);
+
+    if (!projectId || !(await isProjectMember(req, projectId))) {
+      res.status(403).json({
+        error: "Forbidden: not a member of this project",
+        projectId,
+      });
+      return;
+    }
+
+    next();
+  };
+}
+
 export async function ownedProject(req: Request, projectId: number) {
-  const [project] = await db.select().from(projectsTable).where(and(
-    eq(projectsTable.id, projectId),
-    eq(projectsTable.organizationId, tenantId(req)),
-  ));
+  const [project] = await db
+    .select()
+    .from(projectsTable)
+    .where(
+      and(
+        eq(projectsTable.id, projectId),
+        eq(projectsTable.organizationId, tenantId(req)),
+      ),
+    );
   return project;
+}
+
+/** Utility: check ownedProject via a simple projectId lookup on params. */
+export function ownedProjectParam(projectId: number) {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const id = projectId || Number(req.params.id ?? req.params.projectId);
+    if (!(await ownedProject(req, id))) { res.status(404).json({ error: "Project not found" }); return; }
+    next();
+  };
 }

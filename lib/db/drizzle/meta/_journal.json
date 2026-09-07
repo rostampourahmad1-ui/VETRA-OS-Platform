@@ -3,7 +3,7 @@
   "dialect": "postgresql",
   "entries": [
     {
-      "idx": 0,
+    "idx": 0,
       "version": "7",
       "when": 1786768247530,
       "tag": "0000_nervous_mathemanic",
@@ -99,6 +99,20 @@
       "when": 1788172800000,
       "tag": "0015_notification_preferences",
       "breakpoints": true
+    },
+    {
+      "when": 1788582055505,
+      "breakpoints": true,
+      "version": "7",
+      "tag": "0016_notifications_corrective_org_zero",
+      "idx": 14
+    },
+    {
+      "when": 1755436800000,
+      "breakpoints": true,
+      "version": "7",
+      "tag": "0017_rbac_project_membership",
+      "idx": 15
     }
   ]
 }

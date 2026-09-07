@@ -4,7 +4,7 @@ import { Router } from "express";
 import { db, meetingsTable, projectsTable } from "@workspace/db";
 import { and, eq, sql } from "drizzle-orm";
 import { CreateMeetingBody, UpdateMeetingBody } from "@workspace/api-zod";
-import { ownedProject, tenantId } from "../middlewares/tenant";
+import { isProjectMember, ownedProject, tenantId } from "../middlewares/tenant";
 import { audit } from "../lib/audit";
 
 const router = Router();
@@ -45,6 +45,7 @@ router.post("/meetings", requirePermission("meetings.create"), async (req, res):
   const organizationId = tenantId(req);
   const project = await ownedProject(req, d.projectId);
   if (!project) { res.status(404).json({ error: "Project not found" }); return; }
+  if (!(await isProjectMember(req, d.projectId))) { res.status(403).json({ error: "Forbidden: not a member of this project" }); return; }
 
   const [row] = await db.insert(meetingsTable).values({
     title: d.title,

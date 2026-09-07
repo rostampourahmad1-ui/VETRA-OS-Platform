@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
   db,
@@ -81,6 +81,48 @@ router.post("/projects/:projectId/wbs", requirePermission("planning.manage"), as
   audit(req, "planning.wbs.created", "wbs", { resourceId: row.id, newValues: { code: row.code, name: row.name, projectId: row.projectId } });
 });
 
+router.patch("/projects/:projectId/wbs/:id", requirePermission("planning.manage"), async (req, res): Promise<void> => {
+  const projectId = idInput.safeParse(req.params.projectId);
+  const wbsId = idInput.safeParse(req.params.id);
+  const parsed = wbsInput.partial().safeParse(req.body);
+  if (!projectId.success || !wbsId.success || !parsed.success) { res.status(400).json({ error: "Invalid WBS update input" }); return; }
+  const organizationId = tenantId(req);
+  if (!(await projectOwned(projectId.data, organizationId))) { res.status(404).json({ error: "Project not found" }); return; }
+  const [existing] = await db.select().from(workBreakdownStructuresTable).where(and(
+    eq(workBreakdownStructuresTable.id, wbsId.data), eq(workBreakdownStructuresTable.projectId, projectId.data), eq(workBreakdownStructuresTable.organizationId, organizationId), isNull(workBreakdownStructuresTable.deletedAt),
+  ));
+  if (!existing) { res.status(404).json({ error: "WBS item not found" }); return; }
+  if (parsed.data.parentId !== undefined) {
+    if (parsed.data.parentId === wbsId.data) { res.status(400).json({ error: "A WBS item cannot be its own parent" }); return; }
+    if (parsed.data.parentId !== null) {
+      const [parent] = await db.select({ id: workBreakdownStructuresTable.id }).from(workBreakdownStructuresTable).where(and(
+        eq(workBreakdownStructuresTable.id, parsed.data.parentId), eq(workBreakdownStructuresTable.projectId, projectId.data), eq(workBreakdownStructuresTable.organizationId, organizationId), isNull(workBreakdownStructuresTable.deletedAt),
+      ));
+      if (!parent) { res.status(400).json({ error: "Parent WBS is not in this project" }); return; }
+    }
+  }
+  const updates = { ...parsed.data, updatedBy: req.vetraUser!.id, updatedAt: new Date() };
+  const [row] = await db.update(workBreakdownStructuresTable).set(updates).where(and(eq(workBreakdownStructuresTable.id, wbsId.data), eq(workBreakdownStructuresTable.organizationId, organizationId))).returning();
+  res.json(row);
+  audit(req, "planning.wbs.updated", "wbs", { resourceId: row.id, oldValues: { code: existing.code, name: existing.name }, newValues: { code: row.code, name: row.name, projectId: row.projectId } });
+});
+
+router.delete("/projects/:projectId/wbs/:id", requirePermission("planning.manage"), async (req, res): Promise<void> => {
+  const projectId = idInput.safeParse(req.params.projectId);
+  const wbsId = idInput.safeParse(req.params.id);
+  if (!projectId.success || !wbsId.success) { res.status(400).json({ error: "Invalid WBS id" }); return; }
+  const organizationId = tenantId(req);
+  if (!(await projectOwned(projectId.data, organizationId))) { res.status(404).json({ error: "Project not found" }); return; }
+  const [existing] = await db.select().from(workBreakdownStructuresTable).where(and(
+    eq(workBreakdownStructuresTable.id, wbsId.data), eq(workBreakdownStructuresTable.projectId, projectId.data), eq(workBreakdownStructuresTable.organizationId, organizationId), isNull(workBreakdownStructuresTable.deletedAt),
+  ));
+  if (!existing) { res.status(404).json({ error: "WBS item not found" }); return; }
+  const now = new Date();
+  await db.update(workBreakdownStructuresTable).set({ deletedAt: now, updatedBy: req.vetraUser!.id, updatedAt: now }).where(and(eq(workBreakdownStructuresTable.id, wbsId.data), eq(workBreakdownStructuresTable.organizationId, organizationId)));
+  res.status(204).send();
+  audit(req, "planning.wbs.deleted", "wbs", { resourceId: wbsId.data, oldValues: { code: existing.code, name: existing.name, projectId: existing.projectId } });
+});
+
 router.post("/projects/:projectId/activities", requirePermission("planning.manage"), async (req, res): Promise<void> => {
   const projectId = idInput.safeParse(req.params.projectId);
   const parsed = planningActivityInput.safeParse(req.body);
@@ -94,6 +136,95 @@ router.post("/projects/:projectId/activities", requirePermission("planning.manag
   const [row] = await db.insert(planningActivitiesTable).values({ ...parsed.data, projectId: projectId.data, organizationId, createdBy: req.vetraUser!.id, updatedBy: req.vetraUser!.id }).returning();
   res.status(201).json(row);
   audit(req, "planning.activity.created", "planning_activity", { resourceId: row.id, newValues: { code: row.code, name: row.name, projectId: row.projectId, activityType: row.activityType } });
+});
+
+export const planningActivityUpdate = z.object({
+  wbsId: idInput.optional(),
+  code: z.string().trim().min(1).max(64).optional(),
+  name: z.string().trim().min(1).max(300).optional(),
+  activityType: z.enum(["task", "milestone"]).optional(),
+  plannedStart: z.string().date().optional(),
+  plannedFinish: z.string().date().optional(),
+  durationDays: z.coerce.number().int().min(0).max(36_500).optional(),
+  status: z.enum(["not_started", "in_progress", "completed"]).optional(),
+});
+
+router.get("/projects/:projectId/activities/:id", requirePermission("planning.read"), async (req, res): Promise<void> => {
+  const projectId = idInput.safeParse(req.params.projectId);
+  const activityId = idInput.safeParse(req.params.id);
+  if (!projectId.success || !activityId.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  const organizationId = tenantId(req);
+  if (!(await projectOwned(projectId.data, organizationId))) { res.status(404).json({ error: "Project not found" }); return; }
+  const [activity] = await db.select().from(planningActivitiesTable).where(and(
+    eq(planningActivitiesTable.id, activityId.data),
+    eq(planningActivitiesTable.projectId, projectId.data),
+    eq(planningActivitiesTable.organizationId, organizationId),
+    isNull(planningActivitiesTable.deletedAt),
+  ));
+  if (!activity) { res.status(404).json({ error: "Activity not found" }); return; }
+  res.json(activity);
+});
+
+router.put("/projects/:projectId/activities/:id", requirePermission("planning.manage"), async (req, res): Promise<void> => {
+  const projectId = idInput.safeParse(req.params.projectId);
+  const activityId = idInput.safeParse(req.params.id);
+  const parsed = planningActivityUpdate.safeParse(req.body);
+  if (!projectId.success || !activityId.success || !parsed.success) { res.status(400).json({ error: "Invalid activity input" }); return; }
+  const organizationId = tenantId(req);
+  if (!(await projectOwned(projectId.data, organizationId))) { res.status(404).json({ error: "Project not found" }); return; }
+  const [existing] = await db.select().from(planningActivitiesTable).where(and(
+    eq(planningActivitiesTable.id, activityId.data),
+    eq(planningActivitiesTable.projectId, projectId.data),
+    eq(planningActivitiesTable.organizationId, organizationId),
+    isNull(planningActivitiesTable.deletedAt),
+  ));
+  if (!existing) { res.status(404).json({ error: "Activity not found" }); return; }
+  // Validate WBS ownership if wbsId is being updated
+  if (parsed.data.wbsId !== undefined) {
+    const [wbs] = await db.select({ id: workBreakdownStructuresTable.id }).from(workBreakdownStructuresTable).where(and(
+      eq(workBreakdownStructuresTable.id, parsed.data.wbsId),
+      eq(workBreakdownStructuresTable.projectId, projectId.data),
+      eq(workBreakdownStructuresTable.organizationId, organizationId),
+      isNull(workBreakdownStructuresTable.deletedAt),
+    ));
+    if (!wbs) { res.status(400).json({ error: "WBS is not in this project" }); return; }
+  }
+  // Validate date ordering and milestone duration for the merged result
+  const mergedStart = parsed.data.plannedStart ?? existing.plannedStart;
+  const mergedFinish = parsed.data.plannedFinish ?? existing.plannedFinish;
+  const mergedType = parsed.data.activityType ?? existing.activityType;
+  const mergedDuration = parsed.data.durationDays ?? existing.durationDays;
+  if (mergedFinish < mergedStart) { res.status(400).json({ error: "plannedFinish must be on or after plannedStart" }); return; }
+  if (mergedType === "milestone" && mergedDuration !== 0) { res.status(400).json({ error: "Milestones must have zero duration" }); return; }
+  const now = new Date();
+  const [row] = await db.update(planningActivitiesTable).set({ ...parsed.data, updatedBy: req.vetraUser!.id, updatedAt: now }).where(and(
+    eq(planningActivitiesTable.id, activityId.data),
+    eq(planningActivitiesTable.organizationId, organizationId),
+  )).returning();
+  res.json(row);
+  audit(req, "planning.activity.updated", "planning_activity", { resourceId: row.id, oldValues: { code: existing.code, name: existing.name, status: existing.status }, newValues: { code: row.code, name: row.name, status: row.status, projectId: row.projectId } });
+});
+
+router.delete("/projects/:projectId/activities/:id", requirePermission("planning.manage"), async (req, res): Promise<void> => {
+  const projectId = idInput.safeParse(req.params.projectId);
+  const activityId = idInput.safeParse(req.params.id);
+  if (!projectId.success || !activityId.success) { res.status(400).json({ error: "Invalid activity id" }); return; }
+  const organizationId = tenantId(req);
+  if (!(await projectOwned(projectId.data, organizationId))) { res.status(404).json({ error: "Project not found" }); return; }
+  const [existing] = await db.select().from(planningActivitiesTable).where(and(
+    eq(planningActivitiesTable.id, activityId.data),
+    eq(planningActivitiesTable.projectId, projectId.data),
+    eq(planningActivitiesTable.organizationId, organizationId),
+    isNull(planningActivitiesTable.deletedAt),
+  ));
+  if (!existing) { res.status(404).json({ error: "Activity not found" }); return; }
+  const now = new Date();
+  await db.update(planningActivitiesTable).set({ deletedAt: now, updatedBy: req.vetraUser!.id, updatedAt: now }).where(and(
+    eq(planningActivitiesTable.id, activityId.data),
+    eq(planningActivitiesTable.organizationId, organizationId),
+  ));
+  res.status(204).send();
+  audit(req, "planning.activity.deleted", "planning_activity", { resourceId: activityId.data, oldValues: { code: existing.code, name: existing.name, projectId: existing.projectId } });
 });
 
 router.post("/projects/:projectId/phases", requirePermission("planning.manage"), async (req, res): Promise<void> => {

@@ -246,6 +246,245 @@ export const GetProjectStatsResponse = zod.object({
 
 
 /**
+ * @summary List WBS items for a project
+ */
+export const ListWbsParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const ListWbsResponse = zod.object({
+  "wbs": zod.array(zod.object({
+  "id": zod.number().int(),
+  "projectId": zod.number().int(),
+  "organizationId": zod.number().int(),
+  "parentId": zod.number().int().nullish(),
+  "code": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "sortOrder": zod.number().int(),
+  "createdBy": zod.number().int().nullish(),
+  "updatedBy": zod.number().int().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "deletedAt": zod.coerce.date().nullish()
+})).optional(),
+  "activities": zod.array(zod.object({
+  "id": zod.number().int(),
+  "projectId": zod.number().int(),
+  "organizationId": zod.number().int(),
+  "wbsId": zod.number().int(),
+  "code": zod.string(),
+  "name": zod.string(),
+  "activityType": zod.enum(['task', 'milestone']),
+  "plannedStart": zod.coerce.date(),
+  "plannedFinish": zod.coerce.date(),
+  "durationDays": zod.number().int(),
+  "status": zod.enum(['not_started', 'in_progress', 'completed']),
+  "createdBy": zod.number().int().nullish(),
+  "updatedBy": zod.number().int().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "deletedAt": zod.coerce.date().nullish()
+})).optional()
+})
+
+
+/**
+ * @summary Create a WBS item
+ */
+export const CreateWbsParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const CreateWbsBody = zod.object({
+  "code": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "parentId": zod.number().int().nullish(),
+  "sortOrder": zod.number().int().optional()
+})
+
+export const CreateWbsResponse = zod.object({
+  "id": zod.number().int(),
+  "projectId": zod.number().int(),
+  "organizationId": zod.number().int(),
+  "parentId": zod.number().int().nullish(),
+  "code": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "sortOrder": zod.number().int(),
+  "createdBy": zod.number().int().nullish(),
+  "updatedBy": zod.number().int().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "deletedAt": zod.coerce.date().nullish()
+})
+
+
+/**
+ * @summary Update a WBS item
+ */
+export const UpdateWbsParams = zod.object({
+  "id": zod.coerce.number().int(),
+  "wbsId": zod.coerce.number().int()
+})
+
+export const UpdateWbsBody = zod.object({
+  "code": zod.string().optional(),
+  "name": zod.string().optional(),
+  "description": zod.string().nullish(),
+  "parentId": zod.number().int().nullish(),
+  "sortOrder": zod.number().int().optional()
+})
+
+export const UpdateWbsResponse = zod.object({
+  "id": zod.number().int(),
+  "projectId": zod.number().int(),
+  "organizationId": zod.number().int(),
+  "parentId": zod.number().int().nullish(),
+  "code": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "sortOrder": zod.number().int(),
+  "createdBy": zod.number().int().nullish(),
+  "updatedBy": zod.number().int().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "deletedAt": zod.coerce.date().nullish()
+})
+
+
+/**
+ * @summary Soft-delete a WBS item
+ */
+export const DeleteWbsParams = zod.object({
+  "id": zod.coerce.number().int(),
+  "wbsId": zod.coerce.number().int()
+})
+
+export const DeleteWbsResponse = zod.void()
+
+
+/**
+ * @summary Create a planning activity
+ */
+export const CreatePlanningActivityParams = zod.object({
+  "projectId": zod.coerce.number().int()
+})
+
+export const createPlanningActivityBodyActivityTypeDefault = `task`;
+export const createPlanningActivityBodyStatusDefault = `not_started`;
+
+export const CreatePlanningActivityBody = zod.object({
+  "wbsId": zod.number().int(),
+  "code": zod.string(),
+  "name": zod.string(),
+  "activityType": zod.enum(['task', 'milestone']).default(createPlanningActivityBodyActivityTypeDefault),
+  "plannedStart": zod.coerce.date(),
+  "plannedFinish": zod.coerce.date(),
+  "durationDays": zod.number().int(),
+  "status": zod.enum(['not_started', 'in_progress', 'completed']).default(createPlanningActivityBodyStatusDefault)
+})
+
+export const CreatePlanningActivityResponse = zod.object({
+  "id": zod.number().int(),
+  "projectId": zod.number().int(),
+  "organizationId": zod.number().int(),
+  "wbsId": zod.number().int(),
+  "code": zod.string(),
+  "name": zod.string(),
+  "activityType": zod.enum(['task', 'milestone']),
+  "plannedStart": zod.coerce.date(),
+  "plannedFinish": zod.coerce.date(),
+  "durationDays": zod.number().int(),
+  "status": zod.enum(['not_started', 'in_progress', 'completed']),
+  "createdBy": zod.number().int().nullish(),
+  "updatedBy": zod.number().int().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "deletedAt": zod.coerce.date().nullish()
+})
+
+
+/**
+ * @summary Get a planning activity by id
+ */
+export const GetPlanningActivityParams = zod.object({
+  "projectId": zod.coerce.number().int(),
+  "activityId": zod.coerce.number().int()
+})
+
+export const GetPlanningActivityResponse = zod.object({
+  "id": zod.number().int(),
+  "projectId": zod.number().int(),
+  "organizationId": zod.number().int(),
+  "wbsId": zod.number().int(),
+  "code": zod.string(),
+  "name": zod.string(),
+  "activityType": zod.enum(['task', 'milestone']),
+  "plannedStart": zod.coerce.date(),
+  "plannedFinish": zod.coerce.date(),
+  "durationDays": zod.number().int(),
+  "status": zod.enum(['not_started', 'in_progress', 'completed']),
+  "createdBy": zod.number().int().nullish(),
+  "updatedBy": zod.number().int().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "deletedAt": zod.coerce.date().nullish()
+})
+
+
+/**
+ * @summary Update a planning activity
+ */
+export const UpdatePlanningActivityParams = zod.object({
+  "projectId": zod.coerce.number().int(),
+  "activityId": zod.coerce.number().int()
+})
+
+export const UpdatePlanningActivityBody = zod.object({
+  "wbsId": zod.number().int().optional(),
+  "code": zod.string().optional(),
+  "name": zod.string().optional(),
+  "activityType": zod.enum(['task', 'milestone']).optional(),
+  "plannedStart": zod.coerce.date().optional(),
+  "plannedFinish": zod.coerce.date().optional(),
+  "durationDays": zod.number().int().optional(),
+  "status": zod.enum(['not_started', 'in_progress', 'completed']).optional()
+})
+
+export const UpdatePlanningActivityResponse = zod.object({
+  "id": zod.number().int(),
+  "projectId": zod.number().int(),
+  "organizationId": zod.number().int(),
+  "wbsId": zod.number().int(),
+  "code": zod.string(),
+  "name": zod.string(),
+  "activityType": zod.enum(['task', 'milestone']),
+  "plannedStart": zod.coerce.date(),
+  "plannedFinish": zod.coerce.date(),
+  "durationDays": zod.number().int(),
+  "status": zod.enum(['not_started', 'in_progress', 'completed']),
+  "createdBy": zod.number().int().nullish(),
+  "updatedBy": zod.number().int().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "deletedAt": zod.coerce.date().nullish()
+})
+
+
+/**
+ * @summary Soft-delete a planning activity
+ */
+export const DeletePlanningActivityParams = zod.object({
+  "projectId": zod.coerce.number().int(),
+  "activityId": zod.coerce.number().int()
+})
+
+export const DeletePlanningActivityResponse = zod.void()
+
+
+/**
  * @summary List tasks
  */
 export const ListTasksQueryParams = zod.object({
@@ -573,7 +812,11 @@ export const ListDailyReportsResponseItem = zod.object({
   "projectId": zod.number().int(),
   "projectName": zod.string(),
   "createdBy": zod.string(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "status": zod.string().optional(),
+  "workflowRunId": zod.number().int().nullish(),
+  "submittedBy": zod.number().int().nullish(),
+  "submittedAt": zod.string().nullish()
 })
 export const ListDailyReportsResponse = zod.array(ListDailyReportsResponseItem)
 
@@ -589,8 +832,7 @@ export const CreateDailyReportBody = zod.object({
   "workersOnSite": zod.number().int().optional(),
   "issues": zod.string().optional(),
   "notes": zod.string().optional(),
-  "projectId": zod.number().int(),
-  "createdBy": zod.string().optional()
+  "projectId": zod.number().int()
 })
 
 export const CreateDailyReportResponse = zod.object({
@@ -605,7 +847,11 @@ export const CreateDailyReportResponse = zod.object({
   "projectId": zod.number().int(),
   "projectName": zod.string(),
   "createdBy": zod.string(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "status": zod.string().optional(),
+  "workflowRunId": zod.number().int().nullish(),
+  "submittedBy": zod.number().int().nullish(),
+  "submittedAt": zod.string().nullish()
 })
 
 
@@ -628,8 +874,144 @@ export const GetDailyReportResponse = zod.object({
   "projectId": zod.number().int(),
   "projectName": zod.string(),
   "createdBy": zod.string(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "status": zod.string().optional(),
+  "workflowRunId": zod.number().int().nullish(),
+  "submittedBy": zod.number().int().nullish(),
+  "submittedAt": zod.string().nullish()
 })
+
+
+/**
+ * @summary Update a daily report (draft only)
+ */
+export const UpdateDailyReportParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const UpdateDailyReportBody = zod.object({
+  "date": zod.string(),
+  "weather": zod.string(),
+  "temperature": zod.number().optional(),
+  "progress": zod.number(),
+  "workersOnSite": zod.number().int().optional(),
+  "issues": zod.string().optional(),
+  "notes": zod.string().optional(),
+  "projectId": zod.number().int()
+})
+
+export const UpdateDailyReportResponse = zod.object({
+  "id": zod.number().int(),
+  "date": zod.string(),
+  "weather": zod.string(),
+  "temperature": zod.number().nullish(),
+  "progress": zod.number(),
+  "workersOnSite": zod.number().int().optional(),
+  "issues": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "projectId": zod.number().int(),
+  "projectName": zod.string(),
+  "createdBy": zod.string(),
+  "createdAt": zod.string(),
+  "status": zod.string().optional(),
+  "workflowRunId": zod.number().int().nullish(),
+  "submittedBy": zod.number().int().nullish(),
+  "submittedAt": zod.string().nullish()
+})
+
+
+/**
+ * @summary Delete a daily report (non-approved only)
+ */
+export const DeleteDailyReportParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const DeleteDailyReportResponse = zod.unknown()
+
+
+/**
+ * @summary Submit a draft daily report to a workflow
+ */
+export const SubmitDailyReportParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const SubmitDailyReportBody = zod.object({
+  "workflowId": zod.number().int()
+})
+
+export const SubmitDailyReportResponse = zod.object({
+  "id": zod.number().int(),
+  "date": zod.string(),
+  "weather": zod.string(),
+  "temperature": zod.number().nullish(),
+  "progress": zod.number(),
+  "workersOnSite": zod.number().int().optional(),
+  "issues": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "projectId": zod.number().int(),
+  "projectName": zod.string(),
+  "createdBy": zod.string(),
+  "createdAt": zod.string(),
+  "status": zod.string().optional(),
+  "workflowRunId": zod.number().int().nullish(),
+  "submittedBy": zod.number().int().nullish(),
+  "submittedAt": zod.string().nullish()
+})
+
+
+/**
+ * @summary Transition a daily report lifecycle status
+ */
+export const TransitionDailyReportParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const TransitionDailyReportBody = zod.object({
+  "status": zod.enum(['draft', 'submitted', 'in_review', 'approved', 'rejected', 'revision_requested']),
+  "reason": zod.string().optional(),
+  "workflowId": zod.number().int().optional()
+})
+
+export const TransitionDailyReportResponse = zod.object({
+  "id": zod.number().int(),
+  "date": zod.string(),
+  "weather": zod.string(),
+  "temperature": zod.number().nullish(),
+  "progress": zod.number(),
+  "workersOnSite": zod.number().int().optional(),
+  "issues": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "projectId": zod.number().int(),
+  "projectName": zod.string(),
+  "createdBy": zod.string(),
+  "createdAt": zod.string(),
+  "status": zod.string().optional(),
+  "workflowRunId": zod.number().int().nullish(),
+  "submittedBy": zod.number().int().nullish(),
+  "submittedAt": zod.string().nullish()
+})
+
+
+/**
+ * @summary Get workflow events for a daily report
+ */
+export const GetDailyReportWorkflowEventsParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const GetDailyReportWorkflowEventsResponseItem = zod.object({
+  "id": zod.number().int().optional(),
+  "organizationId": zod.number().int().optional(),
+  "workflowRunId": zod.number().int().optional(),
+  "workflowStepId": zod.number().int().nullish(),
+  "action": zod.string().optional(),
+  "comment": zod.string().nullish(),
+  "actorId": zod.number().int().optional(),
+  "createdAt": zod.coerce.date().optional()
+})
+export const GetDailyReportWorkflowEventsResponse = zod.array(GetDailyReportWorkflowEventsResponseItem)
 
 
 /**
@@ -1836,7 +2218,45 @@ export const GetQualityNonConformanceReportsIdEventsResponse = zod.unknown()
 /**
  * @summary List tenant form templates
  */
-export const GetFormsTemplatesResponse = zod.unknown()
+export const getFormsTemplatesResponseDefinitionFieldsItemIdMax = 128;
+
+export const getFormsTemplatesResponseDefinitionFieldsItemLabelMax = 256;
+
+export const getFormsTemplatesResponseDefinitionFieldsItemPlaceholderMax = 512;
+
+export const getFormsTemplatesResponseDefinitionFieldsItemOptionsItemMax = 256;
+
+export const getFormsTemplatesResponseDefinitionFieldsItemOptionsMax = 100;
+
+export const getFormsTemplatesResponseDefinitionFieldsMax = 200;
+
+
+
+export const GetFormsTemplatesResponseItem = zod.object({
+  "id": zod.number().int(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "definition": zod.object({
+  "fields": zod.array(zod.object({
+  "id": zod.string().min(1).max(getFormsTemplatesResponseDefinitionFieldsItemIdMax),
+  "label": zod.string().min(1).max(getFormsTemplatesResponseDefinitionFieldsItemLabelMax),
+  "type": zod.enum(['text', 'number', 'date', 'select', 'checkbox']),
+  "required": zod.boolean(),
+  "placeholder": zod.string().max(getFormsTemplatesResponseDefinitionFieldsItemPlaceholderMax).optional(),
+  "options": zod.array(zod.string().min(1).max(getFormsTemplatesResponseDefinitionFieldsItemOptionsItemMax)).max(getFormsTemplatesResponseDefinitionFieldsItemOptionsMax).optional()
+})).min(1).max(getFormsTemplatesResponseDefinitionFieldsMax)
+}),
+  "status": zod.enum(['draft', 'published', 'archived']),
+  "projectId": zod.number().int().nullable(),
+  "workflowId": zod.number().int().nullable(),
+  "organizationId": zod.number().int().optional(),
+  "createdBy": zod.number().int().optional(),
+  "updatedBy": zod.number().int().optional(),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date().optional(),
+  "deletedAt": zod.coerce.date().nullish()
+})
+export const GetFormsTemplatesResponse = zod.array(GetFormsTemplatesResponseItem)
 
 
 /**
