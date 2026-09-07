@@ -832,7 +832,8 @@ export const CreateDailyReportBody = zod.object({
   "workersOnSite": zod.number().int().optional(),
   "issues": zod.string().optional(),
   "notes": zod.string().optional(),
-  "projectId": zod.number().int()
+  "projectId": zod.number().int(),
+  "createdBy": zod.string().optional()
 })
 
 export const CreateDailyReportResponse = zod.object({
@@ -3113,5 +3114,4 @@ export const DeleteProcurementProcurementIdItemsIdParams = zod.object({
 })
 
 export const DeleteProcurementProcurementIdItemsIdResponse = zod.void()
-
 
