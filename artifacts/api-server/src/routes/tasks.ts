@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { db, tasksTable, projectsTable, usersTable } from "@workspace/db";
 import { CreateTaskBody, UpdateTaskBody } from "@workspace/api-zod";
 import { requirePermission } from "../middlewares/permissions";
-import { tenantId } from "../middlewares/tenant";
+import { isProjectMember, tenantId } from "../middlewares/tenant";
 import { audit } from "../lib/audit";
 import { notifyTaskAssigned } from "../lib/notifications";
 
@@ -33,6 +33,7 @@ router.post("/tasks", requirePermission("tasks.create"), async (req, res): Promi
   const parsed = CreateTaskBody.safeParse(req.body); if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const d = parsed.data; const [project] = await db.select().from(projectsTable).where(and(eq(projectsTable.id, d.projectId), eq(projectsTable.organizationId, tenantId(req))));
   if (!project) { res.status(404).json({ error: "Project not found" }); return; }
+  if (!(await isProjectMember(req, d.projectId))) { res.status(403).json({ error: "Forbidden: not a member of this project" }); return; }
   if (d.assigneeId !== undefined) {
     const [assignee] = await db.select({ id: usersTable.id }).from(usersTable).where(and(eq(usersTable.id, d.assigneeId), eq(usersTable.organizationId, tenantId(req))));
     if (!assignee) { res.status(400).json({ error: "Assignee must belong to the current organization" }); return; }
@@ -52,6 +53,7 @@ router.get("/tasks/summary", requirePermission("tasks.read"), async (req, res): 
 router.get("/tasks/:id", requirePermission("tasks.read"), async (req, res): Promise<void> => {
   const [row] = await db.select().from(tasksTable).innerJoin(projectsTable, eq(tasksTable.projectId, projectsTable.id)).where(and(eq(tasksTable.id, Number(req.params.id)), eq(tasksTable.organizationId, tenantId(req)), eq(projectsTable.organizationId, tenantId(req))));
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
+  if (!(await isProjectMember(req, row.projects.id))) { res.status(403).json({ error: "Forbidden: not a member of this project" }); return; }
   const task = row.tasks; const [assignee] = task.assigneeId ? await db.select().from(usersTable).where(and(eq(usersTable.id, task.assigneeId), eq(usersTable.organizationId, tenantId(req)))) : [];
   res.json(formatTask(task, row.projects.name, assignee?.name ?? null));
 });
@@ -63,8 +65,9 @@ router.patch("/tasks/:id", requirePermission("tasks.update"), async (req, res): 
   const [oldTask] = await db.select({ title: tasksTable.title, status: tasksTable.status, priority: tasksTable.priority, assigneeId: tasksTable.assigneeId })
     .from(tasksTable).where(and(eq(tasksTable.id, Number(req.params.id)), eq(tasksTable.organizationId, tenantId(req))));
   if (!oldTask) { res.status(404).json({ error: "Not found" }); return; }
-  const owned = await db.select({ id: tasksTable.id }).from(tasksTable).innerJoin(projectsTable, eq(tasksTable.projectId, projectsTable.id)).where(and(eq(tasksTable.id, Number(req.params.id)), eq(tasksTable.organizationId, tenantId(req)), eq(projectsTable.organizationId, tenantId(req))));
+  const owned = await db.select({ id: tasksTable.id, projectId: tasksTable.projectId }).from(tasksTable).innerJoin(projectsTable, eq(tasksTable.projectId, projectsTable.id)).where(and(eq(tasksTable.id, Number(req.params.id)), eq(tasksTable.organizationId, tenantId(req)), eq(projectsTable.organizationId, tenantId(req))));
   if (!owned.length) { res.status(404).json({ error: "Not found" }); return; }
+  if (!(await isProjectMember(req, owned[0].projectId))) { res.status(403).json({ error: "Forbidden: not a member of this project" }); return; }
   if (d.assigneeId !== undefined) {
     const [assignee] = await db.select({ id: usersTable.id }).from(usersTable).where(and(eq(usersTable.id, d.assigneeId), eq(usersTable.organizationId, tenantId(req))));
     if (!assignee) { res.status(400).json({ error: "Assignee must belong to the current organization" }); return; }
@@ -77,8 +80,9 @@ router.patch("/tasks/:id", requirePermission("tasks.update"), async (req, res): 
 });
 
 router.delete("/tasks/:id", requirePermission("tasks.delete"), async (req, res): Promise<void> => {
-  const owned = await db.select({ id: tasksTable.id }).from(tasksTable).innerJoin(projectsTable, eq(tasksTable.projectId, projectsTable.id)).where(and(eq(tasksTable.id, Number(req.params.id)), eq(tasksTable.organizationId, tenantId(req)), eq(projectsTable.organizationId, tenantId(req))));
+  const owned = await db.select({ id: tasksTable.id, projectId: tasksTable.projectId }).from(tasksTable).innerJoin(projectsTable, eq(tasksTable.projectId, projectsTable.id)).where(and(eq(tasksTable.id, Number(req.params.id)), eq(tasksTable.organizationId, tenantId(req)), eq(projectsTable.organizationId, tenantId(req))));
   if (!owned.length) { res.status(404).json({ error: "Not found" }); return; }
+  if (!(await isProjectMember(req, owned[0].projectId))) { res.status(403).json({ error: "Forbidden: not a member of this project" }); return; }
   await db.delete(tasksTable).where(eq(tasksTable.id, Number(req.params.id))); res.status(204).send();
   audit(req, "task.deleted", "task", { resourceId: Number(req.params.id) });
 });

@@ -1,4 +1,5 @@
 import { requireAuth } from "../middlewares/requireAuth";
+import { requirePermission } from "../middlewares/permissions";
 import { tenantId } from "../middlewares/tenant";
 import { Router } from "express";
 import { db, organizationsTable } from "@workspace/db";
@@ -21,7 +22,7 @@ router.get("/organizations", async (req, res): Promise<void> => {
   })));
 });
 
-router.patch("/organizations", requireAuth, async (req, res): Promise<void> => {
+router.patch("/organizations", requireAuth, requirePermission("organizations.manage"), async (req, res): Promise<void> => {
   const { name, type, industry, country } = req.body ?? {};
   const updates: Record<string, unknown> = {};
   if (name !== undefined) updates.name = name;

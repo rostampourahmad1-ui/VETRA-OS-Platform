@@ -4,7 +4,7 @@ import { Router } from "express";
 import { db, inventoryTable, projectsTable } from "@workspace/db";
 import { and, eq } from "drizzle-orm";
 import { CreateInventoryItemBody, UpdateInventoryItemBody } from "@workspace/api-zod";
-import { ownedProject, tenantId } from "../middlewares/tenant";
+import { isProjectMember, ownedProject, tenantId } from "../middlewares/tenant";
 import { audit } from "../lib/audit";
 
 const router = Router();
@@ -44,6 +44,7 @@ router.post("/inventory", requirePermission("inventory.create"), async (req, res
   const organizationId = tenantId(req);
   const project = d.projectId === undefined ? null : await ownedProject(req, d.projectId);
   if (d.projectId !== undefined && !project) { res.status(404).json({ error: "Project not found" }); return; }
+  if (d.projectId !== undefined && !(await isProjectMember(req, d.projectId))) { res.status(403).json({ error: "Forbidden: not a member of this project" }); return; }
 
   const [row] = await db.insert(inventoryTable).values({
     name: d.name,

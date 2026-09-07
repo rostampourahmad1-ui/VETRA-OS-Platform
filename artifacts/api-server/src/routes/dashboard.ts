@@ -8,7 +8,7 @@ import {
   tasksTable,
   usersTable,
   equipmentTable,
-  activityTable,
+  expensesTable,
 } from "@workspace/db";
 import { tenantId } from "../middlewares/tenant";
 
@@ -91,38 +91,68 @@ router.get("/dashboard/project-health", requirePermission("dashboard.read"), asy
   res.json(health);
 });
 
+/**
+ * VETRA-DASH-01: Recent Activity endpoint
+ *
+ * Reads from auditLogsTable — the single source of truth for business
+ * activity, populated by real audit operations across all routes.
+ * The legacy activityTable was unused (never written to) and is no longer
+ * referenced by this endpoint.
+ */
 router.get("/dashboard/recent-activity", requirePermission("dashboard.read"), async (req, res): Promise<void> => {
   const items = await db
     .select()
-    .from(activityTable)
-    .where(eq(activityTable.organizationId, tenantId(req)))
-    .orderBy(sql`${activityTable.createdAt} desc`)
+    .from(auditLogsTable)
+    .where(eq(auditLogsTable.organizationId, tenantId(req)))
+    .orderBy(desc(auditLogsTable.createdAt))
     .limit(20);
 
   res.json(
     items.map(i => ({
       id: i.id,
-      type: i.type,
-      description: i.description,
-      user: i.user,
-      projectName: i.projectName ?? null,
+      type: i.action,
+      description: i.resource,
+      user: i.actorClerkId ?? `user:${i.actorId ?? "unknown"}`,
+      projectName: null,
       createdAt: i.createdAt.toISOString(),
     }))
   );
 });
 
+/**
+ * VETRA-FIN-01: Cash Flow endpoint
+ *
+ * Returns the last 12 months of real expense data aggregated by calendar month.
+ * Income is reported as 0 because no income/revenue tracking exists yet.
+ */
 router.get("/dashboard/cash-flow", requirePermission("dashboard.read"), async (req, res): Promise<void> => {
+  const now = new Date();
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const currentMonth = new Date().getMonth();
+
+  const organizationId = tenantId(req);
+  const expenses = await db
+    .select({ expenseDate: expensesTable.expenseDate, amount: expensesTable.amount })
+    .from(expensesTable)
+    .where(eq(expensesTable.organizationId, organizationId));
+
   const data = months.map((month, i) => {
-    const offset = i - currentMonth;
-    const base = 2000000 + Math.sin(i) * 500000;
+    const date = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1);
+    const year = date.getFullYear();
+    const monthIdx = date.getMonth();
+    const monthLabel = months[monthIdx];
+    const prefix = `${year}-${String(monthIdx + 1).padStart(2, "0")}`;
+
+    const monthExpense = expenses
+      .filter(e => e.expenseDate && e.expenseDate.startsWith(prefix))
+      .reduce((sum, e) => sum + Number(e.amount ?? 0), 0);
+
     return {
-      month,
-      income: i <= currentMonth ? Math.round(base + Math.random() * 400000) : 0,
-      expense: i <= currentMonth ? Math.round(base * 0.75 + Math.random() * 300000) : 0,
+      month: monthLabel,
+      income: 0,
+      expense: Math.round(monthExpense * 100) / 100,
     };
   });
+
   res.json(data);
 });
 

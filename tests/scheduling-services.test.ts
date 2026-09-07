@@ -113,6 +113,155 @@ describe("EVM Service", () => {
     expect(result.costPerformanceIndex).toBe(1);
     expect(result.costVariance).toBe(0);
   });
+
+  it("clamps negative plannedValue to 0", () => {
+    const result = computeEVM({
+      plannedValue: -100,
+      earnedValue: 50,
+      actualCost: 80,
+      budgetAtCompletion: 200,
+    });
+    expect(result.plannedValue).toBe(0);
+    expect(result.scheduleVariance).toBe(50);
+  });
+
+  it("clamps negative earnedValue to 0", () => {
+    const result = computeEVM({
+      plannedValue: 100,
+      earnedValue: -50,
+      actualCost: 80,
+      budgetAtCompletion: 200,
+    });
+    expect(result.earnedValue).toBe(0);
+    expect(result.costVariance).toBe(-80);
+  });
+
+  it("clamps negative actualCost to 0", () => {
+    const result = computeEVM({
+      plannedValue: 100,
+      earnedValue: 80,
+      actualCost: -90,
+      budgetAtCompletion: 200,
+    });
+    expect(result.actualCost).toBe(0);
+    expect(result.costVariance).toBe(80);
+  });
+
+  it("clamps negative budgetAtCompletion to 0", () => {
+    const result = computeEVM({
+      plannedValue: 100,
+      earnedValue: 80,
+      actualCost: 90,
+      budgetAtCompletion: -200,
+    });
+    expect(result.estimateAtCompletion).toBe(0);
+    expect(result.varianceAtCompletion).toBe(0);
+  });
+
+  it("handles BAC zero with non-zero values (infinite CPI → BAC fallback)", () => {
+    const result = computeEVM({
+      plannedValue: 100,
+      earnedValue: 80,
+      actualCost: 90,
+      budgetAtCompletion: 0,
+    });
+    expect(result.estimateAtCompletion).toBe(0);
+    expect(result.estimateToComplete).toBe(0);
+  });
+
+  it("computes all 3 EAC variants correctly", () => {
+    const result = computeEVM({
+      plannedValue: 100,
+      earnedValue: 80,
+      actualCost: 90,
+      budgetAtCompletion: 200,
+    });
+    expect(result.estimateAtCompletion).toBeGreaterThan(200);
+    expect(result.eacCpiSpi).toBeGreaterThan(result.estimateAtCompletion);
+    expect(result.eacBottomUp).toBe(result.estimateAtCompletion);
+  });
+
+  it("computes EAC bottom-up variant when ETC is provided", () => {
+    const result = computeEVM({
+      plannedValue: 100,
+      earnedValue: 80,
+      actualCost: 90,
+      budgetAtCompletion: 200,
+      bottomUpEstimateToComplete: 130,
+    });
+    expect(result.eacBottomUp).toBe(220);
+    expect(result.etcBottomUp).toBe(130);
+  });
+
+  it("clamps negative bottomUpEstimateToComplete to 0", () => {
+    const result = computeEVM({
+      plannedValue: 100,
+      earnedValue: 80,
+      actualCost: 90,
+      budgetAtCompletion: 200,
+      bottomUpEstimateToComplete: -50,
+    });
+    expect(result.etcBottomUp).toBe(0);
+  });
+
+  it("TCPI is 1.00 when BAC equals AC and EV equals BAC (project complete)", () => {
+    const result = computeEVM({
+      plannedValue: 200,
+      earnedValue: 200,
+      actualCost: 200,
+      budgetAtCompletion: 200,
+    });
+    expect(result.toCompletePerformanceIndex).toBe(1.00);
+  });
+
+  it("TCPI is 999.99 when remaining funds are zero but work remains", () => {
+    const result = computeEVM({
+      plannedValue: 200,
+      earnedValue: 100,
+      actualCost: 200,
+      budgetAtCompletion: 200,
+    });
+    expect(result.toCompletePerformanceIndex).toBe(999.99);
+  });
+
+  it("handles very large values without overflow", () => {
+    const result = computeEVM({
+      plannedValue: 1e12,
+      earnedValue: 8e11,
+      actualCost: 9e11,
+      budgetAtCompletion: 2e12,
+    });
+    expect(result.costVariance).toBeLessThan(0);
+    expect(result.estimateAtCompletion).toBeGreaterThan(0);
+    expect(Number.isFinite(result.estimateAtCompletion)).toBe(true);
+  });
+
+  it("handles fractional values correctly", () => {
+    const result = computeEVM({
+      plannedValue: 100.55,
+      earnedValue: 80.33,
+      actualCost: 90.11,
+      budgetAtCompletion: 200.99,
+    });
+    expect(result.costVariance).toBeCloseTo(-9.78, 1);
+    expect(result.scheduleVariance).toBeCloseTo(-20.22, 1);
+  });
+
+  it("all CPI/SPI/EAC values are finite numbers", () => {
+    const result = computeEVM({
+      plannedValue: 100,
+      earnedValue: 80,
+      actualCost: 90,
+      budgetAtCompletion: 200,
+    });
+    expect(Number.isFinite(result.costPerformanceIndex)).toBe(true);
+    expect(Number.isFinite(result.schedulePerformanceIndex)).toBe(true);
+    expect(Number.isFinite(result.estimateAtCompletion)).toBe(true);
+    expect(Number.isFinite(result.estimateToComplete)).toBe(true);
+    expect(Number.isFinite(result.toCompletePerformanceIndex)).toBe(true);
+    expect(Number.isFinite(result.eacCpiSpi)).toBe(true);
+    expect(Number.isFinite(result.eacBottomUp)).toBe(true);
+  });
 });
 
 // ─── Progress Tests ─────────────────────────────────────────────────────────

@@ -25,7 +25,14 @@ import type { EVMInput, EVMOutput } from "./types";
  * Returns zero or fallback values for division-by-zero cases.
  */
 export function computeEVM(input: EVMInput): EVMOutput {
-  const { plannedValue, earnedValue, actualCost, budgetAtCompletion, bottomUpEstimateToComplete } = input;
+  // Clamp all monetary values to non-negative (negative values are invalid)
+  const plannedValue = Math.max(0, input.plannedValue);
+  const earnedValue = Math.max(0, input.earnedValue);
+  const actualCost = Math.max(0, input.actualCost);
+  const budgetAtCompletion = Math.max(0, input.budgetAtCompletion);
+  const bottomUpEstimateToComplete = input.bottomUpEstimateToComplete !== undefined
+    ? Math.max(0, input.bottomUpEstimateToComplete)
+    : undefined;
 
   const costVariance = earnedValue - actualCost;
   const scheduleVariance = earnedValue - plannedValue;

@@ -21,4 +21,5 @@ export * from "./audit";
 export * from "./boq";
 export * from "./hr";
 export * from "./procurement-ext";
- export * from "./scheduling";
+export * from "./scheduling";
+export * from "./daily-reports";

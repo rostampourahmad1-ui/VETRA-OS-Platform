@@ -5,7 +5,7 @@ import { CreateContractBody, UpdateContractBody } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requirePermission } from "../middlewares/permissions";
 import { audit } from "../lib/audit";
-import { ownedProject, tenantId } from "../middlewares/tenant";
+import { isProjectMember, ownedProject, tenantId } from "../middlewares/tenant";
 
 const router = Router();
 router.use(requireAuth);
@@ -26,6 +26,7 @@ router.post("/contracts", requirePermission("contracts.create"), async (req, res
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const d = parsed.data;
   if (!(await ownedProject(req, d.projectId))) { res.status(404).json({ error: "Project not found" }); return; }
+  if (!(await isProjectMember(req, d.projectId))) { res.status(403).json({ error: "Forbidden: not a member of this project" }); return; }
   const [row] = await db.insert(contractsTable).values({ name: d.name, contractor: d.contractor, value: d.value.toString(), status: d.status ?? "draft", type: d.type, projectId: d.projectId, organizationId: tenantId(req), startDate: d.startDate, endDate: d.endDate, signedDate: d.signedDate }).returning();
   const [project] = await db.select().from(projectsTable).where(and(eq(projectsTable.id, row.projectId), eq(projectsTable.organizationId, tenantId(req))));
   res.status(201).json(serialize(row, project?.name ?? null));

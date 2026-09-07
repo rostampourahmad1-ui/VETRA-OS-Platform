@@ -406,6 +406,19 @@ export interface WorkflowDecisionInput {
   comment?: string;
 }
 
+export interface WorkflowRunEvent {
+  id?: number;
+  organizationId?: number;
+  workflowRunId?: number;
+  /** @nullable */
+  workflowStepId?: number | null;
+  action?: string;
+  /** @nullable */
+  comment?: string | null;
+  actorId?: number;
+  createdAt?: string;
+}
+
 export interface DocumentUpload {
   file: Blob;
   projectId: number;
@@ -644,6 +657,13 @@ export interface DailyReport {
   projectName: string;
   createdBy: string;
   createdAt: string;
+  status?: string;
+  /** @nullable */
+  workflowRunId?: number | null;
+  /** @nullable */
+  submittedBy?: number | null;
+  /** @nullable */
+  submittedAt?: string | null;
 }
 
 export interface DailyReportInput {
@@ -655,7 +675,6 @@ export interface DailyReportInput {
   issues?: string;
   notes?: string;
   projectId: number;
-  createdBy: string;
 }
 
 export interface Meeting {
@@ -1031,9 +1050,150 @@ export interface ReportsSummary {
   costs?: ReportsSummaryCosts;
 }
 
+export interface WorkBreakdownStructure {
+  id: number;
+  projectId: number;
+  organizationId: number;
+  /** @nullable */
+  parentId?: number | null;
+  code: string;
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  sortOrder: number;
+  /** @nullable */
+  createdBy?: number | null;
+  /** @nullable */
+  updatedBy?: number | null;
+  createdAt: string;
+  updatedAt: string;
+  /** @nullable */
+  deletedAt?: string | null;
+}
+
+export interface WbsInput {
+  code: string;
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  parentId?: number | null;
+  sortOrder?: number;
+}
+
+export type PlanningActivityActivityType = typeof PlanningActivityActivityType[keyof typeof PlanningActivityActivityType];
+
+
+export const PlanningActivityActivityType = {
+  task: 'task',
+  milestone: 'milestone',
+} as const;
+
+export type PlanningActivityStatus = typeof PlanningActivityStatus[keyof typeof PlanningActivityStatus];
+
+
+export const PlanningActivityStatus = {
+  not_started: 'not_started',
+  in_progress: 'in_progress',
+  completed: 'completed',
+} as const;
+
+export interface PlanningActivity {
+  id: number;
+  projectId: number;
+  organizationId: number;
+  wbsId: number;
+  code: string;
+  name: string;
+  activityType: PlanningActivityActivityType;
+  plannedStart: string;
+  plannedFinish: string;
+  durationDays: number;
+  status: PlanningActivityStatus;
+  /** @nullable */
+  createdBy?: number | null;
+  /** @nullable */
+  updatedBy?: number | null;
+  createdAt: string;
+  updatedAt: string;
+  /** @nullable */
+  deletedAt?: string | null;
+}
+
+export type PlanningActivityInputActivityType = typeof PlanningActivityInputActivityType[keyof typeof PlanningActivityInputActivityType];
+
+
+export const PlanningActivityInputActivityType = {
+  task: 'task',
+  milestone: 'milestone',
+} as const;
+
+export type PlanningActivityInputStatus = typeof PlanningActivityInputStatus[keyof typeof PlanningActivityInputStatus];
+
+
+export const PlanningActivityInputStatus = {
+  not_started: 'not_started',
+  in_progress: 'in_progress',
+  completed: 'completed',
+} as const;
+
+export interface PlanningActivityInput {
+  wbsId: number;
+  code: string;
+  name: string;
+  activityType?: PlanningActivityInputActivityType;
+  plannedStart: string;
+  plannedFinish: string;
+  durationDays: number;
+  status?: PlanningActivityInputStatus;
+}
+
+export type PlanningActivityUpdateActivityType = typeof PlanningActivityUpdateActivityType[keyof typeof PlanningActivityUpdateActivityType];
+
+
+export const PlanningActivityUpdateActivityType = {
+  task: 'task',
+  milestone: 'milestone',
+} as const;
+
+export type PlanningActivityUpdateStatus = typeof PlanningActivityUpdateStatus[keyof typeof PlanningActivityUpdateStatus];
+
+
+export const PlanningActivityUpdateStatus = {
+  not_started: 'not_started',
+  in_progress: 'in_progress',
+  completed: 'completed',
+} as const;
+
+export interface PlanningActivityUpdate {
+  wbsId?: number;
+  code?: string;
+  name?: string;
+  activityType?: PlanningActivityUpdateActivityType;
+  plannedStart?: string;
+  plannedFinish?: string;
+  durationDays?: number;
+  status?: PlanningActivityUpdateStatus;
+}
+
+export interface WbsUpdate {
+  code?: string;
+  name?: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  parentId?: number | null;
+  sortOrder?: number;
+}
+
 export type ListProjectsParams = {
 status?: string;
 search?: string;
+};
+
+export type ListWbs200 = {
+  wbs?: WorkBreakdownStructure[];
+  activities?: PlanningActivity[];
 };
 
 export type ListTasksParams = {
@@ -1054,6 +1214,28 @@ status?: string;
 
 export type ListDailyReportsParams = {
 projectId?: number;
+};
+
+export type SubmitDailyReportBody = {
+  workflowId: number;
+};
+
+export type TransitionDailyReportBodyStatus = typeof TransitionDailyReportBodyStatus[keyof typeof TransitionDailyReportBodyStatus];
+
+
+export const TransitionDailyReportBodyStatus = {
+  draft: 'draft',
+  submitted: 'submitted',
+  in_review: 'in_review',
+  approved: 'approved',
+  rejected: 'rejected',
+  revision_requested: 'revision_requested',
+} as const;
+
+export type TransitionDailyReportBody = {
+  status: TransitionDailyReportBodyStatus;
+  reason?: string;
+  workflowId?: number;
 };
 
 export type ListMeetingsParams = {

@@ -21,7 +21,7 @@ import { audit } from "../lib/audit";
 import { requireAuth } from "../middlewares/requireAuth";
 import { notifyWorkflowDecision } from "../lib/notifications";
 import { hasPermission, requirePermission } from "../middlewares/permissions";
-import { tenantId } from "../middlewares/tenant";
+import { isProjectMember, tenantId } from "../middlewares/tenant";
 
 const router = Router();
 router.use(requireAuth);
@@ -39,6 +39,59 @@ router.get("/workflows", requirePermission("workflows.read"), async (req, res): 
     isNull(workflowsTable.deletedAt),
   ));
   res.json(workflows.map(serialize));
+});
+
+router.get("/workflows/:id", requirePermission("workflows.read"), async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  if (!id || id < 1) { res.status(400).json({ error: "Invalid workflow id" }); return; }
+  const [workflow] = await db.select().from(workflowsTable).where(and(
+    eq(workflowsTable.id, id),
+    eq(workflowsTable.organizationId, tenantId(req)),
+    isNull(workflowsTable.deletedAt),
+  ));
+  if (!workflow) { res.status(404).json({ error: "Workflow not found" }); return; }
+  const steps = await db.select().from(workflowStepsTable).where(eq(workflowStepsTable.workflowId, id)).orderBy(asc(workflowStepsTable.stepOrder));
+  res.json({ ...serialize(workflow), steps: steps.map(serialize) });
+});
+
+router.get("/workflow-runs/:id", requirePermission("workflows.read"), async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  if (!id || id < 1) { res.status(400).json({ error: "Invalid workflow run id" }); return; }
+  const [run] = await db.select().from(workflowRunsTable).where(and(
+    eq(workflowRunsTable.id, id),
+    eq(workflowRunsTable.organizationId, tenantId(req)),
+  ));
+  if (!run) { res.status(404).json({ error: "Workflow run not found" }); return; }
+  const [workflow] = await db.select().from(workflowsTable).where(and(
+    eq(workflowsTable.id, run.workflowId),
+    eq(workflowsTable.organizationId, tenantId(req)),
+    isNull(workflowsTable.deletedAt),
+  ));
+  const steps = workflow
+    ? await db.select().from(workflowStepsTable).where(eq(workflowStepsTable.workflowId, run.workflowId)).orderBy(asc(workflowStepsTable.stepOrder))
+    : [];
+  const events = await db.select().from(workflowRunEventsTable).where(and(
+    eq(workflowRunEventsTable.workflowRunId, id),
+    eq(workflowRunEventsTable.organizationId, tenantId(req)),
+  )).orderBy(asc(workflowRunEventsTable.createdAt));
+  res.json({
+    ...serialize(run),
+    workflow: workflow ? serialize(workflow) : null,
+    steps: steps.map(serialize),
+    events: events.map(serialize),
+  });
+});
+
+router.get("/workflow-runs", requirePermission("workflows.read"), async (req, res): Promise<void> => {
+  const entityType = typeof req.query.entityType === "string" ? req.query.entityType : undefined;
+  const entityId = typeof req.query.entityId === "string" ? Number(req.query.entityId) : undefined;
+  const status = typeof req.query.status === "string" ? req.query.status : undefined;
+  const conditions = [eq(workflowRunsTable.organizationId, tenantId(req))];
+  if (entityType) conditions.push(eq(workflowRunsTable.entityType, entityType));
+  if (entityId && entityId > 0) conditions.push(eq(workflowRunsTable.entityId, entityId));
+  if (status) conditions.push(eq(workflowRunsTable.status, status));
+  const runs = await db.select().from(workflowRunsTable).where(and(...conditions)).orderBy(asc(workflowRunsTable.createdAt));
+  res.json(runs.map(serialize));
 });
 
 router.post("/workflows", requirePermission("workflows.manage"), async (req, res): Promise<void> => {
@@ -151,6 +204,24 @@ router.post("/workflow-runs/:id/decision", requirePermission("workflows.approve"
     res.status(409).json({ error: "Workflow run is not linked to an active NCR" }); return;
   }
 
+  // VETRA-SEC-11: Cross-project ownership – the approver must be a member of
+  // the linked entity's project when the entity is project-scoped.
+  const [linkedSubmission] = run.entityType === "form_submission"
+    ? await db.select().from(formSubmissionsTable).where(and(
+      eq(formSubmissionsTable.workflowRunId, run.id),
+      eq(formSubmissionsTable.organizationId, tenantId(req)),
+      isNull(formSubmissionsTable.deletedAt),
+    ))
+    : [undefined];
+  if (run.entityType === "form_submission" && !linkedSubmission) {
+    res.status(409).json({ error: "Workflow run is not linked to an active form submission" }); return;
+  }
+  const entityProjectId = linkedNcr?.projectId ?? linkedSubmission?.projectId ?? null;
+  if (entityProjectId != null && !(await isProjectMember(req, entityProjectId))) {
+    res.status(403).json({ error: "Forbidden: not a member of the entity's project", projectId: entityProjectId });
+    return;
+  }
+
   const [step] = await db.select().from(workflowStepsTable).where(and(
     eq(workflowStepsTable.workflowId, run.workflowId),
     eq(workflowStepsTable.stepOrder, run.currentStep),
@@ -158,6 +229,19 @@ router.post("/workflow-runs/:id/decision", requirePermission("workflows.approve"
   if (!step) { res.status(409).json({ error: "Workflow has no current step" }); return; }
   if (!(await hasPermission(req.vetraUser!.id, tenantId(req), step.requiredPermission))) {
     res.status(403).json({ error: "Forbidden", permission: step.requiredPermission });
+    return;
+  }
+
+  // VETRA-SEC-11: Prevent duplicate approval by the same actor.
+  // A single actor must not approve the same step more than once.
+  const [existingApproval] = await db.select().from(workflowRunEventsTable).where(and(
+    eq(workflowRunEventsTable.workflowRunId, run.id),
+    eq(workflowRunEventsTable.workflowStepId, step.id),
+    eq(workflowRunEventsTable.action, "approve"),
+    eq(workflowRunEventsTable.actorId, req.vetraUser!.id),
+  ));
+  if (decision === "approve" && existingApproval) {
+    res.status(409).json({ error: "You have already approved this step" });
     return;
   }
 
@@ -169,7 +253,9 @@ router.post("/workflow-runs/:id/decision", requirePermission("workflows.approve"
       eq(workflowRunEventsTable.workflowStepId, step.id),
       eq(workflowRunEventsTable.action, "approve"),
     ));
-    shouldAdvance = approveEvents.length >= step.requiredApprovals;
+    // The current actor's approval has not yet been recorded; it counts as +1
+    // toward the required total.
+    shouldAdvance = approveEvents.length >= step.requiredApprovals - 1;
   }
 
   const steps = await db.select().from(workflowStepsTable).where(and(

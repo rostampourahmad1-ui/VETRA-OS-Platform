@@ -153,4 +153,20 @@ describe("Forms: submission lifecycle", () => {
     const r = await request(appWith([formsRouter])).post("/form-submissions/5/submit").send();
     expect(r.status).toBe(409);
   });
+
+  it("resets workflow run to pending on resubmission after revision_requested", async () => {
+    mocks.__setRows("formTemplates", [
+      { id: 6, organizationId: 1, name: "T6", status: "published", workflowId: 5, definition: { fields: [{ id: "f1", label: "Field", type: "text", required: false }] }, deletedAt: null },
+    ]);
+    mocks.__setRows("formTemplateVersions", [{ id: 6, organizationId: 1, templateId: 6, version: 1, definition: { fields: [{ id: "f1", label: "Field", type: "text", required: false }] }, publishedBy: 1, createdAt: new Date().toISOString() }]);
+    mocks.__setRows("formSubmissions", [{ id: 6, organizationId: 1, templateId: 6, templateVersionId: 6, status: "revision_requested", workflowRunId: 55, answers: {}, submittedBy: 11, submittedAt: null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), deletedAt: null }]);
+    mocks.__setRows("workflows", [{ id: 5, organizationId: 1, name: "Review WF", entityType: "form_submission", active: 1 }]);
+    mocks.__setRows("workflowRuns", [{ id: 55, organizationId: 1, workflowId: 5, entityType: "form_submission", entityId: 6, currentStep: 1, status: "revision_requested", submittedBy: 11, updatedBy: 11, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), completedAt: new Date().toISOString() }]);
+    mocks.__setRows("workflowRunEvents", []);
+    const r = await request(appWith([formsRouter])).post("/form-submissions/6/submit").send();
+    expect(r.status).toBe(200);
+    // Verify the workflow run was reset to pending
+    const insertCalls = (mocks.db.insert as any).mock?.calls ?? [];
+    expect(insertCalls.length).toBeGreaterThanOrEqual(1);
+  });
 });

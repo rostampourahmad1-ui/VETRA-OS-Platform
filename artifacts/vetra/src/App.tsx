@@ -43,6 +43,7 @@ const NotFound = lazy(() => import('@/pages/not-found'));
 const SchedulingPage = lazy(() => import('@/pages/scheduling/SchedulingPage'));
 const ProgressPage = lazy(() => import('@/pages/progress/ProgressPage'));
 const ResourcesPage = lazy(() => import('@/pages/resources/ResourcesPage'));
+const ActivityManagement = lazy(() => import('@/pages/planning/ActivityManagement'));
 // ─── Clerk key resolution ────────────────────────────────────────────────────
 // Must use publishableKeyFromHost — resolves the correct key for the current
 // hostname so the same build works in dev and prod without branching.
@@ -196,6 +197,8 @@ function AppRoutes() {
             <Route path="/projects" component={ProjectList} />
             <Route path="/projects/:id" component={ProjectDetail} />
             <Route path="/projects/:id/timeline" component={ProjectTimeline} />
+            <Route path="/projects/:id/wbs" component={WbsTree} />
+            <Route path="/projects/:id/activities" component={ActivityManagement} />
             <Route path="/tasks" component={TaskList} />
             <Route path="/documents" component={DocumentList} />
             <Route path="/forms" component={FormsBuilder} />
@@ -299,3 +302,4 @@ function App() {
 export default App;
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ErrorPage } from '@/pages/error';
+const WbsTree = lazy(() => import('@/pages/planning/WbsTree'));

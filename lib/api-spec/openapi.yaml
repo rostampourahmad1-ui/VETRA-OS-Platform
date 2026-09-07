@@ -38,6 +38,8 @@ tags:
     description: Organization management
   - name: phase2
     description: Phase 2 workspace, finance, CRM and reporting operations
+  - name: planning
+    description: Planning (WBS, phases, milestones, activities)
 
 paths:
   /healthz:
@@ -229,6 +231,182 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ProjectStats"
+
+  # ─── Planning / WBS ───────────────────────────────────────────────────────
+  /projects/{id}/wbs:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      operationId: listWbs
+      tags: [planning]
+      summary: List WBS items for a project
+      responses:
+        "200":
+          description: WBS items and activities
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  wbs:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/WorkBreakdownStructure"
+                  activities:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PlanningActivity"
+        "404":
+          description: Project not found
+    post:
+      operationId: createWbs
+      tags: [planning]
+      summary: Create a WBS item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WbsInput"
+      responses:
+        "201":
+          description: Created WBS item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkBreakdownStructure"
+        "400":
+          description: Invalid input
+
+  /projects/{id}/wbs/{wbsId}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      - name: wbsId
+        in: path
+        required: true
+        schema:
+          type: integer
+    patch:
+      operationId: updateWbs
+      tags: [planning]
+      summary: Update a WBS item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WbsUpdate"
+      responses:
+        "200":
+          description: Updated WBS item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkBreakdownStructure"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteWbs
+      tags: [planning]
+      summary: Soft-delete a WBS item
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+
+  /projects/{projectId}/activities:
+    parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema:
+          type: integer
+    post:
+      operationId: createPlanningActivity
+      tags: [planning]
+      summary: Create a planning activity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanningActivityInput"
+      responses:
+        "201":
+          description: Created activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanningActivity"
+        "400":
+          description: Invalid input
+        "404":
+          description: Project not found
+
+  /projects/{projectId}/activities/{activityId}:
+    parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema:
+          type: integer
+      - in: path
+        name: activityId
+        required: true
+        schema:
+          type: integer
+    get:
+      operationId: getPlanningActivity
+      tags: [planning]
+      summary: Get a planning activity by id
+      responses:
+        "200":
+          description: Activity details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanningActivity"
+        "404":
+          description: Activity not found
+    put:
+      operationId: updatePlanningActivity
+      tags: [planning]
+      summary: Update a planning activity
+      requestBody:
+        required: true
+        content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanningActivityUpdate"
+      responses:
+        "200":
+          description: Updated activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanningActivity"
+        "400":
+          description: Invalid input
+        "404":
+          description: Activity not found
+    delete:
+      operationId: deletePlanningActivity
+      tags: [planning]
+      summary: Soft-delete a planning activity
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Activity not found
 
   # ─── Tasks ────────────────────────────────────────────────────────────────────
   /tasks:
@@ -563,6 +741,128 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DailyReport"
+    patch:
+      operationId: updateDailyReport
+      tags: [daily-reports]
+      summary: Update a daily report (draft only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DailyReportInput"
+      responses:
+        "200":
+          description: Updated daily report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyReport"
+    delete:
+      operationId: deleteDailyReport
+      tags: [daily-reports]
+      summary: Delete a daily report (non-approved only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted confirmation
+
+  /daily-reports/{id}/submit:
+    post:
+      operationId: submitDailyReport
+      tags: [daily-reports]
+      summary: Submit a draft daily report to a workflow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - workflowId
+              properties:
+                workflowId:
+                  type: integer
+      responses:
+        "200":
+          description: Submitted daily report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyReport"
+
+  /daily-reports/{id}/transition:
+    post:
+      operationId: transitionDailyReport
+      tags: [daily-reports]
+      summary: Transition a daily report lifecycle status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [draft, submitted, in_review, approved, rejected, revision_requested]
+                reason:
+                  type: string
+                workflowId:
+                  type: integer
+      responses:
+        "200":
+          description: Transitioned daily report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyReport"
+
+  /daily-reports/{id}/workflow-events:
+    get:
+      operationId: getDailyReportWorkflowEvents
+      tags: [daily-reports]
+      summary: Get workflow events for a daily report
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Workflow events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkflowRunEvent"
 
   # ─── Meetings ────────────────────────────────────────────────────────────────
   /meetings:
@@ -1144,6 +1444,59 @@ paths:
             schema: { $ref: '#/components/schemas/MilestoneInput' }
       responses:
         '201': { description: Created }
+  /projects/{projectId}/evm:
+    parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema: { type: integer }
+    get:
+      summary: List EVM metrics for a project
+      operationId: listEvmMetrics
+      tags: [scheduling]
+      responses:
+        '200':
+          description: EVM metrics records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EvmMetric'
+    post:
+      summary: Record EVM metrics
+      operationId: createEvmMetric
+      tags: [scheduling]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvmInput'
+      responses:
+        '201':
+          description: Created EVM metric
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvmMetric'
+  /projects/{projectId}/evm-forecast:
+    parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema: { type: integer }
+    get:
+      summary: Get EVM forecast with all EAC variants
+      operationId: getEvmForecast
+      tags: [scheduling]
+      responses:
+        '200':
+          description: EVM forecast
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvmForecast'
   /workflows:
     get:
       summary: List tenant workflows
@@ -1311,7 +1664,14 @@ paths:
   /forms/templates:
     get:
       summary: List tenant form templates
-      responses: { '200': { description: OK } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/FormTemplateResponse' }
     post:
       summary: Create a form template draft
       requestBody:
@@ -1943,6 +2303,17 @@ components:
       properties:
         decision: { type: string, enum: [approve, reject, request_revision] }
         comment: { type: string, minLength: 1, maxLength: 4000 }
+    WorkflowRunEvent:
+      type: object
+      properties:
+        id: { type: integer }
+        organizationId: { type: integer }
+        workflowRunId: { type: integer }
+        workflowStepId: { type: [integer, "null"] }
+        action: { type: string }
+        comment: { type: [string, "null"] }
+        actorId: { type: integer }
+        createdAt: { type: string, format: date-time }
     DocumentUpload:
       type: object
       required: [file, projectId]
@@ -2324,6 +2695,10 @@ components:
         projectName: { type: string }
         createdBy: { type: string }
         createdAt: { type: string }
+        status: { type: string }
+        workflowRunId: { type: ["integer", "null"] }
+        submittedBy: { type: ["integer", "null"] }
+        submittedAt: { type: ["string", "null"] }
 
     DailyReportInput:
       type: object
@@ -2332,7 +2707,6 @@ components:
         - weather
         - progress
         - projectId
-        - createdBy
       properties:
         date: { type: string }
         weather: { type: string }
@@ -2342,7 +2716,6 @@ components:
         issues: { type: string }
         notes: { type: string }
         projectId: { type: integer }
-        createdBy: { type: string }
 
     # ─── Meeting Schemas ──────────────────────────────────────────────────────
     Meeting:
@@ -2789,3 +3162,104 @@ components:
         projects: { type: object, additionalProperties: true }
         tasks: { type: object, additionalProperties: true }
         costs: { type: object, additionalProperties: true }
+
+    # ─── Planning Schemas ──────────────────────────────────────────────────
+    WorkBreakdownStructure:
+      type: object
+      required:
+        - id
+        - projectId
+        - organizationId
+        - code
+        - name
+        - sortOrder
+        - createdAt
+        - updatedAt
+      properties:
+        id: { type: integer }
+        projectId: { type: integer }
+        organizationId: { type: integer }
+        parentId: { type: [integer, "null"] }
+        code: { type: string }
+        name: { type: string }
+        description: { type: [string, "null"] }
+        sortOrder: { type: integer }
+        createdBy: { type: [integer, "null"] }
+        updatedBy: { type: [integer, "null"] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        deletedAt: { type: [string, "null"], format: date-time }
+    WbsInput:
+      type: object
+      required: [code, name]
+      properties:
+        code: { type: string }
+        name: { type: string }
+        description: { type: [string, "null"] }
+        parentId: { type: [integer, "null"] }
+        sortOrder: { type: integer }
+
+    PlanningActivity:
+      type: object
+      required:
+        - id
+        - projectId
+        - organizationId
+        - wbsId
+        - code
+        - name
+        - activityType
+        - plannedStart
+        - plannedFinish
+        - durationDays
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id: { type: integer }
+        projectId: { type: integer }
+        organizationId: { type: integer }
+        wbsId: { type: integer }
+        code: { type: string }
+        name: { type: string }
+        activityType: { type: string, enum: [task, milestone] }
+        plannedStart: { type: string, format: date }
+        plannedFinish: { type: string, format: date }
+        durationDays: { type: integer }
+        status: { type: string, enum: [not_started, in_progress, completed] }
+        createdBy: { type: [integer, "null"] }
+        updatedBy: { type: [integer, "null"] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        deletedAt: { type: [string, "null"], format: date-time }
+    PlanningActivityInput:
+      type: object
+      required: [wbsId, code, name, plannedStart, plannedFinish, durationDays]
+      properties:
+        wbsId: { type: integer }
+        code: { type: string }
+        name: { type: string }
+        activityType: { type: string, enum: [task, milestone], default: task }
+        plannedStart: { type: string, format: date }
+        plannedFinish: { type: string, format: date }
+        durationDays: { type: integer }
+        status: { type: string, enum: [not_started, in_progress, completed], default: not_started }
+    PlanningActivityUpdate:
+      type: object
+      properties:
+        wbsId: { type: integer }
+        code: { type: string }
+        name: { type: string }
+        activityType: { type: string, enum: [task, milestone] }
+        plannedStart: { type: string, format: date }
+        plannedFinish: { type: string, format: date }
+        durationDays: { type: integer }
+        status: { type: string, enum: [not_started, in_progress, completed] }
+    WbsUpdate:
+      type: object
+      properties:
+        code: { type: string }
+        name: { type: string }
+        description: { type: [string, "null"] }
+        parentId: { type: [integer, "null"] }
+        sortOrder: { type: integer }
