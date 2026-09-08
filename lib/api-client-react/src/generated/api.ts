@@ -40,6 +40,9 @@ import type {
   Equipment,
   EquipmentInput,
   EquipmentUpdate,
+  EvmForecast,
+  EvmInput,
+  EvmMetric,
   Expense,
   ExpenseCategory,
   ExpenseCategoryInput,
@@ -6307,6 +6310,232 @@ export const usePostProjectsProjectIdMilestones = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getPostProjectsProjectIdMilestonesMutationOptions(options));
     }
+
+export const getListEvmMetricsUrl = (projectId: number,) => {
+
+
+
+
+  return `/api/projects/${projectId}/evm`
+}
+
+/**
+ * @summary List EVM metrics for a project
+ */
+export const listEvmMetrics = async (projectId: number, options?: Parameters<typeof customFetch>[1]): Promise<EvmMetric[]> => {
+
+  return customFetch<EvmMetric[]>(getListEvmMetricsUrl(projectId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListEvmMetricsQueryKey = (projectId: number,) => {
+    return [
+    `/api/projects/${projectId}/evm`
+    ] as const;
+    }
+
+
+export const getListEvmMetricsQueryOptions = <TData = Awaited<ReturnType<typeof listEvmMetrics>>, TError = ErrorType<unknown>>(projectId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listEvmMetrics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListEvmMetricsQueryKey(projectId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listEvmMetrics>>> = ({ signal }) => listEvmMetrics(projectId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: projectId !== null && projectId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listEvmMetrics>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListEvmMetricsQueryResult = NonNullable<Awaited<ReturnType<typeof listEvmMetrics>>>
+export type ListEvmMetricsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List EVM metrics for a project
+ */
+
+export function useListEvmMetrics<TData = Awaited<ReturnType<typeof listEvmMetrics>>, TError = ErrorType<unknown>>(
+ projectId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listEvmMetrics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListEvmMetricsQueryOptions(projectId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateEvmMetricUrl = (projectId: number,) => {
+
+
+
+
+  return `/api/projects/${projectId}/evm`
+}
+
+/**
+ * @summary Record EVM metrics
+ */
+export const createEvmMetric = async (projectId: number,
+    evmInput: EvmInput, options?: Parameters<typeof customFetch>[1]): Promise<EvmMetric> => {
+
+  return customFetch<EvmMetric>(getCreateEvmMetricUrl(projectId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(evmInput)
+  }
+);}
+
+
+
+
+
+export const getCreateEvmMetricMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEvmMetric>>, TError,{projectId: number;data: BodyType<EvmInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createEvmMetric>>, TError,{projectId: number;data: BodyType<EvmInput>}, TContext> => {
+
+const mutationKey = ['createEvmMetric'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createEvmMetric>>, {projectId: number;data: BodyType<EvmInput>}> = (props) => {
+          const {projectId,data} = props ?? {};
+
+          return  createEvmMetric(projectId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateEvmMetricMutationResult = NonNullable<Awaited<ReturnType<typeof createEvmMetric>>>
+    export type CreateEvmMetricMutationBody = BodyType<EvmInput>
+    export type CreateEvmMetricMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Record EVM metrics
+ */
+export const useCreateEvmMetric = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEvmMetric>>, TError,{projectId: number;data: BodyType<EvmInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createEvmMetric>>,
+        TError,
+        {projectId: number;data: BodyType<EvmInput>},
+        TContext
+      > => {
+      return useMutation(getCreateEvmMetricMutationOptions(options));
+    }
+
+export const getGetEvmForecastUrl = (projectId: number,) => {
+
+
+
+
+  return `/api/projects/${projectId}/evm-forecast`
+}
+
+/**
+ * @summary Get EVM forecast with all EAC variants
+ */
+export const getEvmForecast = async (projectId: number, options?: Parameters<typeof customFetch>[1]): Promise<EvmForecast> => {
+
+  return customFetch<EvmForecast>(getGetEvmForecastUrl(projectId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetEvmForecastQueryKey = (projectId: number,) => {
+    return [
+    `/api/projects/${projectId}/evm-forecast`
+    ] as const;
+    }
+
+
+export const getGetEvmForecastQueryOptions = <TData = Awaited<ReturnType<typeof getEvmForecast>>, TError = ErrorType<unknown>>(projectId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEvmForecast>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetEvmForecastQueryKey(projectId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getEvmForecast>>> = ({ signal }) => getEvmForecast(projectId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: projectId !== null && projectId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getEvmForecast>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetEvmForecastQueryResult = NonNullable<Awaited<ReturnType<typeof getEvmForecast>>>
+export type GetEvmForecastQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get EVM forecast with all EAC variants
+ */
+
+export function useGetEvmForecast<TData = Awaited<ReturnType<typeof getEvmForecast>>, TError = ErrorType<unknown>>(
+ projectId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEvmForecast>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetEvmForecastQueryOptions(projectId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetWorkflowsUrl = () => {
 

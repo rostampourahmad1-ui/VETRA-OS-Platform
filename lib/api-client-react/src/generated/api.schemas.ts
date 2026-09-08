@@ -1081,6 +1081,41 @@ export interface WbsInput {
   sortOrder?: number;
 }
 
+export interface EvmInput {
+  plannedValue: number;
+  earnedValue: number;
+  actualCost: number;
+  budgetAtCompletion: number;
+  bottomUpEstimateToComplete?: number;
+}
+
+export interface EvmMetric {
+  plannedValue: number;
+  earnedValue: number;
+  actualCost: number;
+  costVariance: number;
+  scheduleVariance: number;
+  costPerformanceIndex: number;
+  schedulePerformanceIndex: number;
+  estimateAtCompletion: number;
+  estimateToComplete: number;
+  varianceAtCompletion: number;
+  toCompletePerformanceIndex: number;
+  eacCpiSpi?: number;
+  etcBottomUp?: number;
+  eacBottomUp?: number;
+}
+
+export interface EvmForecast {
+  estimateAtCompletion: number;
+  eacCpiSpi?: number;
+  eacBottomUp?: number;
+  estimateToComplete: number;
+  etcBottomUp?: number;
+  varianceAtCompletion: number;
+  toCompletePerformanceIndex: number;
+}
+
 export type PlanningActivityActivityType = typeof PlanningActivityActivityType[keyof typeof PlanningActivityActivityType];
 
 

@@ -32,6 +32,14 @@ const aliases = new Map([
     "export * from './postPayrollCalculateBody';",
     "export type { PostPayrollCalculateBody as PostPayrollCalculateBodyType } from './postPayrollCalculateBody';",
   ],
+  [
+    "export * from './submitDailyReportBody';",
+    "export type { SubmitDailyReportBody as SubmitDailyReportBodyType } from './submitDailyReportBody';",
+  ],
+  [
+    "export * from './transitionDailyReportBody';",
+    "export type { TransitionDailyReportBody as TransitionDailyReportBodyType } from './transitionDailyReportBody';",
+  ],
 ]);
 
 let typesIndex = await readFile(typesIndexPath, "utf8");
