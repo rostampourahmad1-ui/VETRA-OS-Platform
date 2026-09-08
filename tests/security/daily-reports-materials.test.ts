@@ -426,7 +426,7 @@ describe("VETRA-DR-04: Daily Report Materials — Cross-Tenant Isolation", () =>
     // Now Tenant A tries to update it
     const appA = appWith(1);
     const res = await request(appA)
-      .patch(/daily-reports/2/materials/)
+      .patch('/daily-reports/2/materials/')
       .send({ consumed: 10 });
     expect(res.status).toBe(404);
   });
@@ -601,7 +601,7 @@ describe("VETRA-DR-04: Daily Report Materials — Update Validation", () => {
     expect(createRes.body.closingQuantity).toBe(120);
 
     const updateRes = await request(app)
-      .patch(/daily-reports/1/materials/)
+      .patch(`/daily-reports/1/materials/${createRes.body.id}`)
       .send({ consumed: 50, returned: 10 });
     expect(updateRes.status).toBe(200);
     expect(updateRes.body.openingQuantity).toBe(100);
@@ -618,7 +618,7 @@ describe("VETRA-DR-04: Daily Report Materials — Update Validation", () => {
       .send({ openingQuantity: 10, unit: "kg" });
 
     const updateRes = await request(app)
-      .patch(/daily-reports/1/materials/)
+      .patch(`/daily-reports/1/materials/${createRes.body.id}`)
       .send({ consumed: 100 });
     expect(updateRes.status).toBe(400);
   });
@@ -630,7 +630,7 @@ describe("VETRA-DR-04: Daily Report Materials — Update Validation", () => {
       .send({ openingQuantity: 100, unit: "kg" });
 
     const updateRes = await request(app)
-      .patch(/daily-reports/1/materials/)
+      .patch(`/daily-reports/1/materials/${createRes.body.id}`)
       .send({ unit: "ton" });
     expect(updateRes.status).toBe(200);
     expect(updateRes.body.unit).toBe("ton");

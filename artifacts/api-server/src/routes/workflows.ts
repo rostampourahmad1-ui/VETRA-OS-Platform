@@ -193,6 +193,16 @@ router.post("/workflow-runs/:id/decision", requirePermission("workflows.approve"
   if (!run) { res.status(404).json({ error: "Workflow run not found" }); return; }
   if (run.status !== "pending") { res.status(409).json({ error: "Workflow run is not pending" }); return; }
 
+  const [step] = await db.select().from(workflowStepsTable).where(and(
+    eq(workflowStepsTable.workflowId, run.workflowId),
+    eq(workflowStepsTable.stepOrder, run.currentStep),
+  ));
+  if (!step) { res.status(409).json({ error: "Workflow has no current step" }); return; }
+  if (!(await hasPermission(req.vetraUser!.id, tenantId(req), step.requiredPermission))) {
+    res.status(403).json({ error: "Forbidden", permission: step.requiredPermission });
+    return;
+  }
+
   const [linkedNcr] = run.entityType === "non_conformance_report"
     ? await db.select().from(nonConformanceReportsTable).where(and(
       eq(nonConformanceReportsTable.workflowRunId, run.id),
@@ -219,16 +229,6 @@ router.post("/workflow-runs/:id/decision", requirePermission("workflows.approve"
   const entityProjectId = linkedNcr?.projectId ?? linkedSubmission?.projectId ?? null;
   if (entityProjectId != null && !(await isProjectMember(req, entityProjectId))) {
     res.status(403).json({ error: "Forbidden: not a member of the entity's project", projectId: entityProjectId });
-    return;
-  }
-
-  const [step] = await db.select().from(workflowStepsTable).where(and(
-    eq(workflowStepsTable.workflowId, run.workflowId),
-    eq(workflowStepsTable.stepOrder, run.currentStep),
-  ));
-  if (!step) { res.status(409).json({ error: "Workflow has no current step" }); return; }
-  if (!(await hasPermission(req.vetraUser!.id, tenantId(req), step.requiredPermission))) {
-    res.status(403).json({ error: "Forbidden", permission: step.requiredPermission });
     return;
   }
 

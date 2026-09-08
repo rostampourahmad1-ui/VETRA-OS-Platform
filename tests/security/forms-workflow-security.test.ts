@@ -44,7 +44,7 @@ vi.mock("@workspace/db", () => ({ ...mocks.tables, db: mocks.db }));
 vi.mock("drizzle-orm", () => ({ and: (...i: unknown[]) => ({ kind: "and", items: i }), asc: (v: unknown) => v, eq: (l: unknown, r: unknown) => ({ kind: "eq", left: l, right: r }), isNull: (v: unknown) => ({ kind: "isNull", column: v }) }));
 vi.mock("../../artifacts/api-server/src/middlewares/permissions", () => ({ requirePermission: () => (_r: unknown, _s: unknown, n: () => void) => n(), hasPermission: (...a: unknown[]) => mocks.hasPermission(...a) }));
 vi.mock("../../artifacts/api-server/src/middlewares/requireAuth", () => ({ requireAuth: (_r: unknown, _s: unknown, n: () => void) => n() }));
-vi.mock("../../artifacts/api-server/src/middlewares/tenant", () => ({ tenantId: (r: { organizationId: number }) => r.organizationId, ownedProject: async () => true }));
+vi.mock("../../artifacts/api-server/src/middlewares/tenant", () => ({ tenantId: (r: { organizationId: number }) => r.organizationId, isProjectMember: async () => true, ownedProject: async () => true }));
 vi.mock("../../artifacts/api-server/src/lib/audit", () => ({ audit: vi.fn() }));
 
 import formsRouter from "../../artifacts/api-server/src/routes/forms";
@@ -107,6 +107,7 @@ describe("Workflow security: permission and events", () => {
     mocks.__setRows("workflowRuns", [{ id: 81, organizationId: 1, workflowId: 9, currentStep: 1, status: "pending", entityType: "form_submission", entityId: 51 }]);
     mocks.__setRows("workflowSteps", [{ id: 91, workflowId: 9, stepOrder: 1, requiredPermission: "quality.approve", approvalType: "single", requiredApprovals: 1 }]);
     mocks.__setRows("workflowRunEvents", []);
+    mocks.__setRows("formSubmissions", [{ id: 51, organizationId: 1, workflowRunId: 81, deletedAt: null, projectId: null }]);
     const r = await request(appWith([workflowsRouter])).post("/workflow-runs/81/decision").send({ decision: "approve", comment: "OK" });
     expect(r.status).toBe(200);
     expect(mocks.db.insert).toHaveBeenCalled();
