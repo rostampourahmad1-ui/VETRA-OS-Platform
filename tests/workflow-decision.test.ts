@@ -11,12 +11,13 @@ const mocks = vi.hoisted(() => {
     workflowsTable: table("workflows", ["id", "organizationId", "active", "deletedAt"]),
     workflowRunsTable: table("workflowRuns", ["id", "organizationId", "workflowId", "currentStep", "status", "entityType", "entityId"]),
     workflowStepsTable: table("workflowSteps", ["id", "workflowId", "stepOrder", "requiredPermission", "approvalType", "requiredApprovals"]),
-    workflowRunEventsTable: table("workflowRunEvents", ["id", "organizationId"]),
+    workflowRunEventsTable: table("workflowRunEvents", ["id", "organizationId", "workflowRunId", "workflowStepId", "action", "actorId"]),
     formSubmissionsTable: table("formSubmissions", ["id", "organizationId", "workflowRunId", "deletedAt"]),
   };
   const rows: Record<string, Record<string, unknown>[]> = {
     workflowRuns: [{ id: 81, organizationId: 1, workflowId: 9, currentStep: 1, status: "pending", entityType: "form_submission", entityId: 51 }],
     workflowSteps: [{ id: 91, workflowId: 9, stepOrder: 1, requiredPermission: "quality.approve", approvalType: "single", requiredApprovals: 1 }],
+    formSubmissions: [{ id: 51, organizationId: 1, workflowRunId: 81, deletedAt: null, projectId: null }],
   };
   const db = {
     select() {
@@ -31,7 +32,7 @@ const mocks = vi.hoisted(() => {
       };
       return builder;
     },
-    update: vi.fn(),
+    update: vi.fn().mockReturnValue({ set: vi.fn().mockReturnValue({ where: vi.fn().mockReturnValue({ returning: vi.fn().mockResolvedValue([]) }) }) }),
     insert: vi.fn(),
   };
   return { db, tables, hasPermission: vi.fn() };
@@ -53,6 +54,7 @@ vi.mock("../artifacts/api-server/src/middlewares/requireAuth", () => ({
 }));
 vi.mock("../artifacts/api-server/src/middlewares/tenant", () => ({
   tenantId: (req: { organizationId: number }) => req.organizationId,
+  isProjectMember: vi.fn().mockResolvedValue(true),
 }));
 vi.mock("../artifacts/api-server/src/lib/audit", () => ({ audit: vi.fn() }));
 
@@ -113,15 +115,25 @@ describe("workflow approval gate", () => {
     const newRows = {
       workflowRuns: [{ id: 81, organizationId: 1, workflowId: 9, currentStep: 1, status: "pending", entityType: "form_submission", entityId: 51 }],
       workflowSteps: [{ id: 91, workflowId: 9, stepOrder: 1, requiredPermission: "quality.approve", approvalType: "single", requiredApprovals: 1 }],
+      formSubmissions: [{ id: 51, organizationId: 1, workflowRunId: 81, deletedAt: null, projectId: null }],
       workflowRunEvents: [],
     };
     mocks.db.select = vi.fn(() => {
       let source = "";
       const builder = {
         from(input) { source = input.__name; return builder; },
-        where() { return builder; },
+        where(cond) { builder._conditions = Array.isArray(cond) ? cond : [cond]; return builder; },
+        _conditions: [],
         orderBy() { return builder; },
-        then(resolve) { return Promise.resolve(newRows[source] ?? []).then(resolve); },
+        then(resolve) {
+          let rows = newRows[source] ?? [];
+          for (const c of builder._conditions) {
+            if (c && typeof c === "object" && "left" in c && "right" in c && c.left && c.left.__field) {
+              rows = rows.filter((r) => r[c.left.__field] === c.right);
+            }
+          }
+          return Promise.resolve(rows).then(resolve);
+        },
       };
       return builder;
     });
@@ -144,15 +156,25 @@ describe("workflow approval gate", () => {
     const newRows = {
       workflowRuns: [{ id: 81, organizationId: 1, workflowId: 9, currentStep: 1, status: "pending", entityType: "form_submission", entityId: 51 }],
       workflowSteps: [{ id: 91, workflowId: 9, stepOrder: 1, requiredPermission: "quality.approve", approvalType: "any", requiredApprovals: 2 }],
-      workflowRunEvents: [{ id: 1, workflowRunId: 81, workflowStepId: 91, action: "approve", actorId: 11 }],
+      formSubmissions: [{ id: 51, organizationId: 1, workflowRunId: 81, deletedAt: null, projectId: null }],
+      workflowRunEvents: [{ id: 1, workflowRunId: 81, workflowStepId: 91, action: "approve", actorId: 12 }],
     };
     mocks.db.select = vi.fn(() => {
       let source = "";
       const builder = {
         from(input) { source = input.__name; return builder; },
-        where() { return builder; },
+        where(cond) { builder._conditions = Array.isArray(cond) ? cond : [cond]; return builder; },
+        _conditions: [],
         orderBy() { return builder; },
-        then(resolve) { return Promise.resolve(newRows[source] ?? []).then(resolve); },
+        then(resolve) {
+          let rows = newRows[source] ?? [];
+          for (const c of builder._conditions) {
+            if (c && typeof c === "object" && c.left && c.left.__field) {
+              rows = rows.filter((r) => r[c.left.__field] === c.right);
+            }
+          }
+          return Promise.resolve(rows).then(resolve);
+        },
       };
       return builder;
     });
@@ -167,7 +189,6 @@ describe("workflow approval gate", () => {
     const response = await request(appWithWorkflow())
       .post("/workflow-runs/81/decision")
       .send({ decision: "approve", comment: "First approval" });
-
     expect(response.status).toBe(200);
     expect(response.body.status).toBe("pending");
     expect(response.body.currentStep).toBe(1);
@@ -180,18 +201,28 @@ describe("workflow approval gate", () => {
         { id: 91, workflowId: 9, stepOrder: 1, requiredPermission: "quality.approve", approvalType: "any", requiredApprovals: 2 },
         { id: 92, workflowId: 9, stepOrder: 2, requiredPermission: "quality.approve", approvalType: "single", requiredApprovals: 1 },
       ],
+      formSubmissions: [{ id: 51, organizationId: 1, workflowRunId: 81, deletedAt: null, projectId: null }],
       workflowRunEvents: [
-        { id: 1, workflowRunId: 81, workflowStepId: 91, action: "approve", actorId: 11 },
-        { id: 2, workflowRunId: 81, workflowStepId: 91, action: "approve", actorId: 12 },
+        { id: 1, workflowRunId: 81, workflowStepId: 91, action: "approve", actorId: 12 },
+        { id: 2, workflowRunId: 81, workflowStepId: 91, action: "approve", actorId: 13 },
       ],
     };
     mocks.db.select = vi.fn(() => {
       let source = "";
       const builder = {
         from(input) { source = input.__name; return builder; },
-        where() { return builder; },
+        where(cond) { builder._conditions = Array.isArray(cond) ? cond : [cond]; return builder; },
+        _conditions: [],
         orderBy() { return builder; },
-        then(resolve) { return Promise.resolve(newRows[source] ?? []).then(resolve); },
+        then(resolve) {
+          let rows = newRows[source] ?? [];
+          for (const c of builder._conditions) {
+            if (c && typeof c === "object" && c.left && c.left.__field) {
+              rows = rows.filter((r) => r[c.left.__field] === c.right);
+            }
+          }
+          return Promise.resolve(rows).then(resolve);
+        },
       };
       return builder;
     });

@@ -832,8 +832,7 @@ export const CreateDailyReportBody = zod.object({
   "workersOnSite": zod.number().int().optional(),
   "issues": zod.string().optional(),
   "notes": zod.string().optional(),
-  "projectId": zod.number().int(),
-  "createdBy": zod.string().optional()
+  "projectId": zod.number().int()
 })
 
 export const CreateDailyReportResponse = zod.object({
@@ -1906,6 +1905,83 @@ export const PostProjectsProjectIdMilestonesBody = zod.object({
 })
 
 export const PostProjectsProjectIdMilestonesResponse = zod.void()
+
+
+/**
+ * @summary List EVM metrics for a project
+ */
+export const ListEvmMetricsParams = zod.object({
+  "projectId": zod.coerce.number().int()
+})
+
+export const ListEvmMetricsResponseItem = zod.object({
+  "plannedValue": zod.number(),
+  "earnedValue": zod.number(),
+  "actualCost": zod.number(),
+  "costVariance": zod.number(),
+  "scheduleVariance": zod.number(),
+  "costPerformanceIndex": zod.number(),
+  "schedulePerformanceIndex": zod.number(),
+  "estimateAtCompletion": zod.number(),
+  "estimateToComplete": zod.number(),
+  "varianceAtCompletion": zod.number(),
+  "toCompletePerformanceIndex": zod.number(),
+  "eacCpiSpi": zod.number().optional(),
+  "etcBottomUp": zod.number().optional(),
+  "eacBottomUp": zod.number().optional()
+})
+export const ListEvmMetricsResponse = zod.array(ListEvmMetricsResponseItem)
+
+
+/**
+ * @summary Record EVM metrics
+ */
+export const CreateEvmMetricParams = zod.object({
+  "projectId": zod.coerce.number().int()
+})
+
+export const CreateEvmMetricBody = zod.object({
+  "plannedValue": zod.number(),
+  "earnedValue": zod.number(),
+  "actualCost": zod.number(),
+  "budgetAtCompletion": zod.number(),
+  "bottomUpEstimateToComplete": zod.number().optional()
+})
+
+export const CreateEvmMetricResponse = zod.object({
+  "plannedValue": zod.number(),
+  "earnedValue": zod.number(),
+  "actualCost": zod.number(),
+  "costVariance": zod.number(),
+  "scheduleVariance": zod.number(),
+  "costPerformanceIndex": zod.number(),
+  "schedulePerformanceIndex": zod.number(),
+  "estimateAtCompletion": zod.number(),
+  "estimateToComplete": zod.number(),
+  "varianceAtCompletion": zod.number(),
+  "toCompletePerformanceIndex": zod.number(),
+  "eacCpiSpi": zod.number().optional(),
+  "etcBottomUp": zod.number().optional(),
+  "eacBottomUp": zod.number().optional()
+})
+
+
+/**
+ * @summary Get EVM forecast with all EAC variants
+ */
+export const GetEvmForecastParams = zod.object({
+  "projectId": zod.coerce.number().int()
+})
+
+export const GetEvmForecastResponse = zod.object({
+  "estimateAtCompletion": zod.number(),
+  "eacCpiSpi": zod.number().optional(),
+  "eacBottomUp": zod.number().optional(),
+  "estimateToComplete": zod.number(),
+  "etcBottomUp": zod.number().optional(),
+  "varianceAtCompletion": zod.number(),
+  "toCompletePerformanceIndex": zod.number()
+})
 
 
 /**

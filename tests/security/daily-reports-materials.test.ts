@@ -426,7 +426,7 @@ describe("VETRA-DR-04: Daily Report Materials — Cross-Tenant Isolation", () =>
     // Now Tenant A tries to update it
     const appA = appWith(1);
     const res = await request(appA)
-      .patch(/daily-reports/2/materials/)
+      .patch('/daily-reports/2/materials/')
       .send({ consumed: 10 });
     expect(res.status).toBe(404);
   });
