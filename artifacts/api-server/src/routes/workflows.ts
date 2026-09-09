@@ -232,6 +232,15 @@ router.post("/workflow-runs/:id/decision", requirePermission("workflows.approve"
     return;
   }
 
+  const [step] = await db.select().from(workflowStepsTable).where(and(
+    eq(workflowStepsTable.workflowId, run.workflowId),
+    eq(workflowStepsTable.stepOrder, run.currentStep),
+  ));
+  if (decision === "approve" && existingApproval) {
+    res.status(409).json({ error: "You have already approved this step" });
+    return;
+  }
+
   // VETRA-SEC-11: Prevent duplicate approval by the same actor.
   // A single actor must not approve the same step more than once.
   const [existingApproval] = await db.select().from(workflowRunEventsTable).where(and(
