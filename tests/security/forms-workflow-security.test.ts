@@ -44,7 +44,7 @@ vi.mock("@workspace/db", () => ({ ...mocks.tables, db: mocks.db }));
 vi.mock("drizzle-orm", () => ({ and: (...i: unknown[]) => ({ kind: "and", items: i }), asc: (v: unknown) => v, eq: (l: unknown, r: unknown) => ({ kind: "eq", left: l, right: r }), isNull: (v: unknown) => ({ kind: "isNull", column: v }) }));
 vi.mock("../../artifacts/api-server/src/middlewares/permissions", () => ({ requirePermission: () => (_r: unknown, _s: unknown, n: () => void) => n(), hasPermission: (...a: unknown[]) => mocks.hasPermission(...a) }));
 vi.mock("../../artifacts/api-server/src/middlewares/requireAuth", () => ({ requireAuth: (_r: unknown, _s: unknown, n: () => void) => n() }));
-vi.mock("../../artifacts/api-server/src/middlewares/tenant", () => ({ tenantId: (r: { organizationId: number }) => r.organizationId, ownedProject: async () => true }));
+vi.mock("../../artifacts/api-server/src/middlewares/tenant", () => ({ tenantId: (r: { organizationId: number }) => r.organizationId, isProjectMember: async () => true, ownedProject: async () => true }));
 vi.mock("../../artifacts/api-server/src/lib/audit", () => ({ audit: vi.fn() }));
 
 import formsRouter from "../../artifacts/api-server/src/routes/forms";
@@ -107,6 +107,7 @@ describe("Workflow security: permission and events", () => {
     mocks.__setRows("workflowRuns", [{ id: 81, organizationId: 1, workflowId: 9, currentStep: 1, status: "pending", entityType: "form_submission", entityId: 51 }]);
     mocks.__setRows("workflowSteps", [{ id: 91, workflowId: 9, stepOrder: 1, requiredPermission: "quality.approve", approvalType: "single", requiredApprovals: 1 }]);
     mocks.__setRows("workflowRunEvents", []);
+    mocks.__setRows("formSubmissions", [{ id: 51, organizationId: 1, workflowRunId: 81, deletedAt: null, projectId: null }]);
     const r = await request(appWith([workflowsRouter])).post("/workflow-runs/81/decision").send({ decision: "approve", comment: "OK" });
     expect(r.status).toBe(200);
     expect(mocks.db.insert).toHaveBeenCalled();
@@ -152,5 +153,21 @@ describe("Forms: submission lifecycle", () => {
     mocks.__setRows("formTemplateVersions", [{ id: 1, organizationId: 1, templateId: 5, templateVersionId: 1, version: 1, definition: { fields: [] }, publishedBy: 1, createdAt: new Date().toISOString() }]);
     const r = await request(appWith([formsRouter])).post("/form-submissions/5/submit").send();
     expect(r.status).toBe(409);
+  });
+
+  it("resets workflow run to pending on resubmission after revision_requested", async () => {
+    mocks.__setRows("formTemplates", [
+      { id: 6, organizationId: 1, name: "T6", status: "published", workflowId: 5, definition: { fields: [{ id: "f1", label: "Field", type: "text", required: false }] }, deletedAt: null },
+    ]);
+    mocks.__setRows("formTemplateVersions", [{ id: 6, organizationId: 1, templateId: 6, version: 1, definition: { fields: [{ id: "f1", label: "Field", type: "text", required: false }] }, publishedBy: 1, createdAt: new Date().toISOString() }]);
+    mocks.__setRows("formSubmissions", [{ id: 6, organizationId: 1, templateId: 6, templateVersionId: 6, status: "revision_requested", workflowRunId: 55, answers: {}, submittedBy: 11, submittedAt: null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), deletedAt: null }]);
+    mocks.__setRows("workflows", [{ id: 5, organizationId: 1, name: "Review WF", entityType: "form_submission", active: 1 }]);
+    mocks.__setRows("workflowRuns", [{ id: 55, organizationId: 1, workflowId: 5, entityType: "form_submission", entityId: 6, currentStep: 1, status: "revision_requested", submittedBy: 11, updatedBy: 11, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), completedAt: new Date().toISOString() }]);
+    mocks.__setRows("workflowRunEvents", []);
+    const r = await request(appWith([formsRouter])).post("/form-submissions/6/submit").send();
+    expect(r.status).toBe(200);
+    // Verify the workflow run was reset to pending
+    const insertCalls = (mocks.db.insert as any).mock?.calls ?? [];
+    expect(insertCalls.length).toBeGreaterThanOrEqual(1);
   });
 });

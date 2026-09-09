@@ -15,7 +15,7 @@ import {
 } from "@workspace/db";
 import { audit } from "../lib/audit";
 import { hasPermission, requirePermission } from "../middlewares/permissions";
-import { tenantId } from "../middlewares/tenant";
+import { isProjectMember, tenantId } from "../middlewares/tenant";
 
 const router = Router();
 
@@ -163,6 +163,7 @@ router.post("/inspections", requirePermission("quality.create"), async (req, res
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const organizationId = tenantId(req);
   if (!(await projectBelongsToTenant(parsed.data.projectId, organizationId))) { res.status(400).json({ error: "Project not found" }); return; }
+  if (!(await isProjectMember(req, parsed.data.projectId))) { res.status(403).json({ error: "Forbidden: not a member of this project" }); return; }
   if (!(await templateBelongsToProject(parsed.data.templateId, organizationId, parsed.data.projectId))) { res.status(400).json({ error: "Inspection template not found for project" }); return; }
   const [row] = await db.insert(inspectionsTable).values({
     ...parsed.data,
@@ -309,6 +310,7 @@ router.post("/non-conformance-reports", requirePermission("quality.create"), asy
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const organizationId = tenantId(req);
   if (!(await projectBelongsToTenant(parsed.data.projectId, organizationId))) { res.status(400).json({ error: "Project not found" }); return; }
+  if (!(await isProjectMember(req, parsed.data.projectId))) { res.status(403).json({ error: "Forbidden: not a member of this project" }); return; }
   const [row] = await db.insert(nonConformanceReportsTable).values({
     ...parsed.data,
     organizationId,

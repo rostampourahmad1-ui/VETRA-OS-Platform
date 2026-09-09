@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { db, usersTable, organizationsTable } from "@workspace/db";
 import { CreateUserBody, UpdateUserBody } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/requireAuth";
-import { requirePermission } from "../middlewares/permissions";
+import { hasPermission, requirePermission } from "../middlewares/permissions";
 import { audit } from "../lib/audit";
 import { tenantId } from "../middlewares/tenant";
 
@@ -69,9 +69,15 @@ router.patch("/users/:id", requirePermission("users.update"), async (req, res): 
   const updates: Record<string, unknown> = {};
   if (d.name !== undefined) updates.name = d.name;
   if (d.email !== undefined) updates.email = d.email;
-  if (d.role !== undefined) updates.role = d.role;
   if (d.department !== undefined) updates.department = d.department;
   if (d.phone !== undefined) updates.phone = d.phone;
+
+  // VETRA-SEC-07: role assignment requires explicit privilege
+  if (d.role !== undefined) {
+    const allowed = await hasPermission(req.vetraUser!.id, tenantId(req), "users.manage_roles");
+    if (!allowed) { res.status(403).json({ error: "Forbidden: role changes require users.manage_roles permission" }); return; }
+    updates.role = d.role;
+  }
   if (d.active !== undefined) updates.active = d.active;
   // VETRA-SEC-06: Capture old values for audit before update
   const [oldUser] = await db.select({ name: usersTable.name, email: usersTable.email, role: usersTable.role, active: usersTable.active })

@@ -18,6 +18,7 @@ import {
 import { requirePermission } from "../middlewares/permissions";
 import { tenantId, ownedProject } from "../middlewares/tenant";
 import { audit } from "../lib/audit";
+import { computeEVM } from "../lib/scheduling/evm";
 
 const router = Router();
 
@@ -485,22 +486,43 @@ router.get("/projects/:projectId/progress-summary", requirePermission("planning.
   const { computeWeightedProgress } = await import("../lib/scheduling/progress");
   const summary = computeWeightedProgress(items);
   const activityMap = new Map(activities.map((a) => [a.id, a]));
+  const asOfDate = progressRecords.length > 0
+    ? progressRecords.reduce((latest, pr) => pr.reportDate > latest ? pr.reportDate : latest, progressRecords[0].reportDate)
+    : new Date().toISOString().slice(0, 10);
+  const { calculatePlannedProgress, deriveActivityStatus } = await import("../lib/scheduling/progress");
+  const activitiesWithPlanned = summary.activities.map((a) => {
+    const act = activityMap.get(a.activityId);
+    const plannedStart = act?.plannedStart ?? "";
+    const plannedFinish = act?.plannedFinish ?? "";
+    const durationDays = act?.durationDays ?? 0;
+    const plannedProgress = plannedStart && plannedFinish && durationDays > 0
+      ? calculatePlannedProgress(plannedStart, plannedFinish, durationDays, asOfDate)
+      : 0;
+    return {
+      ...a,
+      code: act?.code ?? "",
+      name: act?.name ?? "",
+      plannedStart,
+      plannedFinish,
+      durationDays,
+      status: deriveActivityStatus(a.progressPercent),
+      plannedProgress,
+    };
+  });
+  const overallPlannedProgress = activities.length > 0
+    ? Math.round(activitiesWithPlanned.reduce((sum, a) => sum + a.plannedProgress, 0) / activities.length * 100) / 100
+    : 0;
   res.json({
     overallProgressPercent: summary.overallProgressPercent,
+    plannedProgressPercent: overallPlannedProgress,
     totalWeight: summary.totalWeight,
-    activities: summary.activities.map((a) => ({
-      ...a,
-      code: activityMap.get(a.activityId)?.code ?? "",
-      name: activityMap.get(a.activityId)?.name ?? "",
-      plannedStart: activityMap.get(a.activityId)?.plannedStart ?? "",
-      plannedFinish: activityMap.get(a.activityId)?.plannedFinish ?? "",
-      status: activityMap.get(a.activityId)?.status ?? "not_started",
-    })),
+    activities: activitiesWithPlanned,
     activityCount: activities.length,
     reportedActivityCount: items.filter((a) => a.progressPercent > 0).length,
     activeBaselineId: baselines[0]?.id ?? null,
     dateFrom: dateFrom ?? null,
     dateTo: dateTo ?? null,
+    asOfDate,
   });
 });
 
@@ -576,9 +598,10 @@ router.post("/projects/:projectId/evm", requirePermission("planning.manage"), as
   const parsed = z.object({
     baselineId: idInput,
     reportDate: z.string().date(),
-    plannedValue: z.string().default("0"),
-    earnedValue: z.string().default("0"),
-    actualCost: z.string().default("0"),
+    plannedValue: z.string().default("0").refine((v) => parseFloat(v) >= 0, { message: "plannedValue must be non-negative" }),
+    earnedValue: z.string().default("0").refine((v) => parseFloat(v) >= 0, { message: "earnedValue must be non-negative" }),
+    actualCost: z.string().default("0").refine((v) => parseFloat(v) >= 0, { message: "actualCost must be non-negative" }),
+    bottomUpEstimateToComplete: z.string().optional().refine((v) => v === undefined || parseFloat(v) >= 0, { message: "bottomUpEstimateToComplete must be non-negative" }),
   }).safeParse(req.body);
   if (!projectId.success || !parsed.success) { res.status(400).json({ error: "Invalid EVM input" }); return; }
   const orgId = tenantId(req);
@@ -587,12 +610,17 @@ router.post("/projects/:projectId/evm", requirePermission("planning.manage"), as
   const pv = parseFloat(parsed.data.plannedValue);
   const ev = parseFloat(parsed.data.earnedValue);
   const ac = parseFloat(parsed.data.actualCost);
-  const cv = ev - ac;
-  const sv = ev - pv;
-  const cpi = ac > 0 ? ev / ac : 1;
-  const spi = pv > 0 ? ev / pv : 1;
-  const eac = cpi > 0 ? ac + (pv - ev) / cpi : pv;
-  const etc = eac - ac;
+  const bottomUpETC = parsed.data.bottomUpEstimateToComplete !== undefined
+    ? parseFloat(parsed.data.bottomUpEstimateToComplete)
+    : undefined;
+  const baselineActivities = await db.select({ plannedCost: baselineActivitiesTable.plannedCost })
+    .from(baselineActivitiesTable)
+    .where(and(
+      eq(baselineActivitiesTable.baselineId, parsed.data.baselineId),
+      eq(baselineActivitiesTable.organizationId, orgId),
+    ));
+  const bac = baselineActivities.reduce((sum, a) => sum + parseFloat(String(a.plannedCost)), 0);
+  const metrics = computeEVM({ plannedValue: pv, earnedValue: ev, actualCost: ac, budgetAtCompletion: bac, bottomUpEstimateToComplete: bottomUpETC });
 
   const [row] = await db.insert(evmMetricsTable).values({
     projectId: projectId.data,
@@ -602,12 +630,12 @@ router.post("/projects/:projectId/evm", requirePermission("planning.manage"), as
     plannedValue: parsed.data.plannedValue,
     earnedValue: parsed.data.earnedValue,
     actualCost: parsed.data.actualCost,
-    costVariance: cv.toFixed(2),
-    scheduleVariance: sv.toFixed(2),
-    costPerformanceIndex: cpi.toFixed(2),
-    schedulePerformanceIndex: spi.toFixed(2),
-    estimateAtCompletion: eac.toFixed(2),
-    estimateToComplete: etc.toFixed(2),
+    costVariance: metrics.costVariance.toFixed(2),
+    scheduleVariance: metrics.scheduleVariance.toFixed(2),
+    costPerformanceIndex: metrics.costPerformanceIndex.toFixed(2),
+    schedulePerformanceIndex: metrics.schedulePerformanceIndex.toFixed(2),
+    estimateAtCompletion: metrics.estimateAtCompletion.toFixed(2),
+    estimateToComplete: metrics.estimateToComplete.toFixed(2),
   }).returning();
   res.status(201).json(row);
   audit(req, "scheduling.evm.calculated", "evm", { resourceId: row.id, newValues: { reportDate: row.reportDate, cpi: row.costPerformanceIndex, spi: row.schedulePerformanceIndex } });
@@ -634,23 +662,16 @@ router.get("/projects/:projectId/evm-forecast", requirePermission("planning.read
   const pv = parseFloat(String(latest.plannedValue));
   const ev = parseFloat(String(latest.earnedValue));
   const ac = parseFloat(String(latest.actualCost));
-  // Use PV as BAC when baseline is the plan; in practice BAC comes from baseline
-  const bac = pv;
+  // Derive BAC from baseline activities plannedCost sum
+  const baselineActivities = await db.select({ plannedCost: baselineActivitiesTable.plannedCost })
+    .from(baselineActivitiesTable)
+    .where(and(
+      eq(baselineActivitiesTable.baselineId, latest.baselineId),
+      eq(baselineActivitiesTable.organizationId, orgId),
+    ));
+  const bac = baselineActivities.reduce((sum, a) => sum + parseFloat(String(a.plannedCost)), 0);
 
-  const cpi = ac > 0 ? safeRound(ev / ac) : 1;
-  const spi = pv > 0 ? safeRound(ev / pv) : 1;
-
-  // 1. EAC (CPI) - assumes future performance matches past cost efficiency
-  const eacCpi = cpi > 0 ? safeRound(bac / cpi) : bac;
-
-  // 2. EAC (CPI*SPI) - accounts for both cost and schedule efficiency
-  const cpiTimesSpi = cpi * spi;
-  const eacCpiSpi = cpiTimesSpi > 0.001 ? safeRound(bac / cpiTimesSpi) : bac;
-
-  // 3. EAC (Bottom-up) - AC + bottom-up ETC derived from remaining budget / CPI
-  const remainingWork = Math.max(0, bac - ev);
-  const etcBottomUp = cpi > 0 ? safeRound(remainingWork / cpi) : remainingWork;
-  const eacBottomUp = safeRound(ac + etcBottomUp);
+  const metrics = computeEVM({ plannedValue: pv, earnedValue: ev, actualCost: ac, budgetAtCompletion: bac });
 
   res.json({
     projectId: projectId.data,
@@ -659,17 +680,18 @@ router.get("/projects/:projectId/evm-forecast", requirePermission("planning.read
     plannedValue: pv,
     earnedValue: ev,
     actualCost: ac,
-    cpi,
-    spi,
-    eacCpi,
-    eacCpiSpi,
-    eacBottomUp,
+    cpi: metrics.costPerformanceIndex,
+    spi: metrics.schedulePerformanceIndex,
+    eacCpi: metrics.estimateAtCompletion,
+    eacCpiSpi: metrics.eacCpiSpi,
+    eacBottomUp: metrics.eacBottomUp,
+    costVariance: metrics.costVariance,
+    scheduleVariance: metrics.scheduleVariance,
+    estimateToComplete: metrics.estimateToComplete,
+    varianceAtCompletion: metrics.varianceAtCompletion,
+    toCompletePerformanceIndex: metrics.toCompletePerformanceIndex,
   });
 });
-
-function safeRound(value: number): number {
-  return Math.round(value * 100) / 100;
-}
 
 // ─── Resource Types ───────────────────────────────────────────────────────────
 

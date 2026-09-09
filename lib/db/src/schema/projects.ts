@@ -26,3 +26,14 @@ export const projectsTable = pgTable("projects", {
 export const insertProjectSchema = createInsertSchema(projectsTable).omit({ id: true, createdAt: true });
 export type InsertProject = z.infer<typeof insertProjectSchema>;
 export type Project = typeof projectsTable.$inferSelect;
+
+export const projectMembersTable = pgTable("project_members", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projectsTable.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  organizationId: integer("organization_id").notNull().references(() => organizationsTable.id),
+  role: text("role").notNull().default("member"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type ProjectMember = typeof projectMembersTable.$inferSelect;

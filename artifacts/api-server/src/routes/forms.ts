@@ -60,16 +60,18 @@ function validateAnswers(definition: FormDefinition, answers: Answers): string |
   for (const field of definition.fields) {
     const value = answers[field.id];
     const missing = value === undefined || value === null || value === "";
+    // Type-check before required check so invalid types get the right error
+    if (!missing) {
+      if (field.type === "text" && typeof value !== "string") return `Invalid text value for: ${field.label}`;
+      if (field.type === "number" && (typeof value !== "number" || !Number.isFinite(value))) return `Invalid number value for: ${field.label}`;
+      if (field.type === "date" && (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value))) return `Invalid date value for: ${field.label}`;
+      if (field.type === "checkbox" && typeof value !== "boolean") return `Invalid checkbox value for: ${field.label}`;
+      if (field.type === "select" && (typeof value !== "string" || !field.options?.includes(value))) return `Invalid selection for: ${field.label}`;
+    }
     if (field.required && (missing || (field.type === "checkbox" && value !== true))) {
       return `Required field is missing: ${field.label}`;
     }
     if (missing) continue;
-
-    if (field.type === "text" && typeof value !== "string") return `Invalid text value for: ${field.label}`;
-    if (field.type === "number" && (typeof value !== "number" || !Number.isFinite(value))) return `Invalid number value for: ${field.label}`;
-    if (field.type === "date" && (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value))) return `Invalid date value for: ${field.label}`;
-    if (field.type === "checkbox" && typeof value !== "boolean") return `Invalid checkbox value for: ${field.label}`;
-    if (field.type === "select" && (typeof value !== "string" || !field.options?.includes(value))) return `Invalid selection for: ${field.label}`;
   }
   return null;
 }
@@ -383,6 +385,35 @@ router.post("/form-submissions/:id/submit", requirePermission("forms.submit"), a
     eq(formSubmissionsTable.organizationId, tenantId(req)),
   )).returning();
   audit(req, "form_submission.submitted", "form_submission", { resourceId: row.id, newValues: { status: row.status, workflowRunId: row.workflowRunId } });
+
+  // When resubmitting after revision_requested, reset the existing workflow run to pending
+  // so the approval chain can continue from the current step.
+  if (template.workflowId && submission.workflowRunId && submission.status === "revision_requested") {
+    const [existingRun] = await db.select().from(workflowRunsTable).where(and(
+      eq(workflowRunsTable.id, submission.workflowRunId),
+      eq(workflowRunsTable.organizationId, tenantId(req)),
+      eq(workflowRunsTable.status, "revision_requested"),
+    ));
+    if (existingRun) {
+      await db.update(workflowRunsTable).set({
+        status: "pending",
+        completedAt: null,
+        updatedBy: req.vetraUser!.id,
+        updatedAt: new Date(),
+      }).where(and(
+        eq(workflowRunsTable.id, existingRun.id),
+        eq(workflowRunsTable.organizationId, tenantId(req)),
+      ));
+      await db.insert(workflowRunEventsTable).values({
+        organizationId: tenantId(req),
+        workflowRunId: existingRun.id,
+        workflowStepId: existingRun.currentStep,
+        action: "submitted",
+        actorId: req.vetraUser!.id,
+      });
+    }
+  }
+
   res.json(serialize(row));
 });
 

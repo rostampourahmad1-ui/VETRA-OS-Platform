@@ -65,3 +65,5 @@ bunfig.toml
 
 # temp pnpm store
 .pnpm-store-temp/
+
+.pnpm-local-store/
