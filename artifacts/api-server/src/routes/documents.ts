@@ -1,5 +1,6 @@
 import { Router } from "express";
 import multer from "multer";
+import rateLimit from "express-rate-limit";
 import path from "node:path";
 import fs from "node:fs/promises";
 import { and, eq } from "drizzle-orm";
@@ -19,6 +20,12 @@ import {
 
 const router = Router();
 const uploadDir = path.resolve(process.cwd(), "uploads");
+const downloadRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_UPLOAD_SIZE_BYTES },
@@ -68,7 +75,7 @@ router.post("/documents/upload", requirePermission("documents.create"), upload.s
   notifyDocumentUploaded(req, row.name, row.projectId, row.id);
 });
 
-router.get("/documents/:id/download", requirePermission("documents.download"), async (req, res): Promise<void> => {
+router.get("/documents/:id/download", requirePermission("documents.download"), downloadRateLimiter, async (req, res): Promise<void> => {
   const [row] = await db.select().from(documentsTable).where(and(eq(documentsTable.id, Number(req.params.id)), eq(documentsTable.organizationId, tenantId(req))));
   if (!row || !row.storagePath) { res.status(404).json({ error: "Not found" }); return; }
   let safePath: string;
