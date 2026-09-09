@@ -42,7 +42,12 @@ router.post(
       // 1. Resolve the AI provider
       const config = resolveProviderConfig();
       if (req.body?.provider && typeof req.body.provider === "string") {
-        config.provider = req.body.provider as "openai" | "ollama";
+        const requestedProvider = req.body.provider.toLowerCase();
+        if (requestedProvider !== "openai" && requestedProvider !== "ollama") {
+          res.status(400).json({ error: "provider must be one of: openai, ollama" });
+          return;
+        }
+        config.provider = requestedProvider;
       }
       if (req.body?.model && typeof req.body.model === "string") {
         config.model = req.body.model;
