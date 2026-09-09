@@ -342,9 +342,15 @@ const EVENT_HANDLERS: Record<string, (evt: ClerkUserEvent) => Promise<void>> = {
  * @returns true if the event was handled, false if unknown
  */
 export async function processClerkWebhookEvent(evt: ClerkUserEvent): Promise<boolean> {
-  const handler = EVENT_HANDLERS[evt.type];
-  if (!handler) {
-    logger.info({ type: evt.type }, "Unhandled Clerk event type");
+  const eventType = evt?.type;
+  if (typeof eventType !== "string" || !Object.prototype.hasOwnProperty.call(EVENT_HANDLERS, eventType)) {
+    logger.info({ type: eventType }, "Unhandled Clerk event type");
+    return false;
+  }
+
+  const handler = EVENT_HANDLERS[eventType];
+  if (typeof handler !== "function") {
+    logger.warn({ type: eventType }, "Invalid Clerk event handler configuration");
     return false;
   }
 
