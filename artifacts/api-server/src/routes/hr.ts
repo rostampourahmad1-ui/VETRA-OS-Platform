@@ -73,8 +73,8 @@ router.delete("/employees/:id", requirePermission("hr.delete"), async (req, res)
 
 // ─── Attendance ──────────────────────────────────────────────────────────────
 
-router.get("/attendance", requirePermission("hr.read"), async (req, res): Promise<void> => {
-  const { employeeId, dateFrom, dateTo, status } = req.query as { employeeId?: string; dateFrom?: string; dateTo?: string; status?: string };
+router.post("/attendance/search", requirePermission("hr.read"), async (req, res): Promise<void> => {
+  const { employeeId, dateFrom, dateTo, status } = req.body as { employeeId?: string; dateFrom?: string; dateTo?: string; status?: string };
   const filters = [eq(attendanceTable.organizationId, tenantId(req))];
   if (employeeId) filters.push(eq(attendanceTable.employeeId, Number(employeeId)));
   if (status) filters.push(eq(attendanceTable.status, status));
