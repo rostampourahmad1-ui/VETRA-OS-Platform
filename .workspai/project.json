@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0",
+  "name": "vetra-os-platform",
+  "slug": "vetra-os-platform",
+  "kind": "library",
+  "category": "library",
+  "project_type": "library",
+  "runtime": "bun",
+  "runtime_candidates": [
+    "bun",
+    "node"
+  ],
+  "framework": "bun",
+  "kit": "adopted.bun",
+  "kit_name": "adopted.bun",
+  "engine": "npm",
+  "module_support": false,
+  "modules": [],
+  "contracts": {
+    "owns": [],
+    "apis": [],
+    "publishes": [],
+    "consumes": [],
+    "dependsOn": [],
+    "env": []
+  },
+  "adoption": {
+    "managed_by": "workspai",
+    "mode": "linked",
+    "adopted_at": "2026-09-12T15:56:51.576Z",
+    "relative_path": "external/vetra-os-platform",
+    "is_external": true,
+    "detection": {
+      "framework": "bun",
+      "runtime": "bun",
+      "runtime_candidates": [
+        "bun",
+        "node"
+      ],
+      "confidence": "high",
+      "support_tier": "extended",
+      "source": "marker"
+    }
+  }
+}

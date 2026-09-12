@@ -1,0 +1,169 @@
+{
+  "schemaVersion": "workspai.agent-entry.v1",
+  "generatedAt": "2026-09-12T15:57:27.676Z",
+  "project": {
+    "name": "vetra-os-platform",
+    "relativePath": "external/vetra-os-platform",
+    "runtime": "bun",
+    "framework": "bun"
+  },
+  "workspace": {
+    "name": "workspai",
+    "relationship": "adopted",
+    "localBinding": ".workspai/workspace-link.local.json",
+    "identityIsFilesystemPath": false,
+    "resolverCommand": "workspai project workspace status --json",
+    "portableUriScheme": "workspace:",
+    "resolvedPathPolicy": "runtime-private-never-persist"
+  },
+  "canonical": {
+    "projectContext": ".workspai/reports/project-context-agent.json",
+    "projectGrounding": ".workspai/PROJECT-GROUNDING.md",
+    "projectKnowledgeGraph": ".workspai/reports/project-knowledge-graph-reference.json",
+    "goalIndex": "workspace:.workspai/goals/index.json",
+    "workspaceIndex": "workspace:.workspai/reports/INDEX.json",
+    "workspaceContext": "workspace:.workspai/reports/workspace-context-agent.json",
+    "workspaceModel": "workspace:.workspai/reports/workspace-model.json",
+    "knowledgeGraph": "workspace:.workspai/reports/workspace-knowledge-graph.json",
+    "workspaceSkillsIndex": "workspace:.workspai/reports/workspace-skills-index.json",
+    "boundedGraphSearch": "command:workspai workspace graph search <task-query> --scope project:<project> --limit 12 --json"
+  },
+  "protocol": {
+    "mode": "canonical-first",
+    "bootstrapCommand": "workspai agent bootstrap --for-agent generic --strict --json",
+    "verifyCommand": "workspai project agent-entry verify --for-agent all --strict --json",
+    "requiredReadOrder": [
+      ".workspai/agent-entry.v1.json",
+      "command:workspai agent bootstrap --for-agent generic --strict --json",
+      "command:workspai project workspace status --json",
+      ".workspai/reports/project-context-agent.json",
+      "workspace:.workspai/goals/index.json",
+      "workspace:.workspai/reports/workspace-skills-index.json",
+      "command:workspai workspace graph search <task-query> --scope project:<project> --limit 12 --json",
+      "source:targeted-live-files"
+    ],
+    "sourcePolicy": {
+      "liveSourceAuthority": "exact-implementation",
+      "workspaceEvidenceAuthority": "identity-topology-readiness-goals",
+      "broadScanBeforeBootstrap": false,
+      "sourceMutation": "governed-only",
+      "verificationClaims": "cli-evidence-only"
+    },
+    "degradedMode": {
+      "discloseMissingEvidence": true,
+      "allowCompleteArchitectureClaims": false,
+      "allowReadOnlySourceInspection": true
+    }
+  },
+  "hosts": [
+    {
+      "id": "amazon-q",
+      "discovery": "adapter",
+      "entryFiles": [
+        ".amazonq/rules/workspai-agent-entry.md"
+      ],
+      "status": "ready",
+      "managed": true
+    },
+    {
+      "id": "claude",
+      "discovery": "adapter",
+      "entryFiles": [
+        "CLAUDE.md"
+      ],
+      "status": "ready",
+      "managed": true
+    },
+    {
+      "id": "codex",
+      "discovery": "native",
+      "entryFiles": [
+        "AGENTS.md",
+        ".agents/skills/workspai-grounding/SKILL.md"
+      ],
+      "status": "ready",
+      "managed": true
+    },
+    {
+      "id": "copilot",
+      "discovery": "native",
+      "entryFiles": [
+        "AGENTS.md"
+      ],
+      "status": "ready",
+      "managed": true
+    },
+    {
+      "id": "cursor",
+      "discovery": "native",
+      "entryFiles": [
+        "AGENTS.md"
+      ],
+      "status": "ready",
+      "managed": true
+    },
+    {
+      "id": "gemini",
+      "discovery": "adapter",
+      "entryFiles": [
+        "GEMINI.md"
+      ],
+      "status": "ready",
+      "managed": true
+    },
+    {
+      "id": "generic",
+      "discovery": "portable-fallback",
+      "entryFiles": [
+        ".workspai/PROJECT-GROUNDING.md"
+      ],
+      "status": "ready",
+      "managed": true
+    },
+    {
+      "id": "grok",
+      "discovery": "native",
+      "entryFiles": [
+        "AGENTS.md",
+        ".agents/skills/workspai-grounding/SKILL.md"
+      ],
+      "status": "ready",
+      "managed": true
+    },
+    {
+      "id": "kimi",
+      "discovery": "native",
+      "entryFiles": [
+        "AGENTS.md",
+        ".agents/skills/workspai-grounding/SKILL.md"
+      ],
+      "status": "ready",
+      "managed": true
+    },
+    {
+      "id": "qwen",
+      "discovery": "adapter",
+      "entryFiles": [
+        "QWEN.md"
+      ],
+      "status": "ready",
+      "managed": true
+    },
+    {
+      "id": "windsurf",
+      "discovery": "native",
+      "entryFiles": [
+        "AGENTS.md"
+      ],
+      "status": "ready",
+      "managed": true
+    }
+  ],
+  "integrity": {
+    "algorithm": "sha256",
+    "projectContextHash": "4605964e47d5f05997dc8138f4eea568f0a24dbda2bc89d36aff4593c879fb37",
+    "payloadHash": "45d4c8f4f7226c2ab4e06f9bccf08f51806c5ae15ae76ee5fbd7d10efd6bb6bb",
+    "portable": true,
+    "absolutePathsEmitted": false
+  }
+}

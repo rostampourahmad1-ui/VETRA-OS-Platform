@@ -1,0 +1,998 @@
+{
+  "schemaVersion": "project-context-agent.v1",
+  "generatedAt": "2026-09-12T15:57:27.676Z",
+  "workspace": {
+    "name": "workspai",
+    "profile": "minimal",
+    "relationship": "adopted",
+    "contract": "workspace:.workspai/workspace.contract.json",
+    "projectKnowledgeGraph": ".workspai/reports/project-knowledge-graph-reference.json",
+    "model": "workspace:.workspai/reports/workspace-model.json",
+    "knowledgeGraph": "workspace:.workspai/reports/workspace-knowledge-graph.json",
+    "index": "workspace:.workspai/reports/INDEX.json",
+    "context": "workspace:.workspai/reports/workspace-context-agent.json",
+    "skillsIndex": "workspace:.workspai/reports/workspace-skills-index.json",
+    "boundedGraphSearch": "workspai workspace graph search <task-query> --scope project:vetra-os-platform --limit 12 --json",
+    "access": {
+      "localBinding": ".workspai/workspace-link.local.json",
+      "canonicalEvidenceAvailableAtGeneration": true,
+      "identityIsFilesystemPath": false,
+      "resolverCommand": "workspai project workspace status --json",
+      "portableUriScheme": "workspace:",
+      "resolvedPathPolicy": "runtime-private-never-persist"
+    }
+  },
+  "project": {
+    "name": "vetra-os-platform",
+    "relativePath": "external/vetra-os-platform",
+    "kind": "library",
+    "runtime": "bun",
+    "runtimeCandidates": [
+      "bun",
+      "node"
+    ],
+    "framework": "bun",
+    "kit": "adopted.bun",
+    "supportTier": "extended",
+    "governance": {
+      "schemaVersion": "workspai.project-governance.v1",
+      "ci": {
+        "status": "repository",
+        "provider": null,
+        "evidence": [
+          ".github/workflows"
+        ],
+        "reference": null
+      },
+      "release": {
+        "status": "unknown",
+        "provider": null,
+        "evidence": [],
+        "reference": null
+      },
+      "ownership": {
+        "status": "unknown",
+        "provider": null,
+        "evidence": [],
+        "reference": null
+      }
+    },
+    "commands": {
+      "supported": [
+        "build",
+        "commands",
+        "docs",
+        "doctor",
+        "help",
+        "init",
+        "lint",
+        "project",
+        "test",
+        "version"
+      ],
+      "unsupported": [
+        "add",
+        "checkpoint",
+        "dev",
+        "diff",
+        "format",
+        "merge",
+        "modules",
+        "optimize",
+        "reconcile",
+        "rollback",
+        "snapshot",
+        "start",
+        "uninstall",
+        "upgrade"
+      ],
+      "fleetStages": [
+        "build",
+        "init",
+        "test"
+      ]
+    },
+    "importantFiles": [
+      ".workspai/project.json",
+      "Dockerfile",
+      "README.md",
+      "bunfig.toml",
+      "docker-compose.yml",
+      "package.json",
+      "pnpm-workspace.yaml",
+      "tsconfig.json"
+    ]
+  },
+  "intelligence": {
+    "modelGeneratedAt": "2026-09-12T15:56:57.561Z",
+    "graphGeneratedAt": "2026-09-12T15:56:57.561Z",
+    "graphModelHash": "71e52533a21a830ad2bf4cf9828e1338b9daedead7f76bf473fc2ccde11dd78a",
+    "entityCount": 4826,
+    "relationCount": 7248,
+    "proofCount": 8590,
+    "entitiesByKind": {
+      "api": 1,
+      "container": 4,
+      "database": 1,
+      "decision": 1,
+      "document": 5,
+      "endpoint": 398,
+      "environment": 1,
+      "file": 469,
+      "language": 8,
+      "lifecycle-stage": 3,
+      "module": 225,
+      "package": 9,
+      "pipeline": 1,
+      "project": 1,
+      "runtime-unit": 9,
+      "schema": 82,
+      "service": 3,
+      "symbol": 3600,
+      "test-suite": 4,
+      "workspace": 1
+    },
+    "relationsByKind": {
+      "calls": 685,
+      "implements": 71,
+      "imports": 1570,
+      "contains": 737,
+      "defines": 3838,
+      "references": 139,
+      "tests": 4,
+      "depends-on": 175,
+      "uses-language": 8,
+      "runs-on": 1,
+      "exposes": 1,
+      "documents": 5,
+      "configured-by": 10,
+      "deploys": 3,
+      "decided-by": 1
+    },
+    "languages": {
+      "batch": {
+        "fileCount": 2,
+        "symbolCount": 0,
+        "generatedFileCount": 0
+      },
+      "csharp": {
+        "fileCount": 1,
+        "symbolCount": 2,
+        "generatedFileCount": 0
+      },
+      "javascript": {
+        "fileCount": 8,
+        "symbolCount": 160,
+        "generatedFileCount": 0
+      },
+      "powershell": {
+        "fileCount": 4,
+        "symbolCount": 0,
+        "generatedFileCount": 0
+      },
+      "python": {
+        "fileCount": 39,
+        "symbolCount": 236,
+        "generatedFileCount": 0
+      },
+      "shell": {
+        "fileCount": 3,
+        "symbolCount": 0,
+        "generatedFileCount": 0
+      },
+      "sql": {
+        "fileCount": 27,
+        "symbolCount": 0,
+        "generatedFileCount": 0
+      },
+      "typescript": {
+        "fileCount": 466,
+        "symbolCount": 3202,
+        "generatedFileCount": 140
+      }
+    },
+    "semantic": {
+      "protocolConceptCount": 0,
+      "protocolImplementationBindings": 0,
+      "equivalenceBindings": 0,
+      "generationBindings": 0,
+      "runtimeUnitCount": 9,
+      "lifecycleStageCount": 3,
+      "runtimeCoverage": [
+        "bun"
+      ]
+    },
+    "projection": {
+      "mode": "stratified-byte-bounded",
+      "maxEntities": 48,
+      "byteBudget": 12288,
+      "selectedBytes": 11999,
+      "eligibleCount": 4826,
+      "selectedCount": 21,
+      "omittedCount": 4805,
+      "selectedByKind": {
+        "api": 1,
+        "container": 1,
+        "database": 1,
+        "decision": 1,
+        "document": 1,
+        "endpoint": 1,
+        "environment": 1,
+        "file": 1,
+        "language": 2,
+        "lifecycle-stage": 1,
+        "module": 1,
+        "package": 1,
+        "pipeline": 1,
+        "project": 1,
+        "runtime-unit": 1,
+        "schema": 1,
+        "service": 2,
+        "symbol": 1,
+        "test-suite": 1
+      },
+      "omittedByKind": {
+        "container": 3,
+        "document": 4,
+        "endpoint": 397,
+        "file": 468,
+        "language": 6,
+        "lifecycle-stage": 2,
+        "module": 224,
+        "package": 8,
+        "runtime-unit": 8,
+        "schema": 81,
+        "service": 1,
+        "symbol": 3599,
+        "test-suite": 3,
+        "workspace": 1
+      },
+      "continuationCommand": "workspai workspace graph search <task-query> --scope project:vetra-os-platform --limit 12 --json"
+    },
+    "relatedProjects": [],
+    "freshness": {
+      "model": "unknown",
+      "graph": "fresh",
+      "graphMatchesModel": true
+    },
+    "topology": {
+      "status": "unproven",
+      "dependencies": [],
+      "dependents": []
+    },
+    "surfaces": {
+      "services": [
+        {
+          "id": "wkg:service:2f97dc3cf3c90ecef2ca",
+          "kind": "service",
+          "label": "pgbouncer",
+          "attributes": {
+            "environmentKeys": [
+              "ADMIN_USERS",
+              "AUTH_PASSWORD",
+              "AUTH_TYPE",
+              "AUTH_USER",
+              "CLIENT_IDLE_TIMEOUT",
+              "DB_HOST",
+              "DB_NAME",
+              "DB_PASSWORD",
+              "DB_PORT",
+              "DB_USER",
+              "DEFAULT_POOL_SIZE",
+              "IDLE_TRANSACTION_TIMEOUT",
+              "LOG_CONNECTIONS",
+              "LOG_DISCONNECTIONS",
+              "MAX_CLIENT_CONN",
+              "MAX_DB_CONNECTIONS",
+              "MAX_USER_CONNECTIONS",
+              "POOL_MODE",
+              "QUERY_TIMEOUT",
+              "QUERY_WAIT_TIMEOUT",
+              "RESERVE_POOL_SIZE",
+              "RESERVE_POOL_TIMEOUT",
+              "SERVER_CONNECT_TIMEOUT",
+              "SERVER_IDLE_TIMEOUT",
+              "SERVER_LIFETIME",
+              "SERVER_RESET_QUERY",
+              "STATS_PERIOD",
+              "VERBOSE"
+            ],
+            "image": "edoburu/pgbouncer:1.24.0",
+            "networks": [
+              "vetra-network"
+            ],
+            "ports": [
+              "${PGBOUNCER_PORT:-6432}:6432"
+            ]
+          },
+          "proofIds": [
+            "wkg:proof:41a62317b7c17606d211"
+          ]
+        },
+        {
+          "id": "wkg:service:a31fb3b19315987fd3c8",
+          "kind": "service",
+          "label": "postgres",
+          "attributes": {
+            "environmentKeys": [
+              "POSTGRES_DB",
+              "POSTGRES_PASSWORD",
+              "POSTGRES_USER"
+            ],
+            "image": "postgres:16.8-alpine",
+            "networks": [
+              "vetra-network"
+            ],
+            "ports": [
+              "${POSTGRES_PORT:-5432}:5432"
+            ]
+          },
+          "proofIds": [
+            "wkg:proof:4e0f71e3abda387ea425"
+          ]
+        }
+      ],
+      "packages": [
+        {
+          "id": "wkg:package:c87aa9f4e0dddea32806",
+          "kind": "package",
+          "label": "@workspace/api-client-react",
+          "attributes": {
+            "dependencies": [
+              "@tanstack/react-query"
+            ],
+            "ecosystem": "npm",
+            "entrypoints": [],
+            "executables": [],
+            "exports": [
+              "."
+            ],
+            "manifest": "external/vetra-os-platform/lib/api-client-react/package.json",
+            "runtimeConstraints": [],
+            "version": "0.0.0"
+          },
+          "proofIds": [
+            "wkg:proof:1834abc9091052b9091e"
+          ]
+        }
+      ],
+      "protocols": [],
+      "runtimeUnits": [
+        {
+          "id": "wkg:runtime-unit:c070246e5bd5491232a3",
+          "kind": "runtime-unit",
+          "label": "bun:external/vetra-os-platform:package.json",
+          "attributes": {
+            "ecosystem": "bun",
+            "manifest": "external/vetra-os-platform/package.json",
+            "orchestrationMode": "native-manifest",
+            "role": "production",
+            "root": "external/vetra-os-platform",
+            "runtime": "bun",
+            "stages": [
+              "build",
+              "init",
+              "test"
+            ]
+          },
+          "proofIds": [
+            "wkg:proof:40c47caacaf624bb962a"
+          ]
+        }
+      ],
+      "lifecycleStages": [
+        {
+          "id": "wkg:lifecycle-stage:e68930c8a7e4a12ae48e",
+          "kind": "lifecycle-stage",
+          "label": "build · bun:external/vetra-os-platform:package.json",
+          "attributes": {
+            "command": "bun run build",
+            "commandConfidence": "high",
+            "preflight": "executable-and-inputs",
+            "runtime": "bun",
+            "stage": "build",
+            "workingDirectory": "external/vetra-os-platform"
+          },
+          "proofIds": [
+            "wkg:proof:40c47caacaf624bb962a"
+          ]
+        }
+      ],
+      "apis": [
+        {
+          "id": "wkg:api:829412577b5c174ee2cb",
+          "kind": "api",
+          "label": "Api",
+          "attributes": {
+            "runtimeRegistrationRequired": true,
+            "specification": "3.1.0",
+            "version": "0.1.0"
+          },
+          "proofIds": [
+            "wkg:proof:c552cb9d185224fe05e5"
+          ]
+        }
+      ],
+      "endpoints": [
+        {
+          "id": "wkg:endpoint:f5c197e5c1c0a03004da",
+          "kind": "endpoint",
+          "label": "DELETE /calendars/:id",
+          "attributes": {
+            "method": "DELETE",
+            "path": "/calendars/:id",
+            "source": "external/vetra-os-platform/artifacts/api-server/src/routes/scheduling.ts"
+          },
+          "proofIds": [
+            "wkg:proof:7cdde1382ba80103b5b8"
+          ]
+        }
+      ],
+      "dataStores": [
+        {
+          "id": "wkg:database:de24efcd1020c1894de6",
+          "kind": "database",
+          "label": "postgres:16.8-alpine",
+          "attributes": {
+            "image": "postgres:16.8-alpine"
+          },
+          "proofIds": [
+            "wkg:proof:4e0f71e3abda387ea425"
+          ]
+        }
+      ],
+      "deployments": [
+        {
+          "id": "wkg:container:16b42785710736a69bba",
+          "kind": "container",
+          "label": "edoburu/pgbouncer:1.24.0",
+          "attributes": {
+            "image": "edoburu/pgbouncer:1.24.0"
+          },
+          "proofIds": [
+            "wkg:proof:41a62317b7c17606d211"
+          ]
+        },
+        {
+          "id": "wkg:environment:ae74c1c6c391f2e2175c",
+          "kind": "environment",
+          "label": "vetra-os-platform environment contract",
+          "attributes": {
+            "keys": [
+              "CLERK_PUBLISHABLE_KEY",
+              "CLERK_SECRET_KEY",
+              "CLERK_WEBHOOK_SECRET",
+              "CORS_ALLOWED_ORIGINS",
+              "DATABASE_APP_URL",
+              "DATABASE_MIGRATION_URL",
+              "DATABASE_PGBOUNCER_URL",
+              "DATABASE_READONLY_URL",
+              "DATABASE_URL",
+              "OPENAI_API_BASE",
+              "OPENAI_API_KEY",
+              "OPENAI_MODEL",
+              "PORT",
+              "POSTGRES_ADMIN_PASSWORD",
+              "POSTGRES_APP_PASSWORD",
+              "POSTGRES_MIGRATION_PASSWORD",
+              "POSTGRES_READONLY_PASSWORD",
+              "VITE_CLERK_PUBLISHABLE_KEY"
+            ],
+            "valuesEmitted": false
+          },
+          "proofIds": [
+            "wkg:proof:614068d60ee3bbff9b72"
+          ]
+        }
+      ],
+      "pipelines": [
+        {
+          "id": "wkg:pipeline:0a7233141d848822e895",
+          "kind": "pipeline",
+          "label": "Dependency review",
+          "attributes": {
+            "artifact": "external/vetra-os-platform/.github/workflows/dependency-review.yml",
+            "jobs": [
+              "dependency-review"
+            ],
+            "triggers": [
+              "pull_request"
+            ]
+          },
+          "proofIds": [
+            "wkg:proof:b27fd64e35a7a5c3f7f0"
+          ]
+        }
+      ],
+      "tests": [
+        {
+          "id": "wkg:test-suite:ccc4785009700b362e1e",
+          "kind": "test-suite",
+          "label": "vetra-os-platform javascript tests",
+          "attributes": {
+            "fileCount": 1,
+            "language": "javascript"
+          },
+          "proofIds": [
+            "wkg:proof:81cd0d328b48e48c5d80"
+          ]
+        }
+      ],
+      "owners": [],
+      "decisions": [
+        {
+          "id": "wkg:decision:fbeac7bf3e4202080a0d",
+          "kind": "decision",
+          "label": "Architecture Decision: RLS context در محدودهٔ request و transaction",
+          "attributes": {
+            "artifact": "external/vetra-os-platform/docs/adr-request-scoped-rls.md"
+          },
+          "proofIds": [
+            "wkg:proof:bac56631762b1f84236d"
+          ]
+        }
+      ],
+      "ports": [
+        {
+          "entityId": "wkg:service:2f97dc3cf3c90ecef2ca",
+          "label": "pgbouncer",
+          "attribute": "ports",
+          "value": [
+            "${PGBOUNCER_PORT:-6432}:6432"
+          ]
+        },
+        {
+          "entityId": "wkg:service:a31fb3b19315987fd3c8",
+          "label": "postgres",
+          "attribute": "ports",
+          "value": [
+            "${POSTGRES_PORT:-5432}:5432"
+          ]
+        }
+      ]
+    },
+    "diagnostics": [
+      {
+        "code": "graph.provider.authored-api-implementation-binding.empty_result",
+        "severity": "warning",
+        "message": "authored-api-implementation-binding found an applicable source surface but produced no graph evidence.",
+        "recommendation": "Inspect the matching source format or extend the provider before treating this graph dimension as complete."
+      },
+      {
+        "code": "graph.provider.source_symbol_binding.ambiguous_calls",
+        "severity": "info",
+        "message": "36 call site(s) were left unbound because more than one proven local symbol matched.",
+        "recommendation": "Provide compiler or language-server semantic evidence when exact overload or dynamic dispatch resolution is required."
+      }
+    ]
+  },
+  "evidence": {
+    "readOrder": [
+      ".workspai/agent-entry.v1.json",
+      ".workspai/PROJECT-GROUNDING.md",
+      ".workspai/reports/project-context-agent.json",
+      "AGENTS.md",
+      "workspace:.workspai/goals/index.json",
+      "workspace:.workspai/reports/goal-pack-last-run.json",
+      "workspace:.workspai/reports/workspace-skills-index.json",
+      "command:workspai workspace graph search <task-query> --scope project:vetra-os-platform --limit 12 --json"
+    ],
+    "projectProofArtifacts": [
+      "external/vetra-os-platform/.agents/skills/pptx/scripts/office/helpers/pptx_chart.py",
+      "external/vetra-os-platform/.agents/skills/pptx/scripts/office/validators/base.py",
+      "external/vetra-os-platform/.agents/skills/ui-ux-pro-max/scripts/tests/test_core.py",
+      "external/vetra-os-platform/.env.example",
+      "external/vetra-os-platform/artifacts/api-server/src/routes/scheduling.ts",
+      "external/vetra-os-platform/artifacts/setup/SETUP-VETRA.bat",
+      "external/vetra-os-platform/artifacts/vetra/src/components/ui/avatar.tsx",
+      "external/vetra-os-platform/docker-compose.yml",
+      "external/vetra-os-platform/lib/api-client-react/package.json",
+      "external/vetra-os-platform/lib/api-spec/openapi.yaml",
+      "external/vetra-os-platform/lib/api-zod/src/generated/types/formField.ts",
+      "external/vetra-os-platform/lib/api-zod/src/generated/types/meetingUpdate.ts",
+      "external/vetra-os-platform/package.json"
+    ],
+    "relations": [
+      {
+        "id": "wkg:relation:00305c6184828e036703",
+        "from": "wkg:project:557a5129e7aee32bea7e",
+        "to": "wkg:file:e2fbc173bd8fe34cf4ef",
+        "kind": "contains",
+        "derivation": "extracted",
+        "trust": "observed",
+        "confidence": "high",
+        "proofIds": [
+          "wkg:proof:a6836c85f32b20ad0ca1"
+        ]
+      },
+      {
+        "id": "wkg:relation:003698cc2e632bea9e80",
+        "from": "wkg:project:557a5129e7aee32bea7e",
+        "to": "wkg:file:c98f5c4d2811580bb1ba",
+        "kind": "contains",
+        "derivation": "extracted",
+        "trust": "observed",
+        "confidence": "high",
+        "proofIds": [
+          "wkg:proof:64be3bfda18fdc3422e0"
+        ]
+      },
+      {
+        "id": "wkg:relation:00ac6c898dcdc1e64021",
+        "from": "wkg:project:557a5129e7aee32bea7e",
+        "to": "wkg:file:59286487b3f6341d7dab",
+        "kind": "contains",
+        "derivation": "extracted",
+        "trust": "observed",
+        "confidence": "high",
+        "proofIds": [
+          "wkg:proof:7e1da322097723d913a4",
+          "wkg:proof:867926cb526b780f2397"
+        ]
+      },
+      {
+        "id": "wkg:relation:00efbae7fba184bc9960",
+        "from": "wkg:project:557a5129e7aee32bea7e",
+        "to": "wkg:file:ef4dd625e53dee69c24d",
+        "kind": "contains",
+        "derivation": "extracted",
+        "trust": "observed",
+        "confidence": "high",
+        "proofIds": [
+          "wkg:proof:63dfb3bcfb6af7c0f655",
+          "wkg:proof:e96901b8aad9e3adc334"
+        ]
+      },
+      {
+        "id": "wkg:relation:018e692c742dfdf713a0",
+        "from": "wkg:api:829412577b5c174ee2cb",
+        "to": "wkg:schema:c41d84146f71966708ca",
+        "kind": "contains",
+        "derivation": "authored",
+        "trust": "authoritative",
+        "confidence": "high",
+        "proofIds": [
+          "wkg:proof:8919c6d200fbfced2951"
+        ]
+      },
+      {
+        "id": "wkg:relation:0199575b308a7bd176e5",
+        "from": "wkg:api:829412577b5c174ee2cb",
+        "to": "wkg:endpoint:20217e50861365b9b45c",
+        "kind": "contains",
+        "derivation": "authored",
+        "trust": "authoritative",
+        "confidence": "high",
+        "proofIds": [
+          "wkg:proof:7ff6eeeb4aeef5fe3244"
+        ]
+      },
+      {
+        "id": "wkg:relation:02183074661b18f62c7b",
+        "from": "wkg:api:829412577b5c174ee2cb",
+        "to": "wkg:endpoint:905307ced226fc8a9cf6",
+        "kind": "contains",
+        "derivation": "authored",
+        "trust": "authoritative",
+        "confidence": "high",
+        "proofIds": [
+          "wkg:proof:a078bf0c93f47c4e59c7"
+        ]
+      },
+      {
+        "id": "wkg:relation:027a570c8cdafc0ab93c",
+        "from": "wkg:project:557a5129e7aee32bea7e",
+        "to": "wkg:file:a9bb166062aa9d524246",
+        "kind": "contains",
+        "derivation": "extracted",
+        "trust": "observed",
+        "confidence": "high",
+        "proofIds": [
+          "wkg:proof:816875dafff7a37ac88f"
+        ]
+      },
+      {
+        "id": "wkg:relation:0293cb78550c8a84d794",
+        "from": "wkg:project:557a5129e7aee32bea7e",
+        "to": "wkg:file:b3f111a68512631e0ad9",
+        "kind": "contains",
+        "derivation": "extracted",
+        "trust": "observed",
+        "confidence": "high",
+        "proofIds": [
+          "wkg:proof:80597848a29d37cf6cca"
+        ]
+      },
+      {
+        "id": "wkg:relation:02c18c698e819d04f5fd",
+        "from": "wkg:api:829412577b5c174ee2cb",
+        "to": "wkg:endpoint:13ed3cbd2f563e7a57ca",
+        "kind": "contains",
+        "derivation": "authored",
+        "trust": "authoritative",
+        "confidence": "high",
+        "proofIds": [
+          "wkg:proof:2684923c538fbcd0fbd3"
+        ]
+      },
+      {
+        "id": "wkg:relation:03326fde5cb69edfd7d2",
+        "from": "wkg:project:557a5129e7aee32bea7e",
+        "to": "wkg:file:0d3fe0551602c3116dac",
+        "kind": "contains",
+        "derivation": "extracted",
+        "trust": "observed",
+        "confidence": "high",
+        "proofIds": [
+          "wkg:proof:ce3e6f784130c74faab3"
+        ]
+      },
+      {
+        "id": "wkg:relation:036b6a54a511f6345dc2",
+        "from": "wkg:file:68bd68aee6170615dcee",
+        "to": "wkg:symbol:d46605546b200ed200f2",
+        "kind": "defines",
+        "derivation": "extracted",
+        "trust": "observed",
+        "confidence": "medium",
+        "proofIds": [
+          "wkg:proof:b84f07eb0ef5c7ad9459"
+        ]
+      },
+      {
+        "id": "wkg:relation:03a1543cf182fb19fcdb",
+        "from": "wkg:test-suite:c4f22d86faf75080bb6f",
+        "to": "wkg:project:557a5129e7aee32bea7e",
+        "kind": "tests",
+        "derivation": "extracted",
+        "trust": "observed",
+        "confidence": "high",
+        "proofIds": [
+          "wkg:proof:77224ebcd8b1ef43e1b6"
+        ]
+      },
+      {
+        "id": "wkg:relation:03ae23cbe489787f61b1",
+        "from": "wkg:project:557a5129e7aee32bea7e",
+        "to": "wkg:file:4083dcd9781257191eac",
+        "kind": "contains",
+        "derivation": "extracted",
+        "trust": "observed",
+        "confidence": "high",
+        "proofIds": [
+          "wkg:proof:5fc6d6256ae6ef0b4466"
+        ]
+      },
+      {
+        "id": "wkg:relation:03e79a8c6f9db52d4ac0",
+        "from": "wkg:api:829412577b5c174ee2cb",
+        "to": "wkg:endpoint:a418569f6cb24e7190cb",
+        "kind": "contains",
+        "derivation": "authored",
+        "trust": "authoritative",
+        "confidence": "high",
+        "proofIds": [
+          "wkg:proof:64b5219477b3d8532862"
+        ]
+      },
+      {
+        "id": "wkg:relation:04011d649705300a147c",
+        "from": "wkg:file:68bd68aee6170615dcee",
+        "to": "wkg:symbol:1f436a21b951e6a58c43",
+        "kind": "defines",
+        "derivation": "extracted",
+        "trust": "observed",
+        "confidence": "medium",
+        "proofIds": [
+          "wkg:proof:e98d2bd206b2b574b7c0"
+        ]
+      }
+    ],
+    "proofs": [
+      {
+        "id": "wkg:proof:1834abc9091052b9091e",
+        "provider": "workspace-foundation",
+        "artifact": "external/vetra-os-platform/lib/api-client-react/package.json",
+        "pointer": "/",
+        "derivation": "extracted",
+        "trust": "observed",
+        "confidence": "high",
+        "freshness": "fresh"
+      },
+      {
+        "id": "wkg:proof:2684923c538fbcd0fbd3",
+        "provider": "openapi",
+        "artifact": "external/vetra-os-platform/lib/api-spec/openapi.yaml",
+        "pointer": "/paths/~1suppliers~1{id}/patch",
+        "derivation": "extracted",
+        "trust": "authoritative",
+        "confidence": "high",
+        "freshness": "fresh"
+      },
+      {
+        "id": "wkg:proof:40c47caacaf624bb962a",
+        "provider": "workspace-foundation",
+        "artifact": "external/vetra-os-platform/package.json",
+        "pointer": "/",
+        "derivation": "extracted",
+        "trust": "observed",
+        "confidence": "high",
+        "freshness": "fresh"
+      },
+      {
+        "id": "wkg:proof:41a62317b7c17606d211",
+        "provider": "compose",
+        "artifact": "external/vetra-os-platform/docker-compose.yml",
+        "pointer": "/services/pgbouncer",
+        "derivation": "authored",
+        "trust": "authoritative",
+        "confidence": "high",
+        "freshness": "fresh"
+      },
+      {
+        "id": "wkg:proof:4e0f71e3abda387ea425",
+        "provider": "compose",
+        "artifact": "external/vetra-os-platform/docker-compose.yml",
+        "pointer": "/services/postgres",
+        "derivation": "authored",
+        "trust": "authoritative",
+        "confidence": "high",
+        "freshness": "fresh"
+      },
+      {
+        "id": "wkg:proof:5fc6d6256ae6ef0b4466",
+        "provider": "source-structure",
+        "artifact": "external/vetra-os-platform/lib/api-zod/src/generated/types/meetingUpdate.ts",
+        "derivation": "extracted",
+        "trust": "observed",
+        "confidence": "high",
+        "freshness": "fresh"
+      },
+      {
+        "id": "wkg:proof:614068d60ee3bbff9b72",
+        "provider": "workspace-foundation",
+        "artifact": "external/vetra-os-platform/.env.example",
+        "derivation": "extracted",
+        "trust": "observed",
+        "confidence": "high",
+        "freshness": "fresh"
+      },
+      {
+        "id": "wkg:proof:62cf346d629fb5a7a9e4",
+        "provider": "source-structure",
+        "artifact": "external/vetra-os-platform/.agents/skills/pptx/scripts/office/helpers/pptx_chart.py",
+        "line": 8,
+        "derivation": "extracted",
+        "trust": "observed",
+        "confidence": "medium",
+        "freshness": "fresh"
+      },
+      {
+        "id": "wkg:proof:63dfb3bcfb6af7c0f655",
+        "provider": "source-structure",
+        "artifact": "external/vetra-os-platform/.agents/skills/pptx/scripts/office/validators/base.py",
+        "derivation": "extracted",
+        "trust": "observed",
+        "confidence": "high",
+        "freshness": "fresh"
+      },
+      {
+        "id": "wkg:proof:64b5219477b3d8532862",
+        "provider": "openapi",
+        "artifact": "external/vetra-os-platform/lib/api-spec/openapi.yaml",
+        "pointer": "/paths/~1tasks~1{id}/delete",
+        "derivation": "extracted",
+        "trust": "authoritative",
+        "confidence": "high",
+        "freshness": "fresh"
+      },
+      {
+        "id": "wkg:proof:64be3bfda18fdc3422e0",
+        "provider": "source-structure",
+        "artifact": "external/vetra-os-platform/artifacts/vetra/src/components/ui/avatar.tsx",
+        "derivation": "extracted",
+        "trust": "observed",
+        "confidence": "high",
+        "freshness": "fresh"
+      },
+      {
+        "id": "wkg:proof:6970e4217b10e18ddf8c",
+        "provider": "source-language-inventory",
+        "artifact": "external/vetra-os-platform/artifacts/setup/SETUP-VETRA.bat",
+        "derivation": "extracted",
+        "trust": "observed",
+        "confidence": "high",
+        "freshness": "fresh"
+      },
+      {
+        "id": "wkg:proof:7124882dae60106904e8",
+        "provider": "openapi",
+        "artifact": "external/vetra-os-platform/lib/api-spec/openapi.yaml",
+        "pointer": "/components/schemas/ActivityItem",
+        "derivation": "extracted",
+        "trust": "authoritative",
+        "confidence": "high",
+        "freshness": "fresh"
+      },
+      {
+        "id": "wkg:proof:77224ebcd8b1ef43e1b6",
+        "provider": "workspace-foundation",
+        "artifact": "external/vetra-os-platform/.agents/skills/ui-ux-pro-max/scripts/tests/test_core.py",
+        "derivation": "extracted",
+        "trust": "observed",
+        "confidence": "high",
+        "freshness": "fresh"
+      },
+      {
+        "id": "wkg:proof:7cdde1382ba80103b5b8",
+        "provider": "source-structure",
+        "artifact": "external/vetra-os-platform/artifacts/api-server/src/routes/scheduling.ts",
+        "line": 73,
+        "derivation": "extracted",
+        "trust": "observed",
+        "confidence": "medium",
+        "freshness": "fresh"
+      },
+      {
+        "id": "wkg:proof:7e1da322097723d913a4",
+        "provider": "source-structure",
+        "artifact": "external/vetra-os-platform/lib/api-zod/src/generated/types/formField.ts",
+        "derivation": "extracted",
+        "trust": "observed",
+        "confidence": "high",
+        "freshness": "fresh"
+      }
+    ]
+  },
+  "blockers": [],
+  "agentRouting": {
+    "enforcement": "required",
+    "mandatoryPreflight": {
+      "command": "workspai agent bootstrap --for-agent generic --strict --json",
+      "successCondition": "ready"
+    },
+    "workspaceLocator": {
+      "command": "workspai project workspace status --json",
+      "successCondition": "resolved",
+      "outputClassification": "machine-local",
+      "persistence": "forbidden",
+      "disclosure": "forbidden",
+      "portableUriScheme": "workspace:"
+    },
+    "workspaceEvidenceRequiredFor": [
+      "repository-analysis",
+      "architecture-analysis",
+      "change-impact",
+      "cross-project-change",
+      "contract-change",
+      "infrastructure-change",
+      "release-readiness"
+    ],
+    "requiredReadOrder": [
+      ".workspai/agent-entry.v1.json",
+      "command:workspai agent bootstrap --for-agent generic --strict --json",
+      "command:workspai project workspace status --json",
+      ".workspai/reports/project-context-agent.json",
+      "workspace:.workspai/reports/workspace-skills-index.json",
+      "command:workspai workspace graph search \"vetra-os-platform\" --scope \"project:vetra-os-platform\" --limit 12 --json"
+    ],
+    "degradedMode": {
+      "allowCompleteArchitectureClaims": false,
+      "requireDisclosure": true
+    }
+  },
+  "commands": {
+    "refresh": "workspai workspace intelligence run --for-agent generic --strict --json",
+    "verify": "workspai workspace verify --strict --json",
+    "graphSearch": "workspai workspace graph search \"vetra-os-platform\" --scope \"project:vetra-os-platform\" --limit 12 --json",
+    "doctor": "workspai doctor project --json",
+    "workspaceStatus": "workspai project workspace status --json"
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "modelHash": "71e52533a21a830ad2bf4cf9828e1338b9daedead7f76bf473fc2ccde11dd78a",
+    "payloadHash": "4605964e47d5f05997dc8138f4eea568f0a24dbda2bc89d36aff4593c879fb37",
+    "portable": true,
+    "absolutePathsEmitted": false
+  }
+}

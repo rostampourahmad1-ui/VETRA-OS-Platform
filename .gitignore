@@ -67,3 +67,6 @@ bunfig.toml
 .pnpm-store-temp/
 
 .pnpm-local-store/
+
+# Workspai machine-local workspace binding
+.workspai/workspace-link.local.json

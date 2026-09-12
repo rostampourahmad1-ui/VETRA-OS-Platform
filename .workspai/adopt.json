@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0",
+  "kind": "workspai.adopted_project",
+  "adopted_at": "2026-09-12T15:56:51.576Z",
+  "managed_by": "workspai",
+  "mode": "linked",
+  "workspace": {
+    "name": "workspai",
+    "contract": ".workspai/workspace.contract.json"
+  },
+  "project": {
+    "name": "vetra-os-platform",
+    "relative_path": "external/vetra-os-platform",
+    "is_external": true,
+    "kind": "library",
+    "category": "library",
+    "module_support": false
+  },
+  "detection": {
+    "framework": "bun",
+    "framework_display_name": "Bun",
+    "runtime": "bun",
+    "runtime_candidates": [
+      "bun",
+      "node"
+    ],
+    "kind": "library",
+    "category": "library",
+    "confidence": "high",
+    "support_tier": "extended",
+    "import_stack": "unknown",
+    "source": "marker"
+  },
+  "policy": {
+    "moved_source": false,
+    "copied_source": false,
+    "module_mutation_enabled": false,
+    "workspace_contract": "linked-project",
+    "profile_compatibility": {
+      "ok": true,
+      "profile": "minimal",
+      "runtimes": [
+        "node",
+        "bun"
+      ],
+      "message": "minimal profile is compatible with detected runtime mix."
+    }
+  }
+}

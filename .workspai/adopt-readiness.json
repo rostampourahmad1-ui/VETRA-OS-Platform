@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "kind": "rapidkit.import_readiness",
+  "generatedAt": "2026-09-12T15:56:51.576Z",
+  "status": "review",
+  "project": {
+    "name": "vetra-os-platform",
+    "relativePath": "external/vetra-os-platform",
+    "kind": "library",
+    "source": "adopted-local"
+  },
+  "detection": {
+    "runtime": "bun",
+    "framework": "bun",
+    "frameworkDisplayName": "Bun",
+    "confidence": "high",
+    "supportTier": "extended",
+    "importStack": "unknown"
+  },
+  "commandSupport": {
+    "lifecycleCommands": [
+      "build",
+      "help",
+      "init",
+      "lint",
+      "test"
+    ],
+    "unsupportedLifecycleCommands": [
+      "dev",
+      "format",
+      "start"
+    ],
+    "moduleCommands": false
+  },
+  "checks": [
+    {
+      "id": "framework-detection",
+      "status": "pass",
+      "message": "Detected Bun with high confidence."
+    },
+    {
+      "id": "runtime-support",
+      "status": "warn",
+      "message": "Bun is supported at observed tier.",
+      "recommendation": "Observed runtimes are contract-aware but may need manual commands until a first-class kit exists."
+    },
+    {
+      "id": "module-mutation-policy",
+      "status": "warn",
+      "message": "RapidKit Core module mutation is disabled for this imported project.",
+      "recommendation": "Use project lifecycle and workspace governance commands; enable module_support only after validating a compatible module generator."
+    },
+    {
+      "id": "lifecycle-commands",
+      "status": "pass",
+      "message": "Lifecycle commands available: build, help, init, lint, test."
+    }
+  ]
+}
