@@ -1,6 +1,6 @@
 {
   "schemaVersion": "project-knowledge-graph-reference.v1",
-  "generatedAt": "2026-09-12T15:56:57.561Z",
+  "generatedAt": "2026-09-12T18:34:36.405Z",
   "project": {
     "name": "vetra-os-platform"
   },
@@ -8,7 +8,7 @@
     "graph": "workspace:.workspai/reports/workspace-knowledge-graph.json",
     "boundedQuery": "workspai workspace graph search <task-query> --scope project:vetra-os-platform --limit 12 --json",
     "sourceHash": "71e52533a21a830ad2bf4cf9828e1338b9daedead7f76bf473fc2ccde11dd78a",
-    "projectionHash": "136275d6a21445d9436999a830a7834ba822829d233a1145d1557395966e1724"
+    "projectionHash": "56b2de99ce3f7c65691f64781bf1c0d2c770e1bc505af5aed6e9b921ab59b6d8"
   },
   "summary": {
     "entityCount": 4826,
@@ -17,7 +17,7 @@
   },
   "integrity": {
     "algorithm": "sha256",
-    "payloadHash": "15de5cc36f8fe302284434b0834ed810bfa87fff8634f170aea8e5aec5474a5c",
+    "payloadHash": "ea4a99eb25ebda899f5148234712baef4aeb1700ada15b81a796d4904f4f4b74",
     "portable": true,
     "absolutePathsEmitted": false
   }

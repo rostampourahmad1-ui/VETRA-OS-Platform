@@ -1,6 +1,6 @@
 {
   "schemaVersion": "workspai.agent-entry.v1",
-  "generatedAt": "2026-09-12T15:57:27.676Z",
+  "generatedAt": "2026-09-12T16:21:45.031Z",
   "project": {
     "name": "vetra-os-platform",
     "relativePath": "external/vetra-os-platform",
@@ -161,8 +161,8 @@
   ],
   "integrity": {
     "algorithm": "sha256",
-    "projectContextHash": "4605964e47d5f05997dc8138f4eea568f0a24dbda2bc89d36aff4593c879fb37",
-    "payloadHash": "45d4c8f4f7226c2ab4e06f9bccf08f51806c5ae15ae76ee5fbd7d10efd6bb6bb",
+    "projectContextHash": "c074b58b51754cf4703034c32a4b24674cafb8e7d2aef636a7b058bfae7dc157",
+    "payloadHash": "c7005a8fa2d93eb1c20425b13013a0355483f05de254a522ead0371443b2f250",
     "portable": true,
     "absolutePathsEmitted": false
   }

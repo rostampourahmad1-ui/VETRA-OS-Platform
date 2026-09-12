@@ -1,6 +1,6 @@
 {
   "schemaVersion": "project-context-agent.v1",
-  "generatedAt": "2026-09-12T15:57:27.676Z",
+  "generatedAt": "2026-09-12T16:21:45.031Z",
   "workspace": {
     "name": "workspai",
     "profile": "minimal",
@@ -944,7 +944,44 @@
       }
     ]
   },
-  "blockers": [],
+  "blockers": [
+    {
+      "source": "doctor-project",
+      "severity": "warning",
+      "message": "Bun lockfile integrity is missing.",
+      "code": "adapter-bun-dependency-contract:f0ef08f0939d"
+    },
+    {
+      "source": "doctor-project",
+      "severity": "warning",
+      "message": "Dependency manifest detected, but no deterministic baseline found (bun.lock, bun.lockb).",
+      "code": "surface-dependency-contract:f304a0a0aea6"
+    },
+    {
+      "source": "doctor-project",
+      "severity": "warning",
+      "message": "No explicit format script detected by Doctor.",
+      "code": "surface-format-contract:e6c12613c31f"
+    },
+    {
+      "source": "doctor-project",
+      "severity": "warning",
+      "message": "Multiple runtime families share one project boundary: node, bun. Primary adapters evaluated bun only.",
+      "code": "runtime-composition:1558938e598e"
+    },
+    {
+      "source": "doctor-project",
+      "severity": "warning",
+      "message": "bun audit did not produce parseable vulnerability evidence. Doctor did not treat unavailable audit evidence as a clean result.",
+      "code": "surface-security-hygiene:7a070df3e64d"
+    },
+    {
+      "source": "doctor-project",
+      "severity": "warning",
+      "message": "No normalized project coverage evidence has been generated yet.",
+      "code": "test-coverage-evidence:c5369df012df"
+    }
+  ],
   "agentRouting": {
     "enforcement": "required",
     "mandatoryPreflight": {
@@ -991,7 +1028,7 @@
   "integrity": {
     "algorithm": "sha256",
     "modelHash": "71e52533a21a830ad2bf4cf9828e1338b9daedead7f76bf473fc2ccde11dd78a",
-    "payloadHash": "4605964e47d5f05997dc8138f4eea568f0a24dbda2bc89d36aff4593c879fb37",
+    "payloadHash": "c074b58b51754cf4703034c32a4b24674cafb8e7d2aef636a7b058bfae7dc157",
     "portable": true,
     "absolutePathsEmitted": false
   }

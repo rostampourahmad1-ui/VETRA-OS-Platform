@@ -77,7 +77,12 @@ entry gate; Workspai preserves rather than replaces them.
 
 ## Current project blockers
 
-- No current project-scoped blocker is recorded.
+- **warning · adapter-bun-dependency-contract:f0ef08f0939d:** Bun lockfile integrity is missing.
+- **warning · surface-dependency-contract:f304a0a0aea6:** Dependency manifest detected, but no deterministic baseline found (bun.lock, bun.lockb).
+- **warning · surface-format-contract:e6c12613c31f:** No explicit format script detected by Doctor.
+- **warning · runtime-composition:1558938e598e:** Multiple runtime families share one project boundary: node, bun. Primary adapters evaluated bun only.
+- **warning · surface-security-hygiene:7a070df3e64d:** bun audit did not produce parseable vulnerability evidence. Doctor did not treat unavailable audit evidence as a clean result.
+- **warning · test-coverage-evidence:c5369df012df:** No normalized project coverage evidence has been generated yet.
 
 ## Safe commands from this project
 
