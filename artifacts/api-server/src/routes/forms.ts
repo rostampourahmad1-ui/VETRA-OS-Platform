@@ -506,6 +506,93 @@ router.post("/form-submissions/:id/submit", requirePermission("forms.submit"), a
 });
 
 
+router.post("/form-submissions/bulk-approve", requirePermission("workflows.approve"), async (req, res): Promise<void> => {
+  const { submissionIds, comment } = req.body as { submissionIds?: number[]; comment?: string };
+  if (!Array.isArray(submissionIds) || submissionIds.length === 0) {
+    res.status(400).json({ error: "submissionIds must be a non-empty array" });
+    return;
+  }
+  if (submissionIds.length > 50) {
+    res.status(400).json({ error: "Cannot bulk approve more than 50 submissions at once" });
+    return;
+  }
+
+  const results: Array<{ id: number; success: boolean; error?: string }> = [];
+  for (const id of submissionIds) {
+    const [submission] = await db.select().from(formSubmissionsTable).where(and(
+      eq(formSubmissionsTable.id, id),
+      eq(formSubmissionsTable.organizationId, tenantId(req)),
+      isNull(formSubmissionsTable.deletedAt),
+    ));
+    if (!submission || !submission.workflowRunId || submission.status !== "submitted") {
+      results.push({ id, success: false, error: "Not eligible for approval" });
+      continue;
+    }
+    const [run] = await db.select().from(workflowRunsTable).where(and(
+      eq(workflowRunsTable.id, submission.workflowRunId),
+      eq(workflowRunsTable.organizationId, tenantId(req)),
+    ));
+    if (!run || run.status !== "pending") {
+      results.push({ id, success: false, error: "Workflow not pending" });
+      continue;
+    }
+    const [step] = await db.select().from(workflowStepsTable).where(and(
+      eq(workflowStepsTable.workflowId, run.workflowId),
+      eq(workflowStepsTable.stepOrder, run.currentStep),
+    ));
+    if (!step) {
+      results.push({ id, success: false, error: "No current step" });
+      continue;
+    }
+    try {
+      const steps = await db.select().from(workflowStepsTable).where(
+        eq(workflowStepsTable.workflowId, run.workflowId)
+      ).orderBy(asc(workflowStepsTable.stepOrder));
+      const isFinal = run.currentStep >= steps.length;
+      const [updated] = await db.update(workflowRunsTable).set({
+        currentStep: isFinal ? run.currentStep : run.currentStep + 1,
+        status: isFinal ? "approved" : "pending",
+        completedAt: isFinal ? new Date() : null,
+        updatedBy: req.vetraUser!.id,
+        updatedAt: new Date(),
+      }).where(and(
+        eq(workflowRunsTable.id, run.id),
+        eq(workflowRunsTable.organizationId, tenantId(req)),
+        eq(workflowRunsTable.currentStep, run.currentStep),
+        eq(workflowRunsTable.status, "pending"),
+      )).returning();
+      if (!updated) {
+        results.push({ id, success: false, error: "Concurrent modification" });
+        continue;
+      }
+      await db.insert(workflowRunEventsTable).values({
+        organizationId: tenantId(req),
+        workflowRunId: run.id,
+        workflowStepId: step.id,
+        action: "approve",
+        comment: comment ?? null,
+        actorId: req.vetraUser!.id,
+      });
+      const submissionStatus = isFinal ? "approved" : "submitted";
+      await db.update(formSubmissionsTable).set({
+        status: submissionStatus,
+        updatedAt: new Date(),
+      }).where(and(
+        eq(formSubmissionsTable.id, submission.id),
+        eq(formSubmissionsTable.organizationId, tenantId(req)),
+      ));
+      audit(req, "form_submission.bulk_approved", "form_submission", {
+        resourceId: submission.id,
+        newValues: { status: submissionStatus, workflowRunId: run.id },
+      });
+      results.push({ id, success: true });
+    } catch (error) {
+      results.push({ id, success: false, error: String(error) });
+    }
+  }
+  res.json({ results });
+});
+
 router.delete("/form-submissions/:id", requirePermission("forms.submit"), async (req, res): Promise<void> => {
   const id = parseId(req.params.id);
   if (!id) { res.status(400).json({ error: "Invalid submission id" }); return; }
