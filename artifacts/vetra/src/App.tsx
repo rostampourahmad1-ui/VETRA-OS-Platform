@@ -51,6 +51,9 @@ const SuppliersPage = lazy(() => import('@/pages/warehouse/SuppliersPage').then(
 const ReceivePage = lazy(() => import('@/pages/warehouse/ReceivePage').then(m => ({ default: m.ReceivePage })));
 const StockLedgerPage = lazy(() => import('@/pages/warehouse/StockLedgerPage').then(m => ({ default: m.StockLedgerPage })));
 const InvoicesPage = lazy(() => import('@/pages/financial/InvoicesPage').then(m => ({ default: m.InvoicesPage })));
+const PaymentSchedulePage = lazy(() => import('@/pages/financial/PaymentSchedulePage').then(m => ({ default: m.PaymentSchedulePage })));
+const CertificatesPage = lazy(() => import('@/pages/financial/CertificatesPage').then(m => ({ default: m.CertificatesPage })));
+const FinancialReportsPage = lazy(() => import('@/pages/financial/FinancialReportsPage').then(m => ({ default: m.FinancialReportsPage })));
 // ─── Clerk key resolution ────────────────────────────────────────────────────
 // Must use publishableKeyFromHost — resolves the correct key for the current
 // hostname so the same build works in dev and prod without branching.
@@ -234,6 +237,10 @@ function AppRoutes() {
             <Route path="/suppliers"><SuppliersPage /></Route>
             <Route path="/warehouse/receive"><ReceivePage /></Route>
             <Route path="/warehouse/ledger"><StockLedgerPage /></Route>
+            <Route path="/invoices"><InvoicesPage /></Route>
+            <Route path="/payment-schedules"><PaymentSchedulePage /></Route>
+            <Route path="/certificates"><CertificatesPage /></Route>
+            <Route path="/financial-reports"><FinancialReportsPage /></Route>
             <Route path="/scheduling" component={SchedulingPage} />
             <Route path="/progress" component={ProgressPage} />
             <Route path="/resources" component={ResourcesPage} />

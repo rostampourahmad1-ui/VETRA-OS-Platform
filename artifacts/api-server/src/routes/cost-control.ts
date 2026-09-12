@@ -55,11 +55,38 @@ router.get("/cost-control/budgets", requirePermission("cost-control.read"), asyn
 router.post("/cost-control/budgets", requirePermission("cost-control.manage"), async (req, res): Promise<void> => {
   const parsed = CreateBudgetBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Invalid budget", details: parsed.error.issues }); return; }
-  const { projectId, categoryId, name, amount, period } = parsed.data;
-  if (!(await ownedProject(req, projectId))) { res.status(400).json({ error: "Project not found" }); return; }
-  const [row] = await db.insert(budgetsTable).values({ organizationId: tenantId(req), projectId, categoryId, name, amount: String(amount), period: period ?? "annual" }).returning();
+  const { projectId, categoryId, name, amount, period, notes, category } = parsed.data;
+  if (projectId && !(await ownedProject(req, projectId))) { res.status(400).json({ error: "Project not found" }); return; }
+  const [row] = await db.insert(budgetsTable).values({
+    organizationId: tenantId(req),
+    projectId: projectId ?? null,
+    categoryId: categoryId ?? null,
+    name,
+    amount: String(amount),
+    period: period ?? "annual",
+    notes: (notes as string | undefined) ?? null,
+    category: (category as string | undefined) ?? null,
+  }).returning();
   res.status(201).json(row);
   audit(req, "cost_control.budget.created", "budget", { resourceId: row.id, newValues: { name: row.name, projectId: row.projectId, amount: row.amount } });
+});
+
+router.patch("/cost-control/budgets/:id", requirePermission("cost-control.manage"), async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  const orgId = tenantId(req);
+
+  const [current] = await db.select().from(budgetsTable).where(and(eq(budgetsTable.id, id), eq(budgetsTable.organizationId, orgId)));
+  if (!current) { res.status(404).json({ error: "Budget not found" }); return; }
+
+  const upd: Record<string, unknown> = { updatedAt: new Date() };
+  for (const k of ["name", "period", "notes", "category"] as const) {
+    if (req.body[k] !== undefined) upd[k] = req.body[k];
+  }
+  if (req.body.amount !== undefined) upd.amount = String(Number(req.body.amount));
+
+  const [row] = await db.update(budgetsTable).set(upd).where(and(eq(budgetsTable.id, id), eq(budgetsTable.organizationId, orgId))).returning();
+  res.json(row);
+  audit(req, "cost_control.budget.updated", "budget", { resourceId: id, oldValues: { amount: current.amount }, newValues: { amount: row.amount } });
 });
 
 router.get("/cost-control/expenses", requirePermission("cost-control.read"), async (req, res): Promise<void> => {
@@ -79,6 +106,26 @@ router.post("/cost-control/expenses", requirePermission("cost-control.manage"), 
   const [row] = await db.insert(expensesTable).values({ organizationId: tenantId(req), projectId, categoryId, submittedBy: req.vetraUser?.id, description, amount: String(amount), expenseDate: expenseDateStr, status: status ?? "approved" }).returning();
   res.status(201).json(row);
   audit(req, "cost_control.expense.created", "expense", { resourceId: row.id, newValues: { description: row.description, projectId: row.projectId, amount: row.amount, status: row.status } });
+});
+
+router.patch("/cost-control/expenses/:id/approve", requirePermission("cost-control.manage"), async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  const orgId = tenantId(req);
+  const userId = req.vetraUser!.id;
+
+  const [current] = await db.select().from(expensesTable).where(and(eq(expensesTable.id, id), eq(expensesTable.organizationId, orgId)));
+  if (!current) { res.status(404).json({ error: "Expense not found" }); return; }
+  if (current.approvedBy) { res.status(409).json({ error: "Expense already approved" }); return; }
+
+  const [row] = await db.update(expensesTable).set({
+    status: "approved",
+    approvedBy: userId,
+    approvedAt: new Date(),
+    updatedAt: new Date(),
+  }).where(and(eq(expensesTable.id, id), eq(expensesTable.organizationId, orgId))).returning();
+
+  res.json(row);
+  audit(req, "cost_control.expense.approved", "expense", { resourceId: id, oldValues: { status: current.status }, newValues: { status: "approved" } });
 });
 
 export default router;

@@ -1,11 +1,62 @@
+import { useState } from 'react';
 import { useGetCostControlSummary } from '@workspace/api-client-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Plus, CheckCircle } from 'lucide-react';
 import { formatCurrency } from '@/lib/jalali';
 
 export default function CostControl() {
   const { data, isLoading, error } = useGetCostControlSummary();
+  const queryClient = useQueryClient();
+  const [budgetOpen, setBudgetOpen] = useState(false);
+  const [budgetForm, setBudgetForm] = useState({
+    name: '', period: '', amount: '', category: '', notes: '',
+  });
+
+  const createBudgetMutation = useMutation({
+    mutationFn: async (data: typeof budgetForm) => {
+      const res = await fetch('/api/cost-control/budgets', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.name,
+          period: data.period,
+          amount: Number(data.amount),
+          category: data.category || null,
+          notes: data.notes || null,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to create budget');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/cost-control/summary'] });
+      setBudgetOpen(false);
+      setBudgetForm({ name: '', period: '', amount: '', category: '', notes: '' });
+    },
+  });
+
+  const approveExpenseMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/cost-control/expenses/${id}/approve`, {
+        method: 'PATCH',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to approve expense');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/cost-control/summary'] });
+    },
+  });
 
   if (isLoading) {
     return (
@@ -69,7 +120,51 @@ export default function CostControl() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle>Budgets</CardTitle></CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Budgets</CardTitle>
+            <Dialog open={budgetOpen} onOpenChange={setBudgetOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm">
+                  <Plus className="h-4 w-4 ml-2" />
+                  New Budget
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create Budget</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-4">
+                  <div>
+                    <Label>Budget Name *</Label>
+                    <Input value={budgetForm.name} onChange={(e) => setBudgetForm({ ...budgetForm, name: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>Period *</Label>
+                    <Input placeholder="e.g. 2024-Q1" value={budgetForm.period} onChange={(e) => setBudgetForm({ ...budgetForm, period: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>Amount (Rials) *</Label>
+                    <Input type="number" value={budgetForm.amount} onChange={(e) => setBudgetForm({ ...budgetForm, amount: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>Category</Label>
+                    <Input value={budgetForm.category} onChange={(e) => setBudgetForm({ ...budgetForm, category: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>Notes</Label>
+                    <Textarea value={budgetForm.notes} onChange={(e) => setBudgetForm({ ...budgetForm, notes: e.target.value })} rows={3} />
+                  </div>
+                  <Button
+                    onClick={() => createBudgetMutation.mutate(budgetForm)}
+                    disabled={!budgetForm.name || !budgetForm.period || !budgetForm.amount || createBudgetMutation.isPending}
+                    className="w-full"
+                  >
+                    {createBudgetMutation.isPending ? 'Creating...' : 'Create Budget'}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </CardHeader>
           <CardContent className="space-y-3">
             {(data.budgets ?? []).length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">No budgets recorded yet.</p>
@@ -95,11 +190,24 @@ export default function CostControl() {
             ) : (
               data.expenses?.map((item) => (
                 <div key={item.id} className="flex justify-between items-center border-b last:border-0 pb-3 last:pb-0">
-                  <div>
+                  <div className="flex-1">
                     <p className="font-medium">{item.description}</p>
                     <p className="text-xs text-muted-foreground">{item.expenseDate}</p>
                   </div>
-                  <Badge variant="outline">{formatCurrency(Number(item.amount))}</Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{formatCurrency(Number(item.amount))}</Badge>
+                    {!(item as any).approvedBy && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => approveExpenseMutation.mutate(item.id)}
+                        disabled={approveExpenseMutation.isPending}
+                      >
+                        <CheckCircle className="h-4 w-4 ml-1" />
+                        Approve
+                      </Button>
+                    )}
+                  </div>
                 </div>
               ))
             )}

@@ -22,12 +22,8 @@
     "express-validator": "^7.3.2",
     "helmet": "^8.3.0",
     "http-proxy-middleware": "^4.2.0",
-<<<<<<< HEAD
-    "multer": "^2.2.0",
-    "nodemailer": "^10.0.3",
-=======
     "multer": "^2.3.0",
->>>>>>> a149b0111a2b6ce27f5e091ebf028cf75b6e3536
+    "nodemailer": "^10.0.3",
     "pino": "^9.14.0",
     "pino-http": "^10.5.0",
     "zod": "catalog:"

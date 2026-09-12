@@ -119,6 +119,10 @@ function Sidebar() {
         <nav className="space-y-1 px-2">
           {[
             { href: '/cost-control', icon: Building2, label: 'Cost Control' },
+            { href: '/invoices', icon: FileText, label: 'Invoices' },
+            { href: '/payment-schedules', icon: Calendar, label: 'Payment Schedule' },
+            { href: '/certificates', icon: ClipboardCheck, label: 'Certificates' },
+            { href: '/financial-reports', icon: BarChart3, label: 'Financial Reports' },
             { href: '/accounting', icon: Calculator, label: 'Accounting' },
             { href: '/crm', icon: UserCircle, label: 'CRM' },
             { href: '/reports', icon: BarChart3, label: 'Reports' },
