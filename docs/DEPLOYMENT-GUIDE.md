@@ -138,9 +138,9 @@ DATABASE_POOL_MAX=50
 DATABASE_CONNECTION_TIMEOUT=30000
 
 # ─── Authentication (Clerk) ─────────────────────────────────────────────────
-CLERK_PUBLISHABLE_KEY=pk_live_Y2xlcmsuZXhhbXBsZS5jb20k
-CLERK_SECRET_KEY=sk_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-CLERK_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+CLERK_PUBLISHABLE_KEY=pk_live_<your-publishable-key>
+CLERK_SECRET_KEY=sk_live_<your-secret-key>
+CLERK_WEBHOOK_SECRET=whsec_<your-webhook-secret>
 
 # ─── File Storage ───────────────────────────────────────────────────────────
 # AWS S3
