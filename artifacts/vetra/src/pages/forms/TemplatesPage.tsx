@@ -63,7 +63,9 @@ export function TemplatesPage() {
     }
   };
 
-  const categories = Array.from(new Set(templates?.map(t => t.category).filter(Boolean)));
+  const categories = Array.from(new Set(
+    (templates ?? []).map(t => t.category).filter((category): category is string => Boolean(category)),
+  ));
 
   const filtered = (templates ?? []).filter((template) => {
     const matchSearch = template.name.toLowerCase().includes(search.toLowerCase());

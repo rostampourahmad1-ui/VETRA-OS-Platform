@@ -196,11 +196,11 @@ export default function CostControl() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline">{formatCurrency(Number(item.amount))}</Badge>
-                    {!(item as any).approvedBy && (
+                    {item.id != null && !(item as any).approvedBy && (
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => approveExpenseMutation.mutate(item.id)}
+                        onClick={() => approveExpenseMutation.mutate(item.id as number)}
                         disabled={approveExpenseMutation.isPending}
                       >
                         <CheckCircle className="h-4 w-4 ml-1" />
