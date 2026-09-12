@@ -3199,46 +3199,6 @@ components:
         parentId: { type: [integer, "null"] }
         sortOrder: { type: integer }
 
-    EvmInput:
-      type: object
-      required: [plannedValue, earnedValue, actualCost, budgetAtCompletion]
-      properties:
-        plannedValue: { type: number }
-        earnedValue: { type: number }
-        actualCost: { type: number }
-        budgetAtCompletion: { type: number }
-        bottomUpEstimateToComplete: { type: number }
-
-    EvmMetric:
-      type: object
-      required: [plannedValue, earnedValue, actualCost, costVariance, scheduleVariance, costPerformanceIndex, schedulePerformanceIndex, estimateAtCompletion, estimateToComplete, varianceAtCompletion, toCompletePerformanceIndex]
-      properties:
-        plannedValue: { type: number }
-        earnedValue: { type: number }
-        actualCost: { type: number }
-        costVariance: { type: number }
-        scheduleVariance: { type: number }
-        costPerformanceIndex: { type: number }
-        schedulePerformanceIndex: { type: number }
-        estimateAtCompletion: { type: number }
-        estimateToComplete: { type: number }
-        varianceAtCompletion: { type: number }
-        toCompletePerformanceIndex: { type: number }
-        eacCpiSpi: { type: number }
-        etcBottomUp: { type: number }
-        eacBottomUp: { type: number }
-
-    EvmForecast:
-      type: object
-      required: [estimateAtCompletion, estimateToComplete, varianceAtCompletion, toCompletePerformanceIndex]
-      properties:
-        estimateAtCompletion: { type: number }
-        eacCpiSpi: { type: number }
-        eacBottomUp: { type: number }
-        estimateToComplete: { type: number }
-        etcBottomUp: { type: number }
-        varianceAtCompletion: { type: number }
-        toCompletePerformanceIndex: { type: number }
     PlanningActivity:
       type: object
       required:

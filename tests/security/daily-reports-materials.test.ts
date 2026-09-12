@@ -601,7 +601,7 @@ describe("VETRA-DR-04: Daily Report Materials — Update Validation", () => {
     expect(createRes.body.closingQuantity).toBe(120);
 
     const updateRes = await request(app)
-      .patch(`/daily-reports/1/materials/${createRes.body.id}`)
+      .patch(/daily-reports/1/materials/)
       .send({ consumed: 50, returned: 10 });
     expect(updateRes.status).toBe(200);
     expect(updateRes.body.openingQuantity).toBe(100);
@@ -618,7 +618,7 @@ describe("VETRA-DR-04: Daily Report Materials — Update Validation", () => {
       .send({ openingQuantity: 10, unit: "kg" });
 
     const updateRes = await request(app)
-      .patch(`/daily-reports/1/materials/${createRes.body.id}`)
+      .patch(/daily-reports/1/materials/)
       .send({ consumed: 100 });
     expect(updateRes.status).toBe(400);
   });
@@ -630,7 +630,7 @@ describe("VETRA-DR-04: Daily Report Materials — Update Validation", () => {
       .send({ openingQuantity: 100, unit: "kg" });
 
     const updateRes = await request(app)
-      .patch(`/daily-reports/1/materials/${createRes.body.id}`)
+      .patch(/daily-reports/1/materials/)
       .send({ unit: "ton" });
     expect(updateRes.status).toBe(200);
     expect(updateRes.body.unit).toBe("ton");

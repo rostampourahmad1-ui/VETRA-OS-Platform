@@ -49,12 +49,13 @@ export function getProvider(config?: AiProviderConfig): AiProvider {
   if (activeProvider.instance) return activeProvider.instance;
 
   const resolved = config ?? resolveProviderConfig();
-  const Ctor = providerConstructors[resolved.provider];
+  const providerName = resolved.provider;
 
-  if (!Ctor) {
-    throw new Error(`Unknown AI provider "${resolved.provider}". Supported: ${Object.keys(providerConstructors).join(", ")}`);
+  if (!Object.prototype.hasOwnProperty.call(providerConstructors, providerName)) {
+    throw new Error(`Unknown AI provider "${providerName}". Supported: ${Object.keys(providerConstructors).join(", ")}`);
   }
 
+  const Ctor = providerConstructors[providerName];
   activeProvider.instance = new Ctor(resolved);
   return activeProvider.instance;
 }
