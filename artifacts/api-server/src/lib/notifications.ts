@@ -3,15 +3,11 @@ import { db, notificationsTable, notificationPreferencesTable, usersTable, proje
 import { and, eq, sql } from "drizzle-orm";
 import { sseBroadcaster } from "./sseBroadcaster";
 import { logger } from "./logger";
+import { sendMail } from "./email/provider";
 
 /**
- * VETRA-SEC-04: Notification Trigger Service
- *
- * Creates notifications when business events occur (task assignments,
- * workflow approvals, document uploads, etc.).
- *
- * All writes are fire-and-forget (non-blocking) to avoid impacting
- * response times. Failures are logged but never thrown to the caller.
+ * VETRA-PH1: Notification Trigger Service
+ * Creates notifications when business events occur + sends email if enabled.
  */
 
 export interface NotificationEntry {
@@ -26,9 +22,11 @@ export interface NotificationEntry {
 /**
  * Creates a notification for a specific user.
  * Non-blocking: errors are logged but never propagated.
+ * Sends email if preferences allow and EMAIL_ENABLED=true.
  */
 export async function createNotification(entry: NotificationEntry): Promise<void> {
-  // 1. Check user'\''s notification preference for this type
+  // 1. Check user's notification preference for this type
+  let optedIn = true;
   try {
     const [pref] = await db
       .select({ optIn: notificationPreferencesTable.optIn })
@@ -39,9 +37,9 @@ export async function createNotification(entry: NotificationEntry): Promise<void
         eq(notificationPreferencesTable.type, entry.type),
       ));
 
-    // If a preference row exists and optIn is false, skip
     if (pref && !pref.optIn) {
       logger.debug({ userId: entry.userId, type: entry.type }, "Notification skipped - user opted out");
+      optedIn = false;
       return;
     }
   } catch (error) {
@@ -49,8 +47,9 @@ export async function createNotification(entry: NotificationEntry): Promise<void
   }
 
   // 2. Create the notification
+  let saved: typeof notificationsTable.$inferSelect | null = null;
   try {
-    const [saved] = await db.insert(notificationsTable).values({
+    [saved] = await db.insert(notificationsTable).values({
       organizationId: entry.organizationId,
       userId: entry.userId,
       title: entry.title,
@@ -78,6 +77,36 @@ export async function createNotification(entry: NotificationEntry): Promise<void
   } catch (error) {
     logger.error({ err: error, userId: entry.userId, type: entry.type }, "Notification creation failed");
   }
+
+  // 4. Fire-and-forget email delivery
+  if (saved && optedIn) {
+    setImmediate(async () => {
+      try {
+        const [user] = await db.select({ email: usersTable.email }).from(usersTable)
+          .where(eq(usersTable.id, entry.userId));
+        if (!user?.email) return;
+
+        const baseUrl = process.env.BASE_URL || "http://localhost:3000";
+        const fullLink = entry.link?.startsWith("http") ? entry.link : `${baseUrl}${entry.link ?? ""}`;
+
+        const status = await sendMail({
+          to: user.email,
+          subject: entry.title,
+          text: `${entry.message}\n\nمشاهده: ${fullLink}`,
+          html: `<p>${entry.message}</p><p><a href="${fullLink}">مشاهده</a></p>`,
+        });
+
+        if (saved?.id) {
+          await db.update(notificationsTable).set({
+            emailSentAt: status === "sent" ? new Date() : null,
+            emailStatus: status,
+          }).where(eq(notificationsTable.id, saved.id));
+        }
+      } catch (error) {
+        logger.error({ err: error, notificationId: saved?.id }, "Email send failed");
+      }
+    });
+  }
 }
 
 /**
@@ -99,8 +128,8 @@ export async function notifyTaskAssigned(
   await createNotification({
     organizationId,
     userId: assigneeId,
-    title: "\u0648\u0638\u06cc\u0641\u0647 \u062c\u062f\u06cc\u062f \u0628\u0647 \u0634\u0645\u0627 \u0645\u062d\u0648\u0644 \u0634\u062f",
-    message: "\u0648\u0638\u06cc\u0641\u0647 \u201c" + taskTitle + "\u201d" + (project ? " \u062f\u0631 \u067e\u0631\u0648\u0698\u0647 \u201c" + project.name + "\u201d" : "") + " \u0628\u0647 \u0634\u0645\u0627 \u0645\u062d\u0648\u0644 \u0634\u062f",
+    title: "وظیفه جدید به شما محول شد",
+    message: "وظیفه \"" + taskTitle + "\"" + (project ? " در پروژه \"" + project.name + "\"" : "") + " به شما محول شد",
     type: "task_assigned",
     link: "/tasks/" + taskId,
   });
@@ -122,16 +151,16 @@ export async function notifyWorkflowDecision(
     revision_requested: "workflow_revision_requested",
   };
   const titleMap: Record<string, string> = {
-    approved: "\u062f\u0631\u062e\u0648\u0627\u0633\u062a \u0634\u0645\u0627 \u062a\u0623\u06cc\u06cc\u062f \u0634\u062f",
-    rejected: "\u062f\u0631\u062e\u0648\u0627\u0633\u062a \u0634\u0645\u0627 \u0631\u062f \u0634\u062f",
-    revision_requested: "\u062f\u0631\u062e\u0648\u0627\u0633\u062a \u0634\u0645\u0627 \u0646\u06cc\u0627\u0632 \u0628\u0647 \u0628\u0627\u0632\u0628\u06cc\u0646\u06cc \u062f\u0627\u0631\u062f",
+    approved: "درخواست شما تأیید شد",
+    rejected: "درخواست شما رد شد",
+    revision_requested: "درخواست شما نیاز به بازبینی دارد",
   };
 
   await createNotification({
     organizationId,
     userId,
-    title: titleMap[decision] ?? "\u0628\u0647\u200c\u0631\u0648\u0632\u0631\u0633\u0627\u0646\u06cc \u06af\u0631\u062f\u0634 \u06a9\u0627\u0631",
-    message: "\u062f\u0631\u062e\u0648\u0627\u0633\u062a \u201c" + entityTitle + "\u201d \u0628\u0627 \u0648\u0636\u0639\u06cc\u062a \u201c" + decision + "\u201d \u0628\u0647\u200c\u0631\u0648\u0632\u0631\u0633\u0627\u0646\u06cc \u0634\u062f",
+    title: titleMap[decision] ?? "به‌روزرسانی گردش کار",
+    message: "درخواست \"" + entityTitle + "\" با وضعیت \"" + decision + "\" به‌روزرسانی شد",
     type: typeMap[decision] ?? "workflow_update",
     link: "/workflows/runs/" + workflowRunId,
   });
@@ -161,8 +190,8 @@ export async function notifyDocumentUploaded(
     await createNotification({
       organizationId,
       userId: member.id,
-      title: "\u0633\u0646\u062f \u062c\u062f\u06cc\u062f \u0622\u067e\u0644\u0648\u062f \u0634\u062f",
-      message: "\u0633\u0646\u062f \u201c" + documentName + "\u201d" + (project ? " \u062f\u0631 \u067e\u0631\u0648\u0698\u0647 \u201c" + project.name + "\u201d" : "") + " \u0622\u067e\u0644\u0648\u062f \u0634\u062f",
+      title: "سند جدید آپلود شد",
+      message: "سند \"" + documentName + "\"" + (project ? " در پروژه \"" + project.name + "\"" : "") + " آپلود شد",
       type: "document_uploaded",
       link: "/documents/" + documentId,
     });
@@ -177,4 +206,7 @@ export const NotificationType = {
   WORKFLOW_REVISION_REQUESTED: "workflow_revision_requested",
   DOCUMENT_UPLOADED: "document_uploaded",
   PAYROLL_PAID: "payroll_paid",
+  LOW_STOCK: "low_stock",
+  WORKFLOW_ESCALATED: "workflow_escalated",
+  INVOICE_DUE: "invoice_due",
 } as const;

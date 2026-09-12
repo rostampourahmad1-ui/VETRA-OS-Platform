@@ -15,6 +15,7 @@ export const formTemplatesTable = pgTable("form_templates", {
   workflowId: integer("workflow_id").references(() => workflowsTable.id),
   name: text("name").notNull(),
   description: text("description"),
+  category: text("category"),
   status: text("status").notNull().default("draft"),
   definition: jsonb("definition").notNull(),
   createdBy: integer("created_by").notNull().references(() => usersTable.id),

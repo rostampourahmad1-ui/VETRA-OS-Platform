@@ -206,6 +206,30 @@ router.put("/notifications/preferences", requirePermission("notifications.update
   }
 });
 
+// ─── POST /notifications/read-all ──────────────────────────────────────────
+router.post("/notifications/read-all", requirePermission("notifications.update"), async (req, res): Promise<void> => {
+  try {
+    const organizationId = req.vetraUser?.organizationId;
+    const userId = req.vetraUser?.id;
+    if (!organizationId || !userId) {
+      res.status(403).json({ error: "Forbidden: tenant context is required" });
+      return;
+    }
+
+    await db.update(notificationsTable).set({ read: true }).where(
+      and(
+        eq(notificationsTable.organizationId, organizationId),
+        eq(notificationsTable.userId, userId),
+        eq(notificationsTable.read, false),
+      ),
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // ─── GET /notifications/stream (SSE) ───────────────────────────────────────
 router.get("/notifications/stream", requirePermission("notifications.read"), async (req, res): Promise<void> => {
   const organizationId = req.vetraUser?.organizationId;

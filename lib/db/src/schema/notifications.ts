@@ -13,6 +13,8 @@ export const notificationsTable = pgTable("notifications", {
   type: text("type").notNull().default("info"),
   read: boolean("read").notNull().default(false),
   link: text("link"),
+  emailSentAt: timestamp("email_sent_at", { withTimezone: true }),
+  emailStatus: text("email_status"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

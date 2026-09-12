@@ -8,7 +8,7 @@ import {
   Settings, ChevronDown, Bell, Search, Menu,
   Calendar, Wrench, BarChart3, Bot, Calculator, ClipboardCheck,
   UserCircle, LogOut,
-  CalendarClock, TrendingUp, Boxes,
+  CalendarClock, TrendingUp, Boxes, Warehouse,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { useUser, useClerk } from '@clerk/react';
 import { useOrganizationProject } from '@/contexts/OrganizationProjectContext';
 import { formatRelativeJalali } from '@/lib/jalali';
+import { useNotificationStream } from '@/hooks/useNotificationStream';
 
 export function Shell({ children }: { children: React.ReactNode }) {
   return (
@@ -54,10 +55,12 @@ function Sidebar() {
     { name: 'Equipment', href: '/equipment', icon: Wrench },
     { name: 'Inventory', href: '/inventory', icon: Package },
                 { name: 'Procurement', href: '/procurement', icon: Truck },
+    { name: 'Warehouse', href: '/warehouse', icon: Warehouse },
            { name: 'Workspace', href: '/workspace', icon: LayoutDashboard },
     { name: 'Scheduling', href: '/scheduling', icon: CalendarClock },
     { name: 'Progress', href: '/progress', icon: TrendingUp },
     { name: 'Resources', href: '/resources', icon: Boxes },
+    { name: 'Notifications', href: '/notifications', icon: Bell },
 
   ];
 
@@ -175,6 +178,9 @@ function Topbar() {
   const bellRef = useRef<HTMLButtonElement>(null);
   const [results, setResults] = useState<any[]>([]);
   const { organization, project } = useOrganizationProject();
+
+  // SSE connection for real-time updates
+  useNotificationStream(true);
 
   const fetchNotifications = useCallback(async () => {
     try {

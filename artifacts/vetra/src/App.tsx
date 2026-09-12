@@ -44,6 +44,13 @@ const SchedulingPage = lazy(() => import('@/pages/scheduling/SchedulingPage'));
 const ProgressPage = lazy(() => import('@/pages/progress/ProgressPage'));
 const ResourcesPage = lazy(() => import('@/pages/resources/ResourcesPage'));
 const ActivityManagement = lazy(() => import('@/pages/planning/ActivityManagement'));
+const NotificationsPage = lazy(() => import('@/pages/notifications/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
+const WarehousesPage = lazy(() => import('@/pages/warehouse/WarehousesPage').then(m => ({ default: m.WarehousesPage })));
+const MaterialsPage = lazy(() => import('@/pages/warehouse/MaterialsPage').then(m => ({ default: m.MaterialsPage })));
+const SuppliersPage = lazy(() => import('@/pages/warehouse/SuppliersPage').then(m => ({ default: m.SuppliersPage })));
+const ReceivePage = lazy(() => import('@/pages/warehouse/ReceivePage').then(m => ({ default: m.ReceivePage })));
+const StockLedgerPage = lazy(() => import('@/pages/warehouse/StockLedgerPage').then(m => ({ default: m.StockLedgerPage })));
+const InvoicesPage = lazy(() => import('@/pages/financial/InvoicesPage').then(m => ({ default: m.InvoicesPage })));
 // ─── Clerk key resolution ────────────────────────────────────────────────────
 // Must use publishableKeyFromHost — resolves the correct key for the current
 // hostname so the same build works in dev and prod without branching.
@@ -221,6 +228,12 @@ function AppRoutes() {
             <Route path="/reports"><Reports /></Route>
             <Route path="/ai-assistant" component={AIAssistant} />
             <Route path="/settings"><Settings /></Route>
+            <Route path="/notifications"><NotificationsPage /></Route>
+            <Route path="/warehouse"><WarehousesPage /></Route>
+            <Route path="/materials"><MaterialsPage /></Route>
+            <Route path="/suppliers"><SuppliersPage /></Route>
+            <Route path="/warehouse/receive"><ReceivePage /></Route>
+            <Route path="/warehouse/ledger"><StockLedgerPage /></Route>
             <Route path="/scheduling" component={SchedulingPage} />
             <Route path="/progress" component={ProgressPage} />
             <Route path="/resources" component={ResourcesPage} />

@@ -27,6 +27,8 @@ import { attachTenant } from "../middlewares/tenant";
 import contractsBoqRouter from "./contracts-boq";
 import hrRouter from "./hr";
 import procurementExtRouter from "./procurement-ext";
+import stockRouter from "./stock";
+import invoicesRouter from "./invoices";
 import schedulingRouter from "./scheduling";
 
 const router: IRouter = Router();
@@ -68,6 +70,8 @@ router.use(qualityRouter);
 router.use(contractsBoqRouter);
 router.use(hrRouter);
 router.use(procurementExtRouter);
+router.use(stockRouter);
+router.use(invoicesRouter);
 router.use(schedulingRouter);
 
 export default router;

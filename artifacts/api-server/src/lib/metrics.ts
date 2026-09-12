@@ -12,6 +12,7 @@
  * Output format: Prometheus-compatible text format (exposed via /metrics)
  */
 import type { Request, Response, NextFunction } from "express";
+import { sseBroadcaster } from "./sseBroadcaster";
 
 interface Counter {
   _type: "counter";
@@ -181,6 +182,8 @@ export const appUptime = metrics.gauge("app_uptime_seconds", "Application uptime
 
 export const memoryUsageBytes = metrics.gauge("process_memory_bytes", "Process memory usage in bytes");
 
+export const sseConnections = metrics.gauge("sse_connections", "Number of active SSE notification connections");
+
 export function metricsMiddleware(req: Request, res: Response, next: NextFunction): void {
   metrics.setGauge(activeRequests, activeRequests.value + 1);
   const start = Date.now();
@@ -207,6 +210,7 @@ export function updateSystemMetrics(): void {
   const mem = process.memoryUsage();
   metrics.setGauge(memoryUsageBytes, mem.rss);
   metrics.setGauge(appUptime, metrics.uptimeSeconds());
+  metrics.setGauge(sseConnections, sseBroadcaster.connectionCount);
 }
 
 export function startSystemMetricsUpdater(intervalMs: number = 30_000): () => void {

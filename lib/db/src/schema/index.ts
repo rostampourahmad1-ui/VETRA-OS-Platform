@@ -22,4 +22,5 @@ export * from "./boq";
 export * from "./hr";
 export * from "./procurement-ext";
 export * from "./scheduling";
+export * from "./stock-movements";
 export * from "./daily-reports";
