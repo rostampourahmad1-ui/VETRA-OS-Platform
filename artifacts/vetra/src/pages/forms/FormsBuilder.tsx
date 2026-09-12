@@ -24,6 +24,23 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import {
   useGetFormsTemplates,
   usePostFormsTemplates,
   usePatchFormsTemplatesId,
@@ -59,6 +76,16 @@ type FormField = {
   required: boolean;
   placeholder?: string;
   options?: string[];
+  validation?: {
+    min?: number;
+    max?: number;
+    regex?: string;
+  };
+  visibleWhen?: {
+    fieldId: string;
+    op: 'eq' | 'ne' | 'gt' | 'lt';
+    value: any;
+  };
 };
 
 type FormDraft = {
@@ -134,6 +161,13 @@ export default function FormsBuilder() {
   const [submissionBusy, setSubmissionBusy] = useState<number | 'new' | null>(null);
   const { project } = useOrganizationProject();
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   const selectedField = useMemo(
     () => draft.fields.find((field) => field.id === selectedId) ?? draft.fields[0],
     [draft.fields, selectedId],
@@ -164,6 +198,17 @@ export default function FormsBuilder() {
     const fields = draft.fields.filter((field) => field.id !== id);
     setDraft((current) => ({ ...current, fields }));
     setSelectedId(fields[0]?.id ?? '');
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setDraft((current) => {
+        const oldIndex = current.fields.findIndex((f) => f.id === active.id);
+        const newIndex = current.fields.findIndex((f) => f.id === over.id);
+        return { ...current, fields: arrayMove(current.fields, oldIndex, newIndex) };
+      });
+    }
   };
 
   useEffect(() => {
@@ -344,14 +389,20 @@ export default function FormsBuilder() {
             ) : (
               <>
                 {draft.fields.length === 0 && <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">{t('forms.yourFormIsEmpty')}</div>}
-                {draft.fields.map((field, index) => (
-                  <button key={field.id} type="button" onClick={() => setSelectedId(field.id)} className={`group flex w-full items-center gap-3 rounded-xl border p-4 text-left transition-all ${selectedField?.id === field.id ? 'border-primary bg-primary/5 shadow-sm' : 'border-border/70 hover:border-primary/40'}`}>
-                    <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-muted-foreground/60" />
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-primary"><FieldIcon type={field.type} /></span>
-                    <span className="min-w-0 flex-1"><span className="flex items-center gap-2 font-medium">{field.label || t('forms.untitledField')} {field.required && <span className="text-xs text-primary">{t('forms.fieldRequiredBadge')}</span>}</span><span className="text-xs capitalize text-muted-foreground">{t('forms.responseType', {type: field.type})} {index + 1}</span></span>
-                    <Trash2 onClick={(event) => { event.stopPropagation(); removeField(field.id); }} className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100" />
-                  </button>
-                ))}
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={draft.fields.map(f => f.id)} strategy={verticalListSortingStrategy}>
+                    {draft.fields.map((field, index) => (
+                      <SortableFieldItem
+                        key={field.id}
+                        field={field}
+                        index={index}
+                        isSelected={selectedField?.id === field.id}
+                        onSelect={() => setSelectedId(field.id)}
+                        onRemove={() => removeField(field.id)}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
                 <button type="button" onClick={() => addField('text')} className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed py-3 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-primary"><Plus className="h-4 w-4" />{t('forms.addField')}</button>
               </>
             )}
@@ -367,11 +418,102 @@ export default function FormsBuilder() {
               {selectedField.type === 'text' && <div className="space-y-2"><Label htmlFor="field-placeholder">{t('forms.placeholder')}</Label><Input id="field-placeholder" value={selectedField.placeholder ?? ''} onChange={(event) => updateField({ placeholder: event.target.value })} /></div>}
               {selectedField.type === 'select' && <div className="space-y-2"><Label htmlFor="field-options">{t('forms.options')}</Label><Textarea id="field-options" value={(selectedField.options ?? []).join('\n')} onChange={(event) => updateField({ options: event.target.value.split('\n').filter(Boolean) })} className="min-h-20" /><p className="text-xs text-muted-foreground">{t('forms.oneOptionPerLine')}</p></div>}
               <label className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-sm"><input type="checkbox" checked={selectedField.required} onChange={(event) => updateField({ required: event.target.checked })} className="h-4 w-4 accent-primary" /><span className="flex-1">{t('forms.requiredField')}</span>{selectedField.required && <Check className="h-4 w-4 text-primary" />}</label>
+
+              {(selectedField.type === 'number' || selectedField.type === 'text') && (
+                <div className="space-y-3 pt-2 border-t">
+                  <Label className="text-xs font-semibold text-muted-foreground">Validation</Label>
+                  {selectedField.type === 'number' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="field-min">Minimum</Label>
+                        <Input
+                          id="field-min"
+                          type="number"
+                          value={selectedField.validation?.min ?? ''}
+                          onChange={(e) => updateField({ validation: { ...selectedField.validation, min: e.target.value ? Number(e.target.value) : undefined } })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="field-max">Maximum</Label>
+                        <Input
+                          id="field-max"
+                          type="number"
+                          value={selectedField.validation?.max ?? ''}
+                          onChange={(e) => updateField({ validation: { ...selectedField.validation, max: e.target.value ? Number(e.target.value) : undefined } })}
+                        />
+                      </div>
+                    </>
+                  )}
+                  {selectedField.type === 'text' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="field-regex">Regex Pattern</Label>
+                      <Input
+                        id="field-regex"
+                        value={selectedField.validation?.regex ?? ''}
+                        onChange={(e) => updateField({ validation: { ...selectedField.validation, regex: e.target.value || undefined } })}
+                        placeholder="e.g. ^[A-Z]{2}[0-9]{4}$"
+                      />
+                      <p className="text-xs text-muted-foreground">Custom validation pattern</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </>}
           </CardContent>
         </Card>}
       </div>
     </div>
+  );
+}
+
+function SortableFieldItem({ field, index, isSelected, onSelect, onRemove }: {
+  field: FormField;
+  index: number;
+  isSelected: boolean;
+  onSelect: () => void;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: field.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <button
+      ref={setNodeRef}
+      style={style}
+      type="button"
+      onClick={onSelect}
+      className={`group flex w-full items-center gap-3 rounded-xl border p-4 text-left transition-all ${
+        isSelected ? 'border-primary bg-primary/5 shadow-sm' : 'border-border/70 hover:border-primary/40'
+      }`}
+    >
+      <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+        <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground/60" />
+      </div>
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-primary">
+        <FieldIcon type={field.type} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-2 font-medium">
+          {field.label || t('forms.untitledField')}{' '}
+          {field.required && <span className="text-xs text-primary">{t('forms.fieldRequiredBadge')}</span>}
+        </span>
+        <span className="text-xs capitalize text-muted-foreground">
+          {t('forms.responseType', { type: field.type })} {index + 1}
+        </span>
+      </span>
+      <Trash2
+        onClick={(event) => {
+          event.stopPropagation();
+          onRemove();
+        }}
+        className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+      />
+    </button>
   );
 }
 
