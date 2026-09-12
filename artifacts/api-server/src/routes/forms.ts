@@ -133,6 +133,75 @@ router.post("/forms/templates", requirePermission("forms.manage"), async (req, r
   res.status(201).json(serialize(row));
 });
 
+router.get("/forms/analytics", requirePermission("forms.read"), async (req, res): Promise<void> => {
+  const org = tenantId(req);
+  const submissions = await db.select().from(formSubmissionsTable).where(and(
+    eq(formSubmissionsTable.organizationId, org),
+    isNull(formSubmissionsTable.deletedAt),
+  ));
+  const templates = await db.select().from(formTemplatesTable).where(and(
+    eq(formTemplatesTable.organizationId, org),
+    isNull(formTemplatesTable.deletedAt),
+  ));
+
+  const decided = submissions.filter((s) => s.status === "approved" || s.status === "rejected");
+  const approvalRate = decided.length
+    ? (decided.filter((s) => s.status === "approved").length / decided.length) * 100
+    : 0;
+
+  const cycleTimes = submissions
+    .filter((s) => s.submittedAt && (s.status === "approved" || s.status === "rejected"))
+    .map((s) => (new Date(s.updatedAt).getTime() - new Date(s.submittedAt!).getTime()) / 3_600_000)
+    .filter((hours) => Number.isFinite(hours) && hours >= 0);
+  const avgCycleTimeHours = cycleTimes.length
+    ? cycleTimes.reduce((sum, hours) => sum + hours, 0) / cycleTimes.length
+    : 0;
+
+  const templateNames = new Map(templates.map((t) => [t.id, t.name]));
+  const counts = new Map<number, number>();
+  for (const submission of submissions) {
+    counts.set(submission.templateId, (counts.get(submission.templateId) ?? 0) + 1);
+  }
+  const submissionsByTemplate = [...counts.entries()]
+    .map(([templateId, count]) => ({
+      templateId,
+      templateName: templateNames.get(templateId) ?? `Template #${templateId}`,
+      count,
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  const pendingRuns = await db.select().from(workflowRunsTable).where(and(
+    eq(workflowRunsTable.organizationId, org),
+    eq(workflowRunsTable.entityType, "form_submission"),
+    eq(workflowRunsTable.status, "pending"),
+  ));
+  const steps = pendingRuns.length
+    ? await db.select().from(workflowStepsTable)
+    : [];
+  const stepWaits = new Map<string, { total: number; count: number }>();
+  for (const run of pendingRuns) {
+    const step = steps.find((s) => s.workflowId === run.workflowId && s.stepOrder === run.currentStep);
+    if (!step) continue;
+    const waitHours = (Date.now() - new Date(run.updatedAt).getTime()) / 3_600_000;
+    if (!Number.isFinite(waitHours) || waitHours < 0) continue;
+    const entry = stepWaits.get(step.name) ?? { total: 0, count: 0 };
+    entry.total += waitHours;
+    entry.count += 1;
+    stepWaits.set(step.name, entry);
+  }
+  const bottlenecks = [...stepWaits.entries()]
+    .map(([stepName, { total, count }]) => ({ stepName, avgWaitHours: total / count, count }))
+    .sort((a, b) => b.avgWaitHours - a.avgWaitHours);
+
+  res.json({
+    totalSubmissions: submissions.length,
+    approvalRate,
+    avgCycleTimeHours,
+    submissionsByTemplate,
+    bottlenecks,
+  });
+});
+
 router.get("/forms/templates/:id", requirePermission("forms.read"), async (req, res): Promise<void> => {
   const parsed = GetFormsTemplatesIdParams.safeParse(req.params);
   if (!parsed.success) { res.status(400).json({ error: "Invalid template id" }); return; }
@@ -215,6 +284,25 @@ router.delete("/forms/templates/:id", requirePermission("forms.manage"), async (
   )).returning();
   audit(req, "form_template.deleted", "form_template", { resourceId: row.id, oldValues: { name: template.name, status: template.status } });
   res.status(204).end();
+});
+
+router.post("/forms/templates/:id/duplicate", requirePermission("forms.manage"), async (req, res): Promise<void> => {
+  const id = parseId(req.params.id);
+  if (!id) { res.status(400).json({ error: "Invalid template id" }); return; }
+  const template = await findTemplate(req, id);
+  if (!template) { res.status(404).json({ error: "Form template not found" }); return; }
+  const [row] = await db.insert(formTemplatesTable).values({
+    organizationId: tenantId(req),
+    projectId: template.projectId,
+    workflowId: template.workflowId,
+    name: `${template.name} (Copy)`,
+    description: template.description,
+    definition: template.definition,
+    createdBy: req.vetraUser!.id,
+    updatedBy: req.vetraUser!.id,
+  }).returning();
+  audit(req, "form_template.duplicated", "form_template", { resourceId: row.id, newValues: { name: row.name, sourceId: template.id } });
+  res.status(201).json(serialize(row));
 });
 
 router.post("/forms/templates/:id/archive", requirePermission("forms.manage"), async (req, res): Promise<void> => {
