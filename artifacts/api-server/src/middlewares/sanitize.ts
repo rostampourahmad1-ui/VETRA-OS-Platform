@@ -75,6 +75,6 @@ export const sanitizeRichText = (fieldName: string) => {
         .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
         .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, "")
         .replace(/on\w+\s*=\s*["'][^"']*["']/gi, "") // Remove event handlers
-        .replace(/javascript:/gi, ""); // Remove javascript: protocol
+        .replace(/(?:javascript|data|vbscript):/gi, ""); // Remove dangerous URL protocols
     });
 };
