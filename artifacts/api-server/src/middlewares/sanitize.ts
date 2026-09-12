@@ -71,10 +71,18 @@ export const sanitizeRichText = (fieldName: string) => {
     .trim()
     .customSanitizer((value: string) => {
       // Allow basic HTML tags but strip dangerous ones
-      return value
-        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-        .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, "")
-        .replace(/on\w+\s*=\s*["'][^"']*["']/gi, "") // Remove event handlers
-        .replace(/(?:javascript|data|vbscript):/gi, ""); // Remove dangerous URL protocols
+      let current = String(value ?? "");
+      let previous: string;
+
+      do {
+        previous = current;
+        current = current
+          .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+          .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, "")
+          .replace(/on\w+\s*=\s*["'][^"']*["']/gi, "") // Remove event handlers
+          .replace(/(?:javascript|data|vbscript):/gi, ""); // Remove dangerous URL protocols
+      } while (current !== previous);
+
+      return current;
     });
 };
