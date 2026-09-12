@@ -37,6 +37,9 @@ const CRM = lazy(() => import('@/pages/crm/CRM'));
 const Reports = lazy(() => import('@/pages/reports/Reports'));
 const Settings = lazy(() => import('@/pages/settings/Settings'));
 const FormsBuilder = lazy(() => import('@/pages/forms/FormsBuilder'));
+const TemplatesPage = lazy(() => import('@/pages/forms/TemplatesPage').then(m => ({ default: m.TemplatesPage })));
+const SubmissionsPage = lazy(() => import('@/pages/forms/SubmissionsPage').then(m => ({ default: m.SubmissionsPage })));
+const FormsAnalyticsPage = lazy(() => import('@/pages/forms/FormsAnalyticsPage').then(m => ({ default: m.FormsAnalyticsPage })));
 const OrgProjectSelector = lazy(() => import('@/pages/onboarding/OrgProjectSelector'));
 const QualityManagement = lazy(() => import('@/pages/quality/QualityManagement'));
 const NotFound = lazy(() => import('@/pages/not-found'));
@@ -212,6 +215,9 @@ function AppRoutes() {
             <Route path="/tasks" component={TaskList} />
             <Route path="/documents" component={DocumentList} />
             <Route path="/forms" component={FormsBuilder} />
+            <Route path="/forms/templates" component={TemplatesPage} />
+            <Route path="/forms/submissions" component={SubmissionsPage} />
+            <Route path="/forms/analytics" component={FormsAnalyticsPage} />
             <Route path="/quality" component={QualityManagement} />
             <Route path="/contracts" component={ContractList} />
             <Route path="/daily-reports" component={DailyReportList} />
