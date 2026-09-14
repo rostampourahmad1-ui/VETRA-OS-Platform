@@ -1,6 +1,6 @@
 {
   "schemaVersion": "project-context-agent.v1",
-  "generatedAt": "2026-09-12T16:21:45.031Z",
+  "generatedAt": "2026-09-14T18:21:19.128Z",
   "workspace": {
     "name": "workspai",
     "profile": "minimal",
@@ -104,21 +104,21 @@
     ]
   },
   "intelligence": {
-    "modelGeneratedAt": "2026-09-12T15:56:57.561Z",
-    "graphGeneratedAt": "2026-09-12T15:56:57.561Z",
+    "modelGeneratedAt": "2026-09-14T18:19:32.911Z",
+    "graphGeneratedAt": "2026-09-14T18:19:32.911Z",
     "graphModelHash": "71e52533a21a830ad2bf4cf9828e1338b9daedead7f76bf473fc2ccde11dd78a",
-    "entityCount": 4826,
-    "relationCount": 7248,
-    "proofCount": 8590,
+    "entityCount": 4830,
+    "relationCount": 7253,
+    "proofCount": 8595,
     "entitiesByKind": {
       "api": 1,
       "container": 4,
       "database": 1,
       "decision": 1,
-      "document": 5,
+      "document": 7,
       "endpoint": 398,
       "environment": 1,
-      "file": 469,
+      "file": 470,
       "language": 8,
       "lifecycle-stage": 3,
       "module": 225,
@@ -128,23 +128,23 @@
       "runtime-unit": 9,
       "schema": 82,
       "service": 3,
-      "symbol": 3600,
+      "symbol": 3601,
       "test-suite": 4,
       "workspace": 1
     },
     "relationsByKind": {
-      "calls": 685,
+      "calls": 686,
       "implements": 71,
       "imports": 1570,
-      "contains": 737,
-      "defines": 3838,
+      "contains": 738,
+      "defines": 3839,
       "references": 139,
       "tests": 4,
       "depends-on": 175,
       "uses-language": 8,
       "runs-on": 1,
       "exposes": 1,
-      "documents": 5,
+      "documents": 7,
       "configured-by": 10,
       "deploys": 3,
       "decided-by": 1
@@ -171,8 +171,8 @@
         "generatedFileCount": 0
       },
       "python": {
-        "fileCount": 39,
-        "symbolCount": 236,
+        "fileCount": 40,
+        "symbolCount": 237,
         "generatedFileCount": 0
       },
       "shell": {
@@ -206,10 +206,10 @@
       "mode": "stratified-byte-bounded",
       "maxEntities": 48,
       "byteBudget": 12288,
-      "selectedBytes": 11999,
-      "eligibleCount": 4826,
+      "selectedBytes": 11954,
+      "eligibleCount": 4830,
       "selectedCount": 21,
-      "omittedCount": 4805,
+      "omittedCount": 4809,
       "selectedByKind": {
         "api": 1,
         "container": 1,
@@ -233,9 +233,9 @@
       },
       "omittedByKind": {
         "container": 3,
-        "document": 4,
+        "document": 6,
         "endpoint": 397,
-        "file": 468,
+        "file": 469,
         "language": 6,
         "lifecycle-stage": 2,
         "module": 224,
@@ -243,7 +243,7 @@
         "runtime-unit": 8,
         "schema": 81,
         "service": 1,
-        "symbol": 3599,
+        "symbol": 3600,
         "test-suite": 3,
         "workspace": 1
       },
@@ -251,7 +251,7 @@
     },
     "relatedProjects": [],
     "freshness": {
-      "model": "unknown",
+      "model": "stale",
       "graph": "fresh",
       "graphMatchesModel": true
     },
@@ -552,6 +552,12 @@
       ]
     },
     "diagnostics": [
+      {
+        "code": "graph.provider.architecture-decisions.empty_result",
+        "severity": "warning",
+        "message": "architecture-decisions found an applicable source surface but produced no graph evidence.",
+        "recommendation": "Inspect the matching source format or extend the provider before treating this graph dimension as complete."
+      },
       {
         "code": "graph.provider.authored-api-implementation-binding.empty_result",
         "severity": "warning",
@@ -1028,7 +1034,7 @@
   "integrity": {
     "algorithm": "sha256",
     "modelHash": "71e52533a21a830ad2bf4cf9828e1338b9daedead7f76bf473fc2ccde11dd78a",
-    "payloadHash": "c074b58b51754cf4703034c32a4b24674cafb8e7d2aef636a7b058bfae7dc157",
+    "payloadHash": "8547d7933469c189ce4a1f87e29627eff55b9f2235050d056640bedfd414ac10",
     "portable": true,
     "absolutePathsEmitted": false
   }

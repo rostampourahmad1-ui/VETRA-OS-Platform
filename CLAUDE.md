@@ -1,4 +1,4 @@
-﻿# VETRA OS Platform - Claude Code Guidelines
+# VETRA OS Platform - Claude Code Guidelines
 
 ## معماری و پشته فنی
 - **بک‌اند:** Node.js, Express, Drizzle ORM, PostgreSQL (RLS / Multi-tenancy)
@@ -16,3 +16,15 @@
 1. **Multi-tenancy & Security:** تمام کوئری‌ها و روت‌ها باید شناسه مستأجر (`companyId`/`tenantId`) را لحاظ کنند. امنیت بر پایه RLS الزامی است.
 2. **UI & UX (RTL):** تمام متون رابط کاربری فارسی بوده و جهات و کامپوننت‌های Radix باید در مود RTL بدون شکستگی باشند.
 3. **مرحله 07 (حذف Mock):** از ایجاد دیتای ساختگی (Mock) جدید خودداری کرده و کامپوننت‌های ماک را به کلاینت‌های تولیدی Orval متصل کنید.
+
+<!-- WORKSPAI:AGENT-ENTRY:START -->
+@AGENTS.md
+
+# Workspai host binding · claude
+
+The imported Workspai entry gate is mandatory. Validate this host with
+`workspai agent bootstrap --for-agent claude --strict --json`, then follow
+the receipt's `requiredReadOrder`, Goal handoff, bounded Graph queries, proof paths,
+status policy, workspace locator privacy policy, and authority boundary. Do not repeat
+the imported instructions or replace repository-authored source rules.
+<!-- WORKSPAI:AGENT-ENTRY:END -->

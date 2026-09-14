@@ -63,15 +63,16 @@ entry gate; Workspai preserves rather than replaces them.
 - Relationship: `adopted`
 - Related projects: No proven cross-project relation is currently available.
 - Topology status: `unproven`
-- Model freshness: `unknown`
+- Model freshness: `stale`
 - Knowledge Graph freshness: `fresh`
 
 ## Current evidence coverage
 
-- Project-scoped entities: 4826
-- Project-scoped relations: 7248
-- Portable proofs: 8590
+- Project-scoped entities: 4830
+- Project-scoped relations: 7253
+- Portable proofs: 8595
 
+- **warning · graph.provider.architecture-decisions.empty_result:** architecture-decisions found an applicable source surface but produced no graph evidence.
 - **warning · graph.provider.authored-api-implementation-binding.empty_result:** authored-api-implementation-binding found an applicable source surface but produced no graph evidence.
 - **info · graph.provider.source_symbol_binding.ambiguous_calls:** 36 call site(s) were left unbound because more than one proven local symbol matched.
 
