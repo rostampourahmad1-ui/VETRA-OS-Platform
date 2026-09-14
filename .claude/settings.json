@@ -1,0 +1,19 @@
+﻿{
+  "permissions": {
+    "allowCommands": [
+      "pnpm dev",
+      "pnpm build",
+      "pnpm test",
+      "pnpm drizzle-kit *",
+      "pnpm orval",
+      "git status",
+      "git diff",
+      "git log"
+    ],
+    "denyCommands": [
+      "rm -rf *",
+      "git push --force",
+      "dropdb *"
+    ]
+  }
+}
