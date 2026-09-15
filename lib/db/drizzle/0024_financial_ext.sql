@@ -89,15 +89,15 @@ ALTER TABLE "payment_schedules" FORCE ROW LEVEL SECURITY;
 
 CREATE POLICY invoices_tenant_isolation
   ON "invoices" FOR ALL
-  USING ("organization_id" = current_setting('vetra.organization_id', TRUE)::INTEGER);
+  USING ("organization_id" = current_setting('app.current_organization_id', TRUE)::INTEGER);
 
 CREATE POLICY invoice_lines_tenant_isolation
   ON "invoice_lines" FOR ALL
-  USING ("organization_id" = current_setting('vetra.organization_id', TRUE)::INTEGER);
+  USING ("organization_id" = current_setting('app.current_organization_id', TRUE)::INTEGER);
 
 CREATE POLICY payment_schedules_tenant_isolation
   ON "payment_schedules" FOR ALL
-  USING ("organization_id" = current_setting('vetra.organization_id', TRUE)::INTEGER);
+  USING ("organization_id" = current_setting('app.current_organization_id', TRUE)::INTEGER);
 
 -- ─── 6. Permissions ─────────────────────────────────────────────────────────
 INSERT INTO "permissions" ("key", "description") VALUES

@@ -19,7 +19,7 @@ import {
   PostFormsTemplatesBody,
 } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/requireAuth";
-import { requirePermission } from "../middlewares/permissions";
+import { hasPermission, requirePermission } from "../middlewares/permissions";
 import { audit } from "../lib/audit";
 import { ownedProject, tenantId } from "../middlewares/tenant";
 
@@ -542,6 +542,10 @@ router.post("/form-submissions/bulk-approve", requirePermission("workflows.appro
     ));
     if (!step) {
       results.push({ id, success: false, error: "No current step" });
+      continue;
+    }
+    if (step.requiredPermission && !(await hasPermission(req.vetraUser!.id, tenantId(req), step.requiredPermission))) {
+      results.push({ id, success: false, error: "Missing required permission for step" });
       continue;
     }
     try {

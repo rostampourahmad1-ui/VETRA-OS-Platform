@@ -25,7 +25,7 @@ const TENANT_A = 999990;
 const TENANT_B = 999991;
 const TEST_TIMEOUT = 30_000;
 
-const tenantScopedTables = [
+const perDmlPolicyTables = [
   "users", "projects", "tasks", "contracts", "daily_reports", "meetings",
   "equipment", "inventory", "procurement", "activity", "documents", "audit_logs",
   "roles", "form_templates", "form_template_versions", "form_submissions",
@@ -39,7 +39,14 @@ const tenantScopedTables = [
   "user_roles",
 ] as const;
 
-const directTenantScopedTables = tenantScopedTables.filter((table) => table !== "workflow_steps");
+// Tables protected with a single FOR ALL policy named "<table>_tenant_isolation".
+const forAllPolicyTables = [
+  "project_members", "stock_movements", "invoices", "invoice_lines",
+  "payment_schedules", "daily_report_attachments", "daily_report_workforce",
+  "daily_report_materials", "daily_report_equipment",
+] as const;
+
+const tenantScopedTables = [...perDmlPolicyTables, ...forAllPolicyTables] as const;
 
 // ─── Database Connection ───────────────────────────────────────────────────
 
@@ -95,6 +102,7 @@ afterAll(async () => {
       await adminPool.query("DELETE FROM non_conformance_reports WHERE organization_id IN ($1, $2)", [TENANT_A, TENANT_B]);
       await adminPool.query("DELETE FROM inspections WHERE organization_id IN ($1, $2)", [TENANT_A, TENANT_B]);
       await adminPool.query("DELETE FROM workflow_run_events WHERE organization_id IN ($1, $2)", [TENANT_A, TENANT_B]);
+      await adminPool.query("DELETE FROM invoices WHERE organization_id IN ($1, $2)", [TENANT_A, TENANT_B]);
       await adminPool.query("DELETE FROM form_submissions WHERE organization_id IN ($1, $2)", [TENANT_A, TENANT_B]);
       await adminPool.query("DELETE FROM form_template_versions WHERE organization_id IN ($1, $2)", [TENANT_A, TENANT_B]);
       await adminPool.query("DELETE FROM form_templates WHERE organization_id IN ($1, $2)", [TENANT_A, TENANT_B]);
@@ -394,7 +402,46 @@ afterAll(async () => {
    }, TEST_TIMEOUT);
  });
 
- // ─── Test Suite: Request-Scoped RLS Context ────────────────────────────────
+ // ─── Test Suite: Financial RLS (corrected GUC wiring) ─────────────────────
+
+  describe("VETRA-PH1-02: Invoices RLS Isolation (corrected GUC)", () => {
+    beforeAll(async () => {
+      if (postgresAvailable) await setupTestData();
+    }, TEST_TIMEOUT);
+
+    it("P1-13: tenant A cannot read tenant B invoices", async () => {
+      if (!postgresAvailable) { console.warn("SKIPPED: PostgreSQL not available"); return; }
+      await adminPool.query(
+        "INSERT INTO invoices (id, organization_id, invoice_number, title, issue_date, subtotal, tax, total, status) VALUES ($1, $2, 'INV-A', 'Org A invoice', CURRENT_DATE, '100', '9', '109', 'draft'), ($3, $4, 'INV-B', 'Org B invoice', CURRENT_DATE, '200', '18', '218', 'draft') ON CONFLICT DO NOTHING",
+        [82001, TENANT_A, 82002, TENANT_B],
+      );
+      await setOrg(TENANT_A);
+      const result = await appClient.query("SELECT id, invoice_number FROM invoices ORDER BY id");
+      expect(result.rows).toEqual([{ id: 82001, invoice_number: "INV-A" }]);
+    }, TEST_TIMEOUT);
+
+    it("P1-14: tenant A cannot update tenant B invoices (status forgery via RLS)", async () => {
+      if (!postgresAvailable) { console.warn("SKIPPED: PostgreSQL not available"); return; }
+      await setOrg(TENANT_A);
+      const result = await appClient.query(
+        "UPDATE invoices SET status = 'approved' WHERE organization_id = $1 AND id = $2 RETURNING id",
+        [TENANT_B, 82002],
+      );
+      expect(result.rows.length).toBe(0);
+    }, TEST_TIMEOUT);
+
+    it("P1-15: tenant A cannot delete tenant B invoices", async () => {
+      if (!postgresAvailable) { console.warn("SKIPPED: PostgreSQL not available"); return; }
+      await setOrg(TENANT_A);
+      const result = await appClient.query(
+        "DELETE FROM invoices WHERE organization_id = $1 AND id = $2 RETURNING id",
+        [TENANT_B, 82002],
+      );
+      expect(result.rows.length).toBe(0);
+    }, TEST_TIMEOUT);
+  });
+
+  // ─── Test Suite: Request-Scoped RLS Context ────────────────────────────────
 
  describe("VETRA-SEC-06: Request-Scoped RLS Context", () => {
    beforeAll(async () => {
@@ -438,33 +485,52 @@ afterAll(async () => {
 
  // ─── Test Suite: RLS Policy Count ──────────────────────────────────────────
 
- describe("VETRA-TEST-02: RLS Policy Count", () => {
-   it("P1-1: Each tenant table has exactly 4 policies (SELECT, INSERT, UPDATE, DELETE)", async () => {
-     if (!postgresAvailable) {
-       console.warn("SKIPPED: PostgreSQL not available");
-       return;
-     }
-     const result = await adminPool.query(
-       `SELECT tablename, count(*) as policy_count
-        FROM pg_policies
-        WHERE policyname LIKE '%_tenant_isolation_%'
-        GROUP BY tablename
-        ORDER BY tablename`
-     );
-     const policyCounts = new Map(result.rows.map((row: { tablename: string; policy_count: string }) => [row.tablename, Number(row.policy_count)]));
-     for (const table of directTenantScopedTables) {
-       expect(policyCounts.get(table), `${table} policy count`).toBe(4);
-     }
+describe("VETRA-TEST-02: RLS Policy Count", () => {
+    it("P1-1: Each per-DML-policy tenant table has exactly 4 policies (SELECT, INSERT, UPDATE, DELETE)", async () => {
+      if (!postgresAvailable) {
+        console.warn("SKIPPED: PostgreSQL not available");
+        return;
+      }
+      const result = await adminPool.query(
+        `SELECT tablename, count(*) as policy_count
+         FROM pg_policies
+         WHERE policyname LIKE '%_tenant_isolation_%'
+         GROUP BY tablename
+         ORDER BY tablename`
+      );
+      const policyCounts = new Map(result.rows.map((row: { tablename: string; policy_count: string }) => [row.tablename, Number(row.policy_count)]));
+      for (const table of perDmlPolicyTables) {
+        if (table === "workflow_steps") continue;
+        expect(policyCounts.get(table), `${table} policy count`).toBe(4);
+      }
 
-     const workflowPolicies = await adminPool.query(
-       `SELECT count(*) AS policy_count
-        FROM pg_policies
-        WHERE schemaname = 'public'
-          AND tablename = 'workflow_steps'
-          AND policyname = 'workflow_steps_tenant_isolation'`,
-     );
-     expect(Number(workflowPolicies.rows[0]?.policy_count), "workflow_steps policy count").toBe(1);
-   }, TEST_TIMEOUT);
+      const workflowPolicies = await adminPool.query(
+        `SELECT count(*) AS policy_count
+         FROM pg_policies
+         WHERE schemaname = 'public'
+           AND tablename = 'workflow_steps'
+           AND policyname = 'workflow_steps_tenant_isolation'`,
+      );
+      expect(Number(workflowPolicies.rows[0]?.policy_count), "workflow_steps policy count").toBe(1);
+    }, TEST_TIMEOUT);
+
+    it("P1-12: Each single-FOR-ALL tenant table has its isolation policy", async () => {
+      if (!postgresAvailable) {
+        console.warn("SKIPPED: PostgreSQL not available");
+        return;
+      }
+      for (const table of forAllPolicyTables) {
+        const result = await adminPool.query(
+          `SELECT count(*) AS policy_count
+           FROM pg_policies
+           WHERE schemaname = 'public'
+             AND tablename = $1
+             AND policyname = $2`,
+          [table, `${table}_tenant_isolation`],
+        );
+        expect(Number(result.rows[0]?.policy_count), `${table} FOR ALL policy`).toBe(1);
+      }
+    }, TEST_TIMEOUT);
 
    it("P1-11: append-only audit and quality triggers exist", async () => {
      if (!postgresAvailable) {

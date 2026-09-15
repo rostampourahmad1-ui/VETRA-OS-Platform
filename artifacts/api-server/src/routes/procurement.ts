@@ -54,7 +54,7 @@ router.post("/procurement", requirePermission("procurement.create"), async (req,
     status: d.status ?? "draft",
     projectId: d.projectId,
     organizationId,
-    requestedBy: d.requestedBy,
+    requestedBy: String(req.vetraUser?.id ?? "system"),
     deliveryDate: d.deliveryDate,
     notes: d.notes,
   }).returning();
@@ -83,9 +83,13 @@ router.patch("/procurement/:id", requirePermission("procurement.update"), async 
   if (d.supplier !== undefined) updates.supplier = d.supplier;
   if (d.totalAmount !== undefined) updates.totalAmount = d.totalAmount.toString();
   if (d.status !== undefined) updates.status = d.status;
-  if (d.approvedBy !== undefined) updates.approvedBy = d.approvedBy;
   if (d.deliveryDate !== undefined) updates.deliveryDate = d.deliveryDate;
   if (d.notes !== undefined) updates.notes = d.notes;
+
+  // The approver identity is server-derived from the session, never from the client.
+  if (updates.status === "approved" && current.status !== "approved") {
+    updates.approvedBy = String(req.vetraUser?.id ?? "");
+  }
 
   const [row] = await db.update(procurementTable).set(updates).where(and(eq(procurementTable.id, id), eq(procurementTable.organizationId, organizationId))).returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }

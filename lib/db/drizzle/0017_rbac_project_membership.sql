@@ -200,7 +200,7 @@ BEGIN
   ) THEN
     CREATE POLICY project_members_tenant_isolation ON project_members
       FOR ALL
-      USING ("organization_id" = (SELECT current_setting('vetra.organization_id')::integer));
+      USING ("organization_id" = (SELECT current_setting('app.current_organization_id', TRUE)::integer));
     ALTER TABLE project_members FORCE ROW LEVEL SECURITY;
   END IF;
 END ;

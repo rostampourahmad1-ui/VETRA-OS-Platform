@@ -132,6 +132,7 @@ vi.mock("../../artifacts/api-server/src/middlewares/requireAuth", () => ({
 }));
 vi.mock("../../artifacts/api-server/src/middlewares/tenant", () => ({
   tenantId: (req: any) => req.organizationId,
+  ownedProject: async () => true,
 }));
 vi.mock("../../artifacts/api-server/src/lib/audit", () => ({ audit: vi.fn() }));
 vi.mock("../../artifacts/api-server/src/lib/notifications", () => ({
@@ -274,6 +275,17 @@ describe("Phase 1 Step 3: Financial (Invoices & Payment Schedules)", () => {
     ]);
     const res = await request(app()).patch("/invoices/1").send({ notes: "hack" });
     expect(res.status).toBe(409);
+  });
+
+  it("rejects client-supplied status on PATCH /invoices/:id (approval only via /approve)", async () => {
+    rows.set(tables.invoicesTable, [
+      { id: 1, organizationId: 1, invoiceNumber: "A", status: "draft", subtotal: "500", tax: "45", total: "545", notes: null },
+    ]);
+    const res = await request(app()).patch("/invoices/1").send({ status: "approved", notes: "edited" });
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe("draft");
+    expect(res.body.approvedBy).toBeUndefined();
+    expect(res.body.approvedAt).toBeUndefined();
   });
 
   // ---------- DELETE /invoices/:id ----------

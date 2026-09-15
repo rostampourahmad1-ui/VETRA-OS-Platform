@@ -100,10 +100,11 @@ router.get("/cost-control/expenses", requirePermission("cost-control.read"), asy
 router.post("/cost-control/expenses", requirePermission("cost-control.manage"), async (req, res): Promise<void> => {
   const parsed = CreateExpenseBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Invalid expense", details: parsed.error.issues }); return; }
-  const { projectId, categoryId, description, amount, expenseDate, status } = parsed.data;
+  const { projectId, categoryId, description, amount, expenseDate } = parsed.data;
   if (!(await ownedProject(req, projectId))) { res.status(400).json({ error: "Project not found" }); return; }
-  const expenseDateStr = expenseDate instanceof Date ? expenseDate.toISOString().slice(0, 10) : String(expenseDate);
-  const [row] = await db.insert(expensesTable).values({ organizationId: tenantId(req), projectId, categoryId, submittedBy: req.vetraUser?.id, description, amount: String(amount), expenseDate: expenseDateStr, status: status ?? "approved" }).returning();
+const expenseDateStr = expenseDate instanceof Date ? expenseDate.toISOString().slice(0, 10) : String(expenseDate);
+  // New expenses always start pending; approval is a server-side transition via /approve.
+  const [row] = await db.insert(expensesTable).values({ organizationId: tenantId(req), projectId, categoryId, submittedBy: req.vetraUser?.id, description, amount: String(amount), expenseDate: expenseDateStr, status: "pending" }).returning();
   res.status(201).json(row);
   audit(req, "cost_control.expense.created", "expense", { resourceId: row.id, newValues: { description: row.description, projectId: row.projectId, amount: row.amount, status: row.status } });
 });

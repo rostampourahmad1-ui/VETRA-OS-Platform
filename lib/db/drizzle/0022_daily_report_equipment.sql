@@ -44,12 +44,13 @@ CREATE INDEX IF NOT EXISTS daily_report_equipment_equipment_id_idx
 
 -- Enable RLS on the new table
 ALTER TABLE daily_report_equipment ENABLE ROW LEVEL SECURITY;
+ALTER TABLE daily_report_equipment FORCE ROW LEVEL SECURITY;
 
 -- RLS policy: only allow access to equipment entries belonging to the user's organization
 CREATE POLICY daily_report_equipment_tenant_isolation
   ON daily_report_equipment
   FOR ALL
-  USING (organization_id = current_setting('vetra.organization_id', TRUE)::INTEGER);
+  USING (organization_id = current_setting('app.current_organization_id', TRUE)::INTEGER);
 
 -- Seed daily report equipment permissions
 INSERT INTO permissions (key, description) VALUES

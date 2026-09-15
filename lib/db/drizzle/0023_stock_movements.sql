@@ -45,7 +45,7 @@ ALTER TABLE "stock_movements" FORCE ROW LEVEL SECURITY;
 CREATE POLICY stock_movements_tenant_isolation
   ON "stock_movements"
   FOR ALL
-  USING ("organization_id" = current_setting('vetra.organization_id', TRUE)::INTEGER);
+  USING ("organization_id" = current_setting('app.current_organization_id', TRUE)::INTEGER);
 
 -- ─── 4. Permissions ─────────────────────────────────────────────────────────
 INSERT INTO "permissions" ("key", "description") VALUES

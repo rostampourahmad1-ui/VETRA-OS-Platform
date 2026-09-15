@@ -34,6 +34,11 @@ minimumReleaseAgeExclude:
   - postcss@8.5.23
   - fast-uri@3.1.5
   - nanoid@3.3.18
+  # TEMPORARY (remove after 2026-09-16 01:30 UTC): magic-string@1.3.2 published
+  # 2026-09-15 01:30 UTC as a direct dep of vitest@5.0.0 (committed lockfile).
+  # Trusted package (Rich Harris / Vite-Rollup ecosystem); excluded only to
+  # unblock the committed lockfile until it clears the 24h window.
+  - magic-string
 
 packages:
   - artifacts/*

@@ -4,7 +4,7 @@ import { db, invoicesTable, invoiceLinesTable, paymentSchedulesTable } from "@wo
 import { requireAuth } from "../middlewares/requireAuth";
 import { requirePermission } from "../middlewares/permissions";
 import { audit } from "../lib/audit";
-import { tenantId } from "../middlewares/tenant";
+import { tenantId, ownedProject } from "../middlewares/tenant";
 import { createNotification, NotificationType } from "../lib/notifications";
 
 const router = Router();
@@ -49,15 +49,22 @@ router.post("/invoices", requirePermission("invoices.create"), async (req, res):
     const price = Number(line.unitPrice) || 0;
     subtotal += qty * price;
   }
-  const taxAmount = subtotal * 0.09; // 9% VAT
+const taxAmount = subtotal * 0.09; // 9% VAT
   const totalAmount = subtotal + taxAmount;
+
+  // VETRA-SEC: projectId is a cross-tenant reference; it must belong to the caller's org.
+  const projectIdValue = projectId == null ? null : Number(projectId);
+  if (projectIdValue != null && !(await ownedProject(req, projectIdValue))) {
+    res.status(404).json({ error: "Project not found" });
+    return;
+  }
 
   const [invoice] = await db.transaction(async (tx) => {
 const [inv] = await tx.insert(invoicesTable).values({
       organizationId: org,
       invoiceNumber,
       title: req.body.title ?? invoiceNumber,
-      projectId: projectId ?? null,
+      projectId: projectIdValue,
       issueDate: issueDate,
       dueDate: dueDate ?? null,
       subtotal: subtotal.toString(),
@@ -179,8 +186,9 @@ router.patch("/invoices/:id", requirePermission("invoices.update"), async (req, 
     return;
   }
 
-  const upd: Record<string, unknown> = { updatedAt: new Date() };
-  for (const k of ["invoiceNumber", "issueDate", "dueDate", "notes", "status"] as const) {
+const upd: Record<string, unknown> = { updatedAt: new Date() };
+  // Status is only allowed to change through the dedicated approve flow.
+  for (const k of ["invoiceNumber", "issueDate", "dueDate", "notes"] as const) {
     if (req.body[k] !== undefined) upd[k] = req.body[k];
   }
 

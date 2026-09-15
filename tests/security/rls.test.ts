@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 // ─── VETRA-SEC-05: RLS Policy Validation Tests ─────────────────────────────
@@ -298,5 +298,75 @@ describe("VETRA-FORM-01 / VETRA-WORKFLOW-01: New tenant boundaries", () => {
     expect(workflowSql).toMatch(/workflow_steps_tenant_isolation/i);
     expect(workflowSql).toMatch(/BEFORE UPDATE\s+ON\s+"workflow_run_events"/i);
     expect(workflowSql).toMatch(/BEFORE DELETE\s+ON\s+"workflow_run_events"/i);
+  });
+});
+
+// ─── VETRA-SEC-12: Tenant-isolation GUC wiring across all migrations ────────
+
+describe("VETRA-SEC-12: Tenant-isolation GUC wiring across migrations", () => {
+  const DRIZZLE_DIR = resolve(__dirname, "../../lib/db/drizzle");
+  const migrationFiles = readdirSync(DRIZZLE_DIR).filter((f) => f.endsWith(".sql"));
+
+  it("no migration references the unwired 'vetra.organization_id' GUC", () => {
+    // set_organization_context / set_request_organization_context both write
+    // app.current_organization_id. vetra.organization_id is never set, which
+    // left the RLS policies on newer tables dead. This guard prevents the
+    // mismatch from being reintroduced.
+    for (const file of migrationFiles) {
+      const sql = readFileSync(resolve(DRIZZLE_DIR, file), "utf-8");
+      expect(sql, file).not.toContain("vetra.organization_id");
+    }
+  });
+
+  it("RLS policy definitions in migrations 0017-0024 wire the request-scoped GUC", () => {
+    for (const file of [
+      "0017_rbac_project_membership.sql",
+      "0019_daily_report_attachments.sql",
+      "0020_daily_report_workforce.sql",
+      "0021_daily_report_materials.sql",
+      "0022_daily_report_equipment.sql",
+      "0023_stock_movements.sql",
+      "0024_financial_ext.sql",
+    ]) {
+      const sql = readFileSync(resolve(DRIZZLE_DIR, file), "utf-8");
+      expect(sql, file).toContain("app.current_organization_id");
+    }
+  });
+
+  it("fixed plain-DDL migrations contain no doubled-quoted string literals", () => {
+    // Migrations 0019/0020 previously shipped with ''...'' escapes that produced
+    // wrong setting names and role comparisons at runtime. Because these files
+    // are plain DDL (no PL/pgSQL format() bodies — unlike 0004/0008 which
+    // legitimately escape quotes inside helper functions), NO doubled-quote
+    // escape may appear in them after the corrective rewrite.
+    for (const file of [
+      "0019_daily_report_attachments.sql",
+      "0020_daily_report_workforce.sql",
+      "0021_daily_report_materials.sql",
+      "0022_daily_report_equipment.sql",
+      "0023_stock_movements.sql",
+      "0024_financial_ext.sql",
+    ]) {
+      const sql = readFileSync(resolve(DRIZZLE_DIR, file), "utf-8");
+      expect(sql, file).not.toMatch(/''/);
+    }
+  });
+
+  it("financial, stock and daily-report tenant tables are FORCE-protected", () => {
+    const forced: Array<[string, string]> = [
+      ["0019_daily_report_attachments.sql", "daily_report_attachments"],
+      ["0020_daily_report_workforce.sql", "daily_report_workforce"],
+      ["0021_daily_report_materials.sql", "daily_report_materials"],
+      ["0022_daily_report_equipment.sql", "daily_report_equipment"],
+      ["0023_stock_movements.sql", "stock_movements"],
+      ["0024_financial_ext.sql", "invoices"],
+      ["0024_financial_ext.sql", "invoice_lines"],
+      ["0024_financial_ext.sql", "payment_schedules"],
+      ["0017_rbac_project_membership.sql", "project_members"],
+    ];
+    for (const [file, table] of forced) {
+      const sql = readFileSync(resolve(DRIZZLE_DIR, file), "utf-8");
+      expect(sql, `${file} FORCE ${table}`).toMatch(new RegExp(`ALTER TABLE\\s+"?${table}"?\\s+FORCE ROW LEVEL SECURITY`, "i"));
+    }
   });
 });

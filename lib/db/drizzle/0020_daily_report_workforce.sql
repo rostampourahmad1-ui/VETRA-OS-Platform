@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS daily_report_workforce (
   group_name TEXT,
   role TEXT NOT NULL,
   count INTEGER NOT NULL DEFAULT 1 CHECK (count > 0),
-  attendance_status TEXT NOT NULL DEFAULT ''present'' CHECK (attendance_status IN (''present'', ''absent'', ''late'', ''on_leave'', ''half_day'')),
+  attendance_status TEXT NOT NULL DEFAULT 'present' CHECK (attendance_status IN ('present', 'absent', 'late', 'on_leave', 'half_day')),
   hours_worked NUMERIC(5,1) NOT NULL DEFAULT 0 CHECK (hours_worked >= 0 AND hours_worked <= 24),
   notes TEXT,
   created_by INTEGER NOT NULL,
@@ -43,19 +43,20 @@ CREATE INDEX IF NOT EXISTS daily_report_workforce_employee_id_idx
 
 -- Enable RLS on the new table
 ALTER TABLE daily_report_workforce ENABLE ROW LEVEL SECURITY;
+ALTER TABLE daily_report_workforce FORCE ROW LEVEL SECURITY;
 
--- RLS policy: only allow access to workforce entries belonging to the user''s organization
+-- RLS policy: only allow access to workforce entries belonging to the user's organization
 CREATE POLICY daily_report_workforce_tenant_isolation
   ON daily_report_workforce
   FOR ALL
-  USING (organization_id = current_setting(''vetra.organization_id'', TRUE)::INTEGER);
+  USING (organization_id = current_setting('app.current_organization_id', TRUE)::INTEGER);
 
 -- Seed daily report workforce permissions
 INSERT INTO permissions (key, description) VALUES
-  (''daily-reports.workforce.read'', ''Read daily report workforce entries''),
-  (''daily-reports.workforce.create'', ''Create daily report workforce entries''),
-  (''daily-reports.workforce.update'', ''Update daily report workforce entries''),
-  (''daily-reports.workforce.delete'', ''Delete daily report workforce entries'')
+  ('daily-reports.workforce.read', 'Read daily report workforce entries'),
+  ('daily-reports.workforce.create', 'Create daily report workforce entries'),
+  ('daily-reports.workforce.update', 'Update daily report workforce entries'),
+  ('daily-reports.workforce.delete', 'Delete daily report workforce entries')
 ON CONFLICT (key) DO NOTHING;
 
 -- Map workforce permissions to existing roles
@@ -64,8 +65,8 @@ INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM roles r
 CROSS JOIN permissions p
-WHERE r.name = ''ADMIN''
-  AND p.key IN (''daily-reports.workforce.read'', ''daily-reports.workforce.create'', ''daily-reports.workforce.update'', ''daily-reports.workforce.delete'')
+WHERE r.name = 'ADMIN'
+  AND p.key IN ('daily-reports.workforce.read', 'daily-reports.workforce.create', 'daily-reports.workforce.update', 'daily-reports.workforce.delete')
   AND NOT EXISTS (
     SELECT 1 FROM role_permissions rp WHERE rp.role_id = r.id AND rp.permission_id = p.id
   );
@@ -75,8 +76,8 @@ INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM roles r
 CROSS JOIN permissions p
-WHERE r.name = ''MANAGER''
-  AND p.key IN (''daily-reports.workforce.read'', ''daily-reports.workforce.create'', ''daily-reports.workforce.update'', ''daily-reports.workforce.delete'')
+WHERE r.name = 'MANAGER'
+  AND p.key IN ('daily-reports.workforce.read', 'daily-reports.workforce.create', 'daily-reports.workforce.update', 'daily-reports.workforce.delete')
   AND NOT EXISTS (
     SELECT 1 FROM role_permissions rp WHERE rp.role_id = r.id AND rp.permission_id = p.id
   );
@@ -86,8 +87,8 @@ INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM roles r
 CROSS JOIN permissions p
-WHERE r.name = ''PROJECT_MANAGER''
-  AND p.key IN (''daily-reports.workforce.read'', ''daily-reports.workforce.create'', ''daily-reports.workforce.update'', ''daily-reports.workforce.delete'')
+WHERE r.name = 'PROJECT_MANAGER'
+  AND p.key IN ('daily-reports.workforce.read', 'daily-reports.workforce.create', 'daily-reports.workforce.update', 'daily-reports.workforce.delete')
   AND NOT EXISTS (
     SELECT 1 FROM role_permissions rp WHERE rp.role_id = r.id AND rp.permission_id = p.id
   );
@@ -97,8 +98,8 @@ INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM roles r
 CROSS JOIN permissions p
-WHERE r.name = ''SUPERVISOR''
-  AND p.key IN (''daily-reports.workforce.read'', ''daily-reports.workforce.create'', ''daily-reports.workforce.update'')
+WHERE r.name = 'SUPERVISOR'
+  AND p.key IN ('daily-reports.workforce.read', 'daily-reports.workforce.create', 'daily-reports.workforce.update')
   AND NOT EXISTS (
     SELECT 1 FROM role_permissions rp WHERE rp.role_id = r.id AND rp.permission_id = p.id
   );
@@ -108,8 +109,8 @@ INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM roles r
 CROSS JOIN permissions p
-WHERE r.name = ''ENGINEER''
-  AND p.key IN (''daily-reports.workforce.read'', ''daily-reports.workforce.create'')
+WHERE r.name = 'ENGINEER'
+  AND p.key IN ('daily-reports.workforce.read', 'daily-reports.workforce.create')
   AND NOT EXISTS (
     SELECT 1 FROM role_permissions rp WHERE rp.role_id = r.id AND rp.permission_id = p.id
   );
@@ -119,8 +120,8 @@ INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM roles r
 CROSS JOIN permissions p
-WHERE r.name = ''SITE_ENGINEER''
-  AND p.key IN (''daily-reports.workforce.read'', ''daily-reports.workforce.create'', ''daily-reports.workforce.update'')
+WHERE r.name = 'SITE_ENGINEER'
+  AND p.key IN ('daily-reports.workforce.read', 'daily-reports.workforce.create', 'daily-reports.workforce.update')
   AND NOT EXISTS (
     SELECT 1 FROM role_permissions rp WHERE rp.role_id = r.id AND rp.permission_id = p.id
   );
@@ -130,8 +131,8 @@ INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM roles r
 CROSS JOIN permissions p
-WHERE r.name = ''EMPLOYEE''
-  AND p.key = ''daily-reports.workforce.read''
+WHERE r.name = 'EMPLOYEE'
+  AND p.key = 'daily-reports.workforce.read'
   AND NOT EXISTS (
     SELECT 1 FROM role_permissions rp WHERE rp.role_id = r.id AND rp.permission_id = p.id
   );

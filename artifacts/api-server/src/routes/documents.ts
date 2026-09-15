@@ -55,7 +55,7 @@ router.post("/documents", requirePermission("documents.create"), async (req, res
   const d = parsed.data; const [project] = await db.select().from(projectsTable).where(and(eq(projectsTable.id, d.projectId), eq(projectsTable.organizationId, tenantId(req))));
   if (!project) { res.status(404).json({ error: "Project not found" }); return; }
   if (!(await isProjectMember(req, d.projectId))) { res.status(403).json({ error: "Forbidden: not a member of this project" }); return; }
-  const [row] = await db.insert(documentsTable).values({ name: d.name, type: d.type, size: d.size, projectId: d.projectId, organizationId: tenantId(req), uploadedBy: d.uploadedBy, url: d.url }).returning();
+  const [row] = await db.insert(documentsTable).values({ name: d.name, type: d.type, size: d.size, projectId: d.projectId, organizationId: tenantId(req), uploadedBy: String(req.vetraUser?.id ?? "system"), url: d.url }).returning();
   res.status(201).json({ ...row, projectName: project.name, createdAt: row.createdAt.toISOString() });
   audit(req, "document.created", "document", { resourceId: row.id, newValues: { name: row.name, type: row.type, projectId: row.projectId } });
   notifyDocumentUploaded(req, row.name, row.projectId, row.id);
@@ -95,7 +95,7 @@ router.delete("/documents/:id", requirePermission("documents.delete"), async (re
   const [row] = await db.select().from(documentsTable).where(and(eq(documentsTable.id, Number(req.params.id)), eq(documentsTable.organizationId, tenantId(req))));
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
   if (row.storagePath) await fs.rm(row.storagePath, { force: true }).catch(() => undefined);
-  await db.delete(documentsTable).where(eq(documentsTable.id, row.id));
+  await db.delete(documentsTable).where(and(eq(documentsTable.id, row.id), eq(documentsTable.organizationId, tenantId(req))));
   audit(req, "document.deleted", "document", { resourceId: row.id });
   res.status(204).send();
 });

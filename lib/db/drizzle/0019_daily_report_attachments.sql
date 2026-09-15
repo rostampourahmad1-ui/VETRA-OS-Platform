@@ -34,19 +34,20 @@ CREATE INDEX IF NOT EXISTS daily_report_attachments_project_id_idx
 
 -- Enable RLS on the new table
 ALTER TABLE daily_report_attachments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE daily_report_attachments FORCE ROW LEVEL SECURITY;
 
 -- RLS policy: only allow access to attachments belonging to the user's organization
 -- This uses the same set_request_organization_context pattern as other tables
 CREATE POLICY daily_report_attachments_tenant_isolation
   ON daily_report_attachments
   FOR ALL
-  USING (organization_id = current_setting(''vetra.organization_id'', TRUE)::INTEGER);
+  USING (organization_id = current_setting('app.current_organization_id', TRUE)::INTEGER);
 
 -- Seed daily report attachment permissions
 INSERT INTO permissions (key, description) VALUES
-  (''daily-reports.attachments.upload'', ''Upload attachments to daily reports''),
-  (''daily-reports.attachments.download'', ''Download attachments from daily reports''),
-  (''daily-reports.attachments.delete'', ''Delete attachments from daily reports'')
+  ('daily-reports.attachments.upload', 'Upload attachments to daily reports'),
+  ('daily-reports.attachments.download', 'Download attachments from daily reports'),
+  ('daily-reports.attachments.delete', 'Delete attachments from daily reports')
 ON CONFLICT (key) DO NOTHING;
 
 -- Map attachment permissions to existing roles
@@ -55,8 +56,8 @@ INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM roles r
 CROSS JOIN permissions p
-WHERE r.name = ''ADMIN''
-  AND p.key IN (''daily-reports.attachments.upload'', ''daily-reports.attachments.download'', ''daily-reports.attachments.delete'')
+WHERE r.name = 'ADMIN'
+  AND p.key IN ('daily-reports.attachments.upload', 'daily-reports.attachments.download', 'daily-reports.attachments.delete')
   AND NOT EXISTS (
     SELECT 1 FROM role_permissions rp WHERE rp.role_id = r.id AND rp.permission_id = p.id
   );
@@ -66,8 +67,8 @@ INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM roles r
 CROSS JOIN permissions p
-WHERE r.name = ''MANAGER''
-  AND p.key IN (''daily-reports.attachments.upload'', ''daily-reports.attachments.download'', ''daily-reports.attachments.delete'')
+WHERE r.name = 'MANAGER'
+  AND p.key IN ('daily-reports.attachments.upload', 'daily-reports.attachments.download', 'daily-reports.attachments.delete')
   AND NOT EXISTS (
     SELECT 1 FROM role_permissions rp WHERE rp.role_id = r.id AND rp.permission_id = p.id
   );
@@ -77,8 +78,8 @@ INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM roles r
 CROSS JOIN permissions p
-WHERE r.name = ''PROJECT_MANAGER''
-  AND p.key IN (''daily-reports.attachments.upload'', ''daily-reports.attachments.download'', ''daily-reports.attachments.delete'')
+WHERE r.name = 'PROJECT_MANAGER'
+  AND p.key IN ('daily-reports.attachments.upload', 'daily-reports.attachments.download', 'daily-reports.attachments.delete')
   AND NOT EXISTS (
     SELECT 1 FROM role_permissions rp WHERE rp.role_id = r.id AND rp.permission_id = p.id
   );
@@ -88,8 +89,8 @@ INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM roles r
 CROSS JOIN permissions p
-WHERE r.name = ''SUPERVISOR''
-  AND p.key IN (''daily-reports.attachments.upload'', ''daily-reports.attachments.download'')
+WHERE r.name = 'SUPERVISOR'
+  AND p.key IN ('daily-reports.attachments.upload', 'daily-reports.attachments.download')
   AND NOT EXISTS (
     SELECT 1 FROM role_permissions rp WHERE rp.role_id = r.id AND rp.permission_id = p.id
   );
@@ -99,8 +100,8 @@ INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM roles r
 CROSS JOIN permissions p
-WHERE r.name = ''ENGINEER''
-  AND p.key IN (''daily-reports.attachments.upload'', ''daily-reports.attachments.download'')
+WHERE r.name = 'ENGINEER'
+  AND p.key IN ('daily-reports.attachments.upload', 'daily-reports.attachments.download')
   AND NOT EXISTS (
     SELECT 1 FROM role_permissions rp WHERE rp.role_id = r.id AND rp.permission_id = p.id
   );
@@ -110,8 +111,8 @@ INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM roles r
 CROSS JOIN permissions p
-WHERE r.name = ''SITE_ENGINEER''
-  AND p.key IN (''daily-reports.attachments.upload'', ''daily-reports.attachments.download'')
+WHERE r.name = 'SITE_ENGINEER'
+  AND p.key IN ('daily-reports.attachments.upload', 'daily-reports.attachments.download')
   AND NOT EXISTS (
     SELECT 1 FROM role_permissions rp WHERE rp.role_id = r.id AND rp.permission_id = p.id
   );
@@ -121,8 +122,8 @@ INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM roles r
 CROSS JOIN permissions p
-WHERE r.name = ''EMPLOYEE''
-  AND p.key IN (''daily-reports.attachments.upload'', ''daily-reports.attachments.download'')
+WHERE r.name = 'EMPLOYEE'
+  AND p.key IN ('daily-reports.attachments.upload', 'daily-reports.attachments.download')
   AND NOT EXISTS (
     SELECT 1 FROM role_permissions rp WHERE rp.role_id = r.id AND rp.permission_id = p.id
   );

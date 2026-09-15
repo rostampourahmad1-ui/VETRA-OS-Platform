@@ -121,7 +121,7 @@ const mocks = vi.hoisted(() => {
 
   const dbHandle: any = makeDb();
 
-  return { tables, rows, db: dbHandle };
+  return { tables, rows, db: dbHandle, hasPermission: vi.fn(async () => true) };
 });
 
 const { tables, rows, db } = mocks;
@@ -152,6 +152,7 @@ vi.mock("@workspace/api-zod", () => ({
 }));
 vi.mock("../../artifacts/api-server/src/middlewares/permissions", () => ({
   requirePermission: () => (_req: any, _res: any, next: any) => next(),
+  hasPermission: (...args: unknown[]) => mocks.hasPermission(...args),
 }));
 vi.mock("../../artifacts/api-server/src/middlewares/requireAuth", () => ({
   requireAuth: (_req: any, _res: any, next: any) => next(),
@@ -195,7 +196,11 @@ function seedDraftTemplate(overrides: Partial<Record<string, any>> = {}) {
 /* ──────────────────────── Tests ──────────────────────── */
 
 describe("Phase 1 Step 4: Forms & Workflow", () => {
-  beforeEach(() => rows.clear());
+  beforeEach(() => {
+    rows.clear();
+    mocks.hasPermission.mockReset();
+    mocks.hasPermission.mockResolvedValue(true);
+  });
 
   // ---------- Template CRUD ----------
   it("creates a form template as draft", async () => {
@@ -403,6 +408,25 @@ describe("Phase 1 Step 4: Forms & Workflow", () => {
     const res = await request(app()).post("/form-submissions/bulk-approve").send({ submissionIds: [2] });
     expect(res.status).toBe(200);
     expect(res.body.results[0].success).toBe(false);
+  });
+
+  it("refuses bulk-approval when actor lacks the step's requiredPermission", async () => {
+    rows.set(tables.formSubmissionsTable, [
+      { id: 1, organizationId: 1, templateId: 1, status: "submitted", workflowRunId: 1, deletedAt: null, answers: {} },
+    ]);
+    rows.set(tables.workflowRunsTable, [
+      { id: 1, organizationId: 1, workflowId: 10, entityType: "form_submission", entityId: 1, status: "pending", currentStep: 1, updatedAt: new Date() },
+    ]);
+    rows.set(tables.workflowStepsTable, [
+      { id: 1, workflowId: 10, stepOrder: 1, name: "Review", requiredPermission: "quality.approve" },
+    ]);
+    mocks.hasPermission.mockResolvedValue(false);
+    const res = await request(app()).post("/form-submissions/bulk-approve").send({ submissionIds: [1] });
+    expect(res.status).toBe(200);
+    expect(res.body.results[0].success).toBe(false);
+    expect(res.body.results[0].error).toContain("permission");
+    const [run] = rows.get(tables.workflowRunsTable)!;
+    expect(run.status).toBe("pending");
   });
 
   // ---------- Analytics ----------

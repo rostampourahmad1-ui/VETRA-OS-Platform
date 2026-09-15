@@ -171,3 +171,30 @@ describe("Forms: submission lifecycle", () => {
     expect(insertCalls.length).toBeGreaterThanOrEqual(1);
   });
 });
+
+describe("Forms security: bulk-approve respects step requiredPermission", () => {
+  beforeEach(() => { mocks.hasPermission.mockReset(); mocks.hasPermission.mockResolvedValue(true); mocks.__resetRows(); });
+
+  it("does not approve when actor lacks the step requiredPermission", async () => {
+    mocks.__setRows("formSubmissions", [{ id: 51, organizationId: 1, templateId: 1, templateVersionId: 1, workflowRunId: 81, status: "submitted", answers: {}, submittedBy: 11, deletedAt: null }]);
+    mocks.__setRows("workflowRuns", [{ id: 81, organizationId: 1, workflowId: 9, currentStep: 1, status: "pending", entityType: "form_submission", entityId: 51 }]);
+    mocks.__setRows("workflowSteps", [{ id: 91, workflowId: 9, stepOrder: 1, requiredPermission: "quality.approve", approvalType: "single", requiredApprovals: 1 }]);
+    mocks.hasPermission.mockResolvedValue(false);
+    const r = await request(appWith([formsRouter])).post("/form-submissions/bulk-approve").send({ submissionIds: [51] });
+    expect(r.status).toBe(200);
+    expect(r.body.results[0].success).toBe(false);
+    expect(r.body.results[0].error).toContain("permission");
+    expect(mocks.db.update).not.toHaveBeenCalled();
+    expect(mocks.db.insert).not.toHaveBeenCalled();
+  });
+
+  it("approves when actor holds the step requiredPermission", async () => {
+    mocks.__setRows("formSubmissions", [{ id: 51, organizationId: 1, templateId: 1, templateVersionId: 1, workflowRunId: 81, status: "submitted", answers: {}, submittedBy: 11, deletedAt: null }]);
+    mocks.__setRows("workflowRuns", [{ id: 81, organizationId: 1, workflowId: 9, currentStep: 1, status: "pending", entityType: "form_submission", entityId: 51 }]);
+    mocks.__setRows("workflowSteps", [{ id: 91, workflowId: 9, stepOrder: 1, requiredPermission: "quality.approve", approvalType: "single", requiredApprovals: 1 }]);
+    mocks.hasPermission.mockResolvedValue(true);
+    const r = await request(appWith([formsRouter])).post("/form-submissions/bulk-approve").send({ submissionIds: [51] });
+    expect(r.status).toBe(200);
+    expect(r.body.results[0].success).toBe(true);
+  });
+});
