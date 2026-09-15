@@ -62,25 +62,49 @@ function roundDiv(n: bigint, d: bigint): bigint {
 
 const HUNDRED = 100n;
 const THOUSAND = 10000n;
+const ZERO = 0n;
 
-/**
- * Compute full EVM metrics from input values.
- * Returns zero or fallback values for division-by-zero cases.
- */
-export function computeEVM(input: EVMInput): EVMOutput {
-  // Clamp all monetary values to non-negative (negative values are invalid).
-  // Values are held as exact integer cents (BigInt).
-  const toNonNegativeCents = (v: string | number | undefined): bigint => {
-    if (v === undefined) return 0n;
-    const cents = toCents(v);
-    return cents < 0n ? 0n : cents;
-  };
-  const plannedValue = toNonNegativeCents(input.plannedValue);
-  const earnedValue = toNonNegativeCents(input.earnedValue);
-  const actualCost = toNonNegativeCents(input.actualCost);
-  const budgetAtCompletion = toNonNegativeCents(input.budgetAtCompletion);
-  const bottomUpEstimateToComplete = input.bottomUpEstimateToComplete !== undefined
-    ? toNonNegativeCents(input.bottomUpEstimateToComplete)
+/** Clamp any decimal value to exact non-negative integer cents. */
+export function toNonNegativeCents(value: string | number | undefined | null): bigint {
+  if (value === undefined || value === null || value === "") return ZERO;
+  const cents = toCents(value);
+  return cents < 0n ? ZERO : cents;
+}
+
+export interface EVMCentInput {
+  plannedValueCents: bigint;
+  earnedValueCents: bigint;
+  actualCostCents: bigint;
+  budgetAtCompletionCents: bigint;
+  bottomUpEstimateToCompleteCents?: bigint;
+}
+
+export interface EVMCentOutput {
+  plannedValueCents: bigint;
+  earnedValueCents: bigint;
+  actualCostCents: bigint;
+  costVarianceCents: bigint;
+  scheduleVarianceCents: bigint;
+  /** Ratios stored as hundredths (e.g. 89 -> 0.89). */
+  costPerformanceIndexH: bigint;
+  schedulePerformanceIndexH: bigint;
+  estimateAtCompletionCents: bigint;
+  estimateToCompleteCents: bigint;
+  varianceAtCompletionCents: bigint;
+  toCompletePerformanceIndexH: bigint;
+  eacCpiSpiCents: bigint;
+  etcBottomUpCents: bigint;
+  eacBottomUpCents: bigint;
+}
+
+/** Core EVM engine. All inputs/outputs are exact integer cents / hundredths. */
+export function computeEVMFromCents(input: EVMCentInput): EVMCentOutput {
+  const plannedValue = input.plannedValueCents < 0n ? ZERO : input.plannedValueCents;
+  const earnedValue = input.earnedValueCents < 0n ? ZERO : input.earnedValueCents;
+  const actualCost = input.actualCostCents < 0n ? ZERO : input.actualCostCents;
+  const budgetAtCompletion = input.budgetAtCompletionCents < 0n ? ZERO : input.budgetAtCompletionCents;
+  const bottomUpEstimateToComplete = input.bottomUpEstimateToCompleteCents !== undefined && input.bottomUpEstimateToCompleteCents > 0n
+    ? input.bottomUpEstimateToCompleteCents
     : undefined;
 
   const costVariance = earnedValue - actualCost;
@@ -107,9 +131,7 @@ export function computeEVM(input: EVMInput): EVMOutput {
     : budgetAtCompletion;
 
   // 3. EAC (bottom-up) – AC + user-supplied bottom-up ETC
-  const etcBottomUp = bottomUpEstimateToComplete !== undefined
-    ? Math.max(0n, bottomUpEstimateToComplete)
-    : 0n;
+  const etcBottomUp = bottomUpEstimateToComplete ?? 0n;
   const eacBottomUp = bottomUpEstimateToComplete !== undefined
     ? actualCost + etcBottomUp
     : estimateAtCompletion;
@@ -126,24 +148,21 @@ export function computeEVM(input: EVMInput): EVMOutput {
     ? roundDiv(remainingBudget * HUNDRED, remainingFunds)
     : (remainingBudget > 0n ? 99999n : HUNDRED);
 
-  const centsToNumber = (cents: bigint): number => Number(cents) / 100;
-  const hundredthsToNumber = (hundredths: bigint): number => Number(hundredths) / 100;
-
   return {
-    plannedValue: centsToNumber(plannedValue),
-    earnedValue: centsToNumber(earnedValue),
-    actualCost: centsToNumber(actualCost),
-    costVariance: centsToNumber(costVariance),
-    scheduleVariance: centsToNumber(scheduleVariance),
-    costPerformanceIndex: hundredthsToNumber(costPerformanceIndex),
-    schedulePerformanceIndex: hundredthsToNumber(schedulePerformanceIndex),
-    estimateAtCompletion: centsToNumber(estimateAtCompletion),
-    estimateToComplete: centsToNumber(estimateToComplete),
-    varianceAtCompletion: centsToNumber(varianceAtCompletion),
-    toCompletePerformanceIndex: hundredthsToNumber(toCompletePerformanceIndex),
-    eacCpiSpi: centsToNumber(eacCpiSpi),
-    etcBottomUp: centsToNumber(etcBottomUp),
-    eacBottomUp: centsToNumber(eacBottomUp),
+    plannedValueCents: plannedValue,
+    earnedValueCents: earnedValue,
+    actualCostCents: actualCost,
+    costVarianceCents: costVariance,
+    scheduleVarianceCents: scheduleVariance,
+    costPerformanceIndexH: costPerformanceIndex,
+    schedulePerformanceIndexH: schedulePerformanceIndex,
+    estimateAtCompletionCents: estimateAtCompletion,
+    estimateToCompleteCents: estimateToComplete,
+    varianceAtCompletionCents: varianceAtCompletion,
+    toCompletePerformanceIndexH: toCompletePerformanceIndex,
+    eacCpiSpiCents: eacCpiSpi,
+    etcBottomUpCents: etcBottomUp,
+    eacBottomUpCents: eacBottomUp,
   };
 }
 
@@ -152,4 +171,49 @@ function computeEacCpi(bac: bigint, cpiHundredths: bigint): bigint {
     return roundDiv(bac * HUNDRED, cpiHundredths);
   }
   return bac;
+}
+
+/** Converts integer cents back to a JS number (for display/UI consumption). */
+function centsToNumber(cents: bigint, scale = 2): number {
+  const units = 10n ** BigInt(scale);
+  const sign = cents < 0n ? -1 : 1;
+  const abs = cents < 0n ? -cents : cents;
+  const whole = abs / units;
+  const rem = abs % units;
+  const digits = String(rem).padStart(scale, "0");
+  const combined = Number(`${whole}.${digits}`);
+  return sign === -1 ? -combined : combined;
+}
+
+/**
+ * Public EVM API (decimal input/output). Monetary values may be decimal strings
+ * or numbers; exact integer-cent math guarantees no float drift.
+ */
+export function computeEVM(input: EVMInput): EVMOutput {
+  const raw = computeEVMFromCents({
+    plannedValueCents: toNonNegativeCents(input.plannedValue),
+    earnedValueCents: toNonNegativeCents(input.earnedValue),
+    actualCostCents: toNonNegativeCents(input.actualCost),
+    budgetAtCompletionCents: toNonNegativeCents(input.budgetAtCompletion),
+    bottomUpEstimateToCompleteCents: input.bottomUpEstimateToComplete !== undefined
+      ? toNonNegativeCents(input.bottomUpEstimateToComplete)
+      : undefined,
+  });
+
+  return {
+    plannedValue: centsToNumber(raw.plannedValueCents),
+    earnedValue: centsToNumber(raw.earnedValueCents),
+    actualCost: centsToNumber(raw.actualCostCents),
+    costVariance: centsToNumber(raw.costVarianceCents),
+    scheduleVariance: centsToNumber(raw.scheduleVarianceCents),
+    costPerformanceIndex: centsToNumber(raw.costPerformanceIndexH),
+    schedulePerformanceIndex: centsToNumber(raw.schedulePerformanceIndexH),
+    estimateAtCompletion: centsToNumber(raw.estimateAtCompletionCents),
+    estimateToComplete: centsToNumber(raw.estimateToCompleteCents),
+    varianceAtCompletion: centsToNumber(raw.varianceAtCompletionCents),
+    toCompletePerformanceIndex: centsToNumber(raw.toCompletePerformanceIndexH),
+    eacCpiSpi: centsToNumber(raw.eacCpiSpiCents),
+    etcBottomUp: centsToNumber(raw.etcBottomUpCents),
+    eacBottomUp: centsToNumber(raw.eacBottomUpCents),
+  };
 }

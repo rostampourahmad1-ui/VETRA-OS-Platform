@@ -18,9 +18,10 @@ import {
 import { requirePermission } from "../middlewares/permissions";
 import { tenantId, ownedProject } from "../middlewares/tenant";
 import { audit } from "../lib/audit";
-import { computeEVM, formatCents, toCents } from "../lib/scheduling/evm";
+import { computeEVM, computeEVMFromCents, formatCents, toCents } from "../lib/scheduling/evm";
 import { computeCPM, detectCycle } from "../lib/scheduling/cpm";
 import { offsetToCalendarDate } from "../lib/scheduling/calendar";
+import type { ActivityNode, DependencyEdge } from "../lib/scheduling/types";
 
 const router = Router();
 
@@ -43,6 +44,7 @@ const M = {
   invalidBaselineId: "شناسه خط پایه نامعتبر است",
   baselineNotFound: "خط پایه (بیسلاین) یافت نشد",
   noActivitiesToBaseline: "برای ثبت خط پایه ابتدا فعالیت تعریف کنید",
+  invalidInput: "ورودی نامعتبر است",
   invalidProgressInput: "ورودی پیشرفت نامعتبر است",
   activityNotInProject: "فعالیت موردنظر در این پروژه یافت نشد",
   invalidEvmInput: "ورودی EVM نامعتبر است؛ مقادیر مالی باید عددی و غیرمنفی باشند",
@@ -274,13 +276,20 @@ router.get("/projects/:projectId/cpm", requirePermission("planning.read"), async
   ]);
 
   // Reject cycle graphs instead of returning misleading zero-float output.
-  if (detectCycle(activities, dependencies)) {
+  const dependencyEdges: DependencyEdge[] = dependencies.map((d) => ({
+    id: d.id,
+    predecessorId: d.predecessorId,
+    successorId: d.successorId,
+    dependencyType: d.dependencyType as DependencyEdge["dependencyType"],
+    lagDays: d.lagDays,
+  }));
+  if (detectCycle(activities, dependencyEdges)) {
     res.status(409).json({ error: M.cycleCpm });
     return;
   }
 
   // VETRA-PC-02: run the real domain CPM service (honours FS/SS/FF/SF + lag).
-  const result = computeCPM(activities, dependencies);
+  const result = computeCPM(activities, dependencyEdges);
 
   const byActivityId = new Map(result.activities.map((a) => [a.activityId, a]));
   const projectStartDate = activities.length > 0 ? activities[0].plannedStart : "";
@@ -612,23 +621,25 @@ router.get("/projects/:projectId/evm", requirePermission("planning.read"), async
 
 router.post("/projects/:projectId/evm", requirePermission("planning.manage"), async (req, res): Promise<void> => {
   const projectId = idInput.safeParse(req.params.projectId);
+  const decimal = z.string().refine((v) => { const c = toCents(v); return c >= 0n; });
   const parsed = z.object({
     baselineId: idInput,
     reportDate: z.string().date(),
-    plannedValue: z.string().default("0").refine((v) => parseFloat(v) >= 0, { message: "plannedValue must be non-negative" }),
-    earnedValue: z.string().default("0").refine((v) => parseFloat(v) >= 0, { message: "earnedValue must be non-negative" }),
-    actualCost: z.string().default("0").refine((v) => parseFloat(v) >= 0, { message: "actualCost must be non-negative" }),
-    bottomUpEstimateToComplete: z.string().optional().refine((v) => v === undefined || parseFloat(v) >= 0, { message: "bottomUpEstimateToComplete must be non-negative" }),
+    plannedValue: decimal.default("0"),
+    earnedValue: decimal.default("0"),
+    actualCost: decimal.default("0"),
+    bottomUpEstimateToComplete: decimal.optional(),
   }).safeParse(req.body);
-  if (!projectId.success || !parsed.success) { res.status(400).json({ error: "Invalid EVM input" }); return; }
+  if (!projectId.success || !parsed.success) { res.status(400).json({ error: M.invalidEvmInput }); return; }
   const orgId = tenantId(req);
   if (!(await ownedProject(req, projectId.data))) { res.status(404).json({ error: M.projectNotFound }); return; }
 
-  const pv = parseFloat(parsed.data.plannedValue);
-  const ev = parseFloat(parsed.data.earnedValue);
-  const ac = parseFloat(parsed.data.actualCost);
+  // Exact integer-cent arithmetic (no float) end to end.
+  const pv = toCents(parsed.data.plannedValue);
+  const ev = toCents(parsed.data.earnedValue);
+  const ac = toCents(parsed.data.actualCost);
   const bottomUpETC = parsed.data.bottomUpEstimateToComplete !== undefined
-    ? parseFloat(parsed.data.bottomUpEstimateToComplete)
+    ? toCents(parsed.data.bottomUpEstimateToComplete)
     : undefined;
   const baselineActivities = await db.select({ plannedCost: baselineActivitiesTable.plannedCost })
     .from(baselineActivitiesTable)
@@ -636,23 +647,26 @@ router.post("/projects/:projectId/evm", requirePermission("planning.manage"), as
       eq(baselineActivitiesTable.baselineId, parsed.data.baselineId),
       eq(baselineActivitiesTable.organizationId, orgId),
     ));
-  const bac = baselineActivities.reduce((sum, a) => sum + parseFloat(String(a.plannedCost)), 0);
-  const metrics = computeEVM({ plannedValue: pv, earnedValue: ev, actualCost: ac, budgetAtCompletion: bac, bottomUpEstimateToComplete: bottomUpETC });
+  const bac = baselineActivities.reduce((sum, a) => sum + toCents(String(a.plannedCost)), 0n);
+  const metrics = computeEVMFromCents({
+    plannedValueCents: pv, earnedValueCents: ev, actualCostCents: ac,
+    budgetAtCompletionCents: bac, bottomUpEstimateToCompleteCents: bottomUpETC,
+  });
 
   const [row] = await db.insert(evmMetricsTable).values({
     projectId: projectId.data,
     organizationId: orgId,
     baselineId: parsed.data.baselineId,
     reportDate: parsed.data.reportDate,
-    plannedValue: parsed.data.plannedValue,
-    earnedValue: parsed.data.earnedValue,
-    actualCost: parsed.data.actualCost,
-    costVariance: metrics.costVariance.toFixed(2),
-    scheduleVariance: metrics.scheduleVariance.toFixed(2),
-    costPerformanceIndex: metrics.costPerformanceIndex.toFixed(2),
-    schedulePerformanceIndex: metrics.schedulePerformanceIndex.toFixed(2),
-    estimateAtCompletion: metrics.estimateAtCompletion.toFixed(2),
-    estimateToComplete: metrics.estimateToComplete.toFixed(2),
+    plannedValue: formatCents(metrics.plannedValueCents),
+    earnedValue: formatCents(metrics.earnedValueCents),
+    actualCost: formatCents(metrics.actualCostCents),
+    costVariance: formatCents(metrics.costVarianceCents),
+    scheduleVariance: formatCents(metrics.scheduleVarianceCents),
+    costPerformanceIndex: formatCents(metrics.costPerformanceIndexH),
+    schedulePerformanceIndex: formatCents(metrics.schedulePerformanceIndexH),
+    estimateAtCompletion: formatCents(metrics.estimateAtCompletionCents),
+    estimateToComplete: formatCents(metrics.estimateToCompleteCents),
   }).returning();
   res.status(201).json(row);
   audit(req, "scheduling.evm.calculated", "evm", { resourceId: row.id, newValues: { reportDate: row.reportDate, cpi: row.costPerformanceIndex, spi: row.schedulePerformanceIndex } });
@@ -672,41 +686,45 @@ router.get("/projects/:projectId/evm-forecast", requirePermission("planning.read
   )).orderBy(desc(evmMetricsTable.reportDate)).limit(1);
 
   if (!latest) {
-    res.status(404).json({ error: "No EVM data found for this project. Record EVM metrics first via POST /projects/:projectId/evm" });
+    res.status(404).json({ error: M.noEvmData });
     return;
   }
 
-  const pv = parseFloat(String(latest.plannedValue));
-  const ev = parseFloat(String(latest.earnedValue));
-  const ac = parseFloat(String(latest.actualCost));
-  // Derive BAC from baseline activities plannedCost sum
+  const pv = toCents(String(latest.plannedValue));
+  const ev = toCents(String(latest.earnedValue));
+  const ac = toCents(String(latest.actualCost));
+  // Derive BAC from baseline activities plannedCost sum (exact integer cents)
   const baselineActivities = await db.select({ plannedCost: baselineActivitiesTable.plannedCost })
     .from(baselineActivitiesTable)
     .where(and(
       eq(baselineActivitiesTable.baselineId, latest.baselineId),
       eq(baselineActivitiesTable.organizationId, orgId),
     ));
-  const bac = baselineActivities.reduce((sum, a) => sum + parseFloat(String(a.plannedCost)), 0);
+  const bac = baselineActivities.reduce((sum, a) => sum + toCents(String(a.plannedCost)), 0n);
 
-  const metrics = computeEVM({ plannedValue: pv, earnedValue: ev, actualCost: ac, budgetAtCompletion: bac });
+  const metrics = computeEVMFromCents({
+    plannedValueCents: pv, earnedValueCents: ev, actualCostCents: ac, budgetAtCompletionCents: bac,
+  });
+  const toNumber = (cents: bigint): number => Number(formatCents(cents));
+  const toRatio = (h: bigint): number => Number(formatCents(h));
 
   res.json({
     projectId: projectId.data,
     reportDate: latest.reportDate,
     baselineId: latest.baselineId,
-    plannedValue: pv,
-    earnedValue: ev,
-    actualCost: ac,
-    cpi: metrics.costPerformanceIndex,
-    spi: metrics.schedulePerformanceIndex,
-    eacCpi: metrics.estimateAtCompletion,
-    eacCpiSpi: metrics.eacCpiSpi,
-    eacBottomUp: metrics.eacBottomUp,
-    costVariance: metrics.costVariance,
-    scheduleVariance: metrics.scheduleVariance,
-    estimateToComplete: metrics.estimateToComplete,
-    varianceAtCompletion: metrics.varianceAtCompletion,
-    toCompletePerformanceIndex: metrics.toCompletePerformanceIndex,
+    plannedValue: toNumber(metrics.plannedValueCents),
+    earnedValue: toNumber(metrics.earnedValueCents),
+    actualCost: toNumber(metrics.actualCostCents),
+    cpi: toRatio(metrics.costPerformanceIndexH),
+    spi: toRatio(metrics.schedulePerformanceIndexH),
+    eacCpi: toNumber(metrics.estimateAtCompletionCents),
+    eacCpiSpi: toNumber(metrics.eacCpiSpiCents),
+    eacBottomUp: toNumber(metrics.eacBottomUpCents),
+    costVariance: toNumber(metrics.costVarianceCents),
+    scheduleVariance: toNumber(metrics.scheduleVarianceCents),
+    estimateToComplete: toNumber(metrics.estimateToCompleteCents),
+    varianceAtCompletion: toNumber(metrics.varianceAtCompletionCents),
+    toCompletePerformanceIndex: toRatio(metrics.toCompletePerformanceIndexH),
   });
 });
 
@@ -841,16 +859,21 @@ router.get("/projects/:projectId/resource-summary", requirePermission("planning.
   ]);
 
   const typeMap = new Map(types.map((t) => [t.id, t]));
-  const summary: Record<string, { count: number; totalCost: number; types: string[] }> = {};
+  const summary: Record<string, { count: number; totalCostCents: bigint; types: string[] }> = {};
   for (const a of assignments) {
     const rt = typeMap.get(a.resourceTypeId);
     const cat = rt?.category ?? "other";
-    if (!summary[cat]) summary[cat] = { count: 0, totalCost: 0, types: [] };
+    if (!summary[cat]) summary[cat] = { count: 0, totalCostCents: 0n, types: [] };
     summary[cat].count++;
-    summary[cat].totalCost += parseFloat(a.totalCost);
+    // Exact integer-cent accumulation (totalCost is a numeric(15,2) string).
+    summary[cat].totalCostCents += toCents(String(a.totalCost));
     if (rt && !summary[cat].types.includes(rt.name)) summary[cat].types.push(rt.name);
   }
-  res.json(summary);
+  const payload: Record<string, { count: number; totalCost: number; types: string[] }> = {};
+  for (const [cat, s] of Object.entries(summary)) {
+    payload[cat] = { count: s.count, totalCost: Number(formatCents(s.totalCostCents)), types: s.types };
+  }
+  res.json(payload);
 });
 
 export default router;
