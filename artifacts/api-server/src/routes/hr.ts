@@ -109,6 +109,36 @@ router.patch("/attendance/:id", requirePermission("hr.update"), async (req, res)
   const [row] = await db.update(attendanceTable).set(upd).where(and(eq(attendanceTable.id, id), eq(attendanceTable.organizationId, tenantId(req)))).returning();
   res.json({ ...row, hoursWorked: row.hoursWorked ? Number(row.hoursWorked) : null, overtimeHours: row.overtimeHours ? Number(row.overtimeHours) : null });
   audit(req, "attendance.updated", "attendance", { resourceId: id, oldValues: { status: current.status }, newValues: { status: row.status } });
+router.get("/attendance", requirePermission("hr.read"), async (req, res): Promise<void> => {
+  const { employeeId, dateFrom, dateTo, status } = req.query as { employeeId?: string; dateFrom?: string; dateTo?: string; status?: string };
+  const filters = [eq(attendanceTable.organizationId, tenantId(req))];
+  if (employeeId) filters.push(eq(attendanceTable.employeeId, Number(employeeId)));
+  if (dateFrom) filters.push(eq(attendanceTable.date, dateFrom));
+  if (dateTo) filters.push(eq(attendanceTable.date, dateTo));
+  if (status) filters.push(eq(attendanceTable.status, status));
+  const rows = await db.select().from(attendanceTable).where(and(...filters)).orderBy(desc(attendanceTable.date));
+  res.json(rows.map(r => ({ ...r, hoursWorked: r.hoursWorked ? Number(r.hoursWorked) : null, overtimeHours: r.overtimeHours ? Number(r.overtimeHours) : null })));
+});
+
+router.get("/attendance/:id", requirePermission("hr.read"), async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  const [row] = await db.select().from(attendanceTable).where(and(eq(attendanceTable.id, id), eq(attendanceTable.organizationId, tenantId(req)), isNull(attendanceTable.deletedAt)));
+  if (!row) { res.status(404).json({ error: "Attendance record not found" }); return; }
+  res.json({ ...row, hoursWorked: row.hoursWorked ? Number(row.hoursWorked) : null, overtimeHours: row.overtimeHours ? Number(row.overtimeHours) : null });
+});
+
+router.patch("/attendance/:id", requirePermission("hr.update"), async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  const [current] = await db.select().from(attendanceTable).where(and(eq(attendanceTable.id, id), eq(attendanceTable.organizationId, tenantId(req))));
+  if (!current) { res.status(404).json({ error: "Attendance record not found" }); return; }
+  const upd: Record<string, unknown> = {};
+  for (const k of ["checkIn", "checkOut", "status", "notes"] as const) if (req.body[k] !== undefined) upd[k] = req.body[k];
+  if (req.body.hoursWorked !== undefined) upd.hoursWorked = req.body.hoursWorked.toString();
+  if (req.body.overtimeHours !== undefined) upd.overtimeHours = req.body.overtimeHours.toString();
+  upd.updatedAt = new Date();
+  const [row] = await db.update(attendanceTable).set(upd).where(and(eq(attendanceTable.id, id), eq(attendanceTable.organizationId, tenantId(req)))).returning();
+  res.json({ ...row, hoursWorked: row.hoursWorked ? Number(row.hoursWorked) : null, overtimeHours: row.overtimeHours ? Number(row.overtimeHours) : null });
+  audit(req, "attendance.updated", "attendance", { resourceId: id, oldValues: { status: current.status }, newValues: { status: row.status } });
 });
 
 // ─── Payroll ─────────────────────────────────────────────────────────────────

@@ -17,7 +17,7 @@ const mocks = vi.hoisted(() => {
   const tables = {
     invoicesTable: makeTable("invoices", [
       "id", "organizationId", "invoiceNumber", "contractId", "projectId", "issueDate", "dueDate",
-      "subtotal", "taxAmount", "totalAmount", "status", "notes", "createdBy", "approvedBy", "approvedAt", "createdAt", "updatedAt",
+      "subtotal", "tax", "total", "status", "notes", "createdBy", "approvedBy", "approvedAt", "createdAt", "updatedAt",
     ]),
     invoiceLinesTable: makeTable("invoice_lines", [
       "id", "organizationId", "invoiceId", "description", "quantity", "unitPrice", "totalPrice",
@@ -189,8 +189,8 @@ describe("Phase 1 Step 3: Financial (Invoices & Payment Schedules)", () => {
   // ---------- GET /invoices ----------
   it("lists invoices scoped to tenant with numeric totals", async () => {
     rows.set(tables.invoicesTable, [
-      { id: 1, organizationId: 1, invoiceNumber: "A", status: "draft", subtotal: "500", taxAmount: "45", totalAmount: "545", createdAt: new Date() },
-      { id: 2, organizationId: 2, invoiceNumber: "B", status: "draft", subtotal: "500", taxAmount: "45", totalAmount: "545", createdAt: new Date() },
+      { id: 1, organizationId: 1, invoiceNumber: "A", status: "draft", subtotal: "500", tax: "45", total: "545", createdAt: new Date() },
+      { id: 2, organizationId: 2, invoiceNumber: "B", status: "draft", subtotal: "500", tax: "45", total: "545", createdAt: new Date() },
     ]);
     const res = await request(app()).get("/invoices");
     expect(res.status).toBe(200);
@@ -200,8 +200,8 @@ describe("Phase 1 Step 3: Financial (Invoices & Payment Schedules)", () => {
 
   it("filters invoices by status", async () => {
     rows.set(tables.invoicesTable, [
-      { id: 1, organizationId: 1, invoiceNumber: "A", status: "draft", subtotal: "100", taxAmount: "9", totalAmount: "109", createdAt: new Date() },
-      { id: 2, organizationId: 1, invoiceNumber: "B", status: "approved", subtotal: "200", taxAmount: "18", totalAmount: "218", createdAt: new Date() },
+      { id: 1, organizationId: 1, invoiceNumber: "A", status: "draft", subtotal: "100", tax: "9", total: "109", createdAt: new Date() },
+      { id: 2, organizationId: 1, invoiceNumber: "B", status: "approved", subtotal: "200", tax: "18", total: "218", createdAt: new Date() },
     ]);
     const res = await request(app()).get("/invoices?status=approved");
     expect(res.status).toBe(200);
@@ -212,10 +212,10 @@ describe("Phase 1 Step 3: Financial (Invoices & Payment Schedules)", () => {
   // ---------- GET /invoices/:id ----------
   it("returns invoice with lines by id", async () => {
     rows.set(tables.invoicesTable, [
-      { id: 1, organizationId: 1, invoiceNumber: "A", status: "draft", subtotal: "500", taxAmount: "45", totalAmount: "545" },
+      { id: 1, organizationId: 1, invoiceNumber: "A", status: "draft", subtotal: "500", tax: "45", total: "545" },
     ]);
     rows.set(tables.invoiceLinesTable, [
-      { id: 1, organizationId: 1, invoiceId: 1, description: "Item", quantity: "5", unitPrice: "100", totalPrice: "500" },
+      { id: 1, organizationId: 1, invoiceId: 1, description: "Item", quantity: "5", unitPrice: "100", totalPrice: "500", lineTotal: "500" },
     ]);
     const res = await request(app()).get("/invoices/1");
     expect(res.status).toBe(200);
@@ -225,7 +225,7 @@ describe("Phase 1 Step 3: Financial (Invoices & Payment Schedules)", () => {
 
   it("returns 404 for invoice from another tenant", async () => {
     rows.set(tables.invoicesTable, [
-      { id: 1, organizationId: 2, invoiceNumber: "A", status: "draft", subtotal: "500", taxAmount: "45", totalAmount: "545" },
+      { id: 1, organizationId: 2, invoiceNumber: "A", status: "draft", subtotal: "500", tax: "45", total: "545" },
     ]);
     const res = await request(app()).get("/invoices/1");
     expect(res.status).toBe(404);
@@ -234,7 +234,7 @@ describe("Phase 1 Step 3: Financial (Invoices & Payment Schedules)", () => {
   // ---------- PATCH /invoices/:id/approve ----------
   it("approves a draft invoice", async () => {
     rows.set(tables.invoicesTable, [
-      { id: 1, organizationId: 1, invoiceNumber: "A", status: "draft", subtotal: "500", taxAmount: "45", totalAmount: "545", createdBy: 7, dueDate: null },
+      { id: 1, organizationId: 1, invoiceNumber: "A", status: "draft", subtotal: "500", tax: "45", total: "545", createdBy: 7, dueDate: null },
     ]);
     const res = await request(app()).patch("/invoices/1/approve");
     expect(res.status).toBe(200);
@@ -244,7 +244,7 @@ describe("Phase 1 Step 3: Financial (Invoices & Payment Schedules)", () => {
 
   it("rejects re-approving an already-approved invoice (edit-lock)", async () => {
     rows.set(tables.invoicesTable, [
-      { id: 1, organizationId: 1, invoiceNumber: "A", status: "approved", subtotal: "500", taxAmount: "45", totalAmount: "545" },
+      { id: 1, organizationId: 1, invoiceNumber: "A", status: "approved", subtotal: "500", tax: "45", total: "545" },
     ]);
     const res = await request(app()).patch("/invoices/1/approve");
     expect(res.status).toBe(409);
@@ -253,7 +253,7 @@ describe("Phase 1 Step 3: Financial (Invoices & Payment Schedules)", () => {
   // ---------- PATCH /invoices/:id (edit-lock) ----------
   it("allows editing a draft invoice", async () => {
     rows.set(tables.invoicesTable, [
-      { id: 1, organizationId: 1, invoiceNumber: "A", status: "draft", subtotal: "500", taxAmount: "45", totalAmount: "545", notes: null },
+      { id: 1, organizationId: 1, invoiceNumber: "A", status: "draft", subtotal: "500", tax: "45", total: "545", notes: null },
     ]);
     const res = await request(app()).patch("/invoices/1").send({ notes: "Updated notes" });
     expect(res.status).toBe(200);
@@ -262,7 +262,7 @@ describe("Phase 1 Step 3: Financial (Invoices & Payment Schedules)", () => {
 
   it("blocks editing an approved invoice (edit-lock)", async () => {
     rows.set(tables.invoicesTable, [
-      { id: 1, organizationId: 1, invoiceNumber: "A", status: "approved", subtotal: "500", taxAmount: "45", totalAmount: "545" },
+      { id: 1, organizationId: 1, invoiceNumber: "A", status: "approved", subtotal: "500", tax: "45", total: "545" },
     ]);
     const res = await request(app()).patch("/invoices/1").send({ notes: "hack" });
     expect(res.status).toBe(409);
@@ -270,7 +270,7 @@ describe("Phase 1 Step 3: Financial (Invoices & Payment Schedules)", () => {
 
   it("blocks editing a sent invoice (edit-lock)", async () => {
     rows.set(tables.invoicesTable, [
-      { id: 1, organizationId: 1, invoiceNumber: "A", status: "sent", subtotal: "500", taxAmount: "45", totalAmount: "545" },
+      { id: 1, organizationId: 1, invoiceNumber: "A", status: "sent", subtotal: "500", tax: "45", total: "545" },
     ]);
     const res = await request(app()).patch("/invoices/1").send({ notes: "hack" });
     expect(res.status).toBe(409);
@@ -279,10 +279,10 @@ describe("Phase 1 Step 3: Financial (Invoices & Payment Schedules)", () => {
   // ---------- DELETE /invoices/:id ----------
   it("deletes a draft invoice and its lines", async () => {
     rows.set(tables.invoicesTable, [
-      { id: 1, organizationId: 1, invoiceNumber: "A", status: "draft", subtotal: "500", taxAmount: "45", totalAmount: "545" },
+      { id: 1, organizationId: 1, invoiceNumber: "A", status: "draft", subtotal: "500", tax: "45", total: "545" },
     ]);
     rows.set(tables.invoiceLinesTable, [
-      { id: 1, organizationId: 1, invoiceId: 1, description: "Item", quantity: "5", unitPrice: "100", totalPrice: "500" },
+      { id: 1, organizationId: 1, invoiceId: 1, description: "Item", quantity: "5", unitPrice: "100", totalPrice: "500", lineTotal: "500" },
     ]);
     const res = await request(app()).delete("/invoices/1");
     expect(res.status).toBe(204);
@@ -290,7 +290,7 @@ describe("Phase 1 Step 3: Financial (Invoices & Payment Schedules)", () => {
 
   it("blocks deleting an approved invoice", async () => {
     rows.set(tables.invoicesTable, [
-      { id: 1, organizationId: 1, invoiceNumber: "A", status: "approved", subtotal: "500", taxAmount: "45", totalAmount: "545" },
+      { id: 1, organizationId: 1, invoiceNumber: "A", status: "approved", subtotal: "500", tax: "45", total: "545" },
     ]);
     const res = await request(app()).delete("/invoices/1");
     expect(res.status).toBe(409);

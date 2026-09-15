@@ -53,13 +53,13 @@ router.post("/invoices", requirePermission("invoices.create"), async (req, res):
   const totalAmount = subtotal + taxAmount;
 
   const [invoice] = await db.transaction(async (tx) => {
-    const [inv] = await tx.insert(invoicesTable).values({
+const [inv] = await tx.insert(invoicesTable).values({
       organizationId: org,
       invoiceNumber,
-      
+      title: req.body.title ?? invoiceNumber,
       projectId: projectId ?? null,
-      issueDate: new Date(issueDate),
-      dueDate: dueDate ? new Date(dueDate) : null,
+      issueDate: issueDate,
+      dueDate: dueDate ?? null,
       subtotal: subtotal.toString(),
       tax: taxAmount.toString(),
       total: totalAmount.toString(),
@@ -255,7 +255,7 @@ router.post("/payment-schedules", requirePermission("payment-schedule.create"), 
   const [row] = await db.insert(paymentSchedulesTable).values({
     organizationId: org,
     
-    description,
+title: description,
     amount: Number(amount).toString(),
     
     dueDate: dueDate,
@@ -277,9 +277,10 @@ router.patch("/payment-schedules/:id", requirePermission("payment-schedule.updat
   if (!current) { res.status(404).json({ error: "Payment schedule not found" }); return; }
 
   const upd: Record<string, unknown> = { updatedAt: new Date() };
-  for (const k of ["description", "dueDate", "notes", "status"] as const) {
+for (const k of ["title", "dueDate", "notes", "status"] as const) {
     if (req.body[k] !== undefined) upd[k] = req.body[k];
   }
+  if (req.body.description !== undefined) upd.title = req.body.description;
   if (req.body.amount !== undefined) upd.amount = Number(req.body.amount).toString();
   
 
