@@ -52,11 +52,12 @@ export interface ProjectProgressResult {
 }
 
 export interface EVMInput {
-  plannedValue: number;
-  earnedValue: number;
-  actualCost: number;
-  budgetAtCompletion: number;
-  bottomUpEstimateToComplete?: number; /** Optional user-provided bottom-up ETC for alternative EAC variants */
+  /** Monetary values in decimal-string or number form. Converted to exact integer cents internally (no float math). */
+  plannedValue: string | number;
+  earnedValue: string | number;
+  actualCost: string | number;
+  budgetAtCompletion: string | number;
+  bottomUpEstimateToComplete?: string | number; /** Optional user-provided bottom-up ETC for alternative EAC variants */
 }
 
 export interface EVMOutput {

@@ -158,13 +158,20 @@ function forwardPass(
 /**
  * Backward pass: computes Latest Start (LS) and Latest Finish (LF) given the
  * project deadline (typically the max EF from forward pass).
+ *
+ * The latest-finish constraint each successor places on a predecessor is:
+ *   FS: LF(p) <= LS(s) - lag
+ *   SS: LF(p) <= LS(s) - lag + D(p)     (the dependency constrains p's start)
+ *   FF: LF(p) <= LF(s) - lag
+ *   SF: LF(p) <= LF(s) - lag + D(p)     (the dependency constrains p's start)
  */
 function backwardPass(
   activities: ActivityNode[],
   succMap: AdjacencyMap,
-  forward: Map<number, { es: number; ef: number }>,
+  _forward: Map<number, { es: number; ef: number }>,
   projectDeadline: number,
 ): Map<number, { ls: number; lf: number }> {
+  const durationMap = new Map(activities.map((a) => [a.id, a.durationDays]));
   const ls = new Map<number, number>();
   const lf = new Map<number, number>();
 
@@ -184,7 +191,7 @@ function backwardPass(
         ls.set(a.id, projectDeadline - a.durationDays);
         changed = true;
       } else {
-        let minSuccLS = Number.MAX_SAFE_INTEGER;
+        let minSuccLF = Number.MAX_SAFE_INTEGER;
         let allResolved = true;
         for (const s of succs) {
           const succLS = ls.get(s.predId);
@@ -194,18 +201,15 @@ function backwardPass(
             break;
           }
           const lag = s.lagDays;
-          let candidate = 0;
-          switch (s.type) {
-            case "FS": candidate = succLS - lag; break;
-            case "SS": candidate = succLS - lag; break;
-            case "FF": candidate = succLF - lag; break;
-            case "SF": candidate = succLF - lag; break;
-          }
-          if (candidate < minSuccLS) minSuccLS = candidate;
+          const succDuration = durationMap.get(s.predId) ?? 0;
+          const base = s.type === "FF" ? succLF : succLS;
+          const durationAdjust = s.type === "FF" ? 0 : a.durationDays;
+          const candidate = base - lag + durationAdjust;
+          if (candidate < minSuccLF) minSuccLF = candidate;
         }
-        if (allResolved && minSuccLS < Number.MAX_SAFE_INTEGER) {
-          lf.set(a.id, minSuccLS);
-          ls.set(a.id, minSuccLS - a.durationDays);
+        if (allResolved && minSuccLF < Number.MAX_SAFE_INTEGER) {
+          lf.set(a.id, minSuccLF);
+          ls.set(a.id, minSuccLF - a.durationDays);
           changed = true;
         }
       }
@@ -217,6 +221,43 @@ function backwardPass(
     result.set(a.id, { ls: ls.get(a.id) ?? 0, lf: lf.get(a.id) ?? projectDeadline });
   }
   return result;
+}
+
+/**
+ * Detects cycles in the activity/dependency graph using a topological sort
+ * (Kahn's algorithm). Returns true when the graph is NOT a DAG.
+ */
+export function detectCycle(
+  activities: ActivityNode[],
+  dependencies: DependencyEdge[],
+): boolean {
+  if (dependencies.length === 0) return false;
+  const predecessorMap = buildPredecessorMap(activities, dependencies);
+  const successorMap = buildSuccessorMap(activities, dependencies);
+
+  const inDegree = new Map<number, number>();
+  for (const a of activities) inDegree.set(a.id, 0);
+  for (const dep of dependencies) {
+    inDegree.set(dep.successorId, (inDegree.get(dep.successorId) ?? 0) + 1);
+  }
+
+  const queue: number[] = [];
+  for (const [id, deg] of inDegree) {
+    if (deg === 0) queue.push(id);
+  }
+
+  let visited = 0;
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    visited++;
+    for (const { predId } of successorMap.get(current) ?? []) {
+      const deg = (inDegree.get(predId) ?? 1) - 1;
+      inDegree.set(predId, deg);
+      if (deg === 0) queue.push(predId);
+    }
+  }
+
+  return visited < activities.length;
 }
 
 /**

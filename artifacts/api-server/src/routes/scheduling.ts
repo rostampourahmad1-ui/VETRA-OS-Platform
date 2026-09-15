@@ -18,11 +18,41 @@ import {
 import { requirePermission } from "../middlewares/permissions";
 import { tenantId, ownedProject } from "../middlewares/tenant";
 import { audit } from "../lib/audit";
-import { computeEVM } from "../lib/scheduling/evm";
+import { computeEVM, formatCents, toCents } from "../lib/scheduling/evm";
+import { computeCPM, detectCycle } from "../lib/scheduling/cpm";
+import { offsetToCalendarDate } from "../lib/scheduling/calendar";
 
 const router = Router();
 
 const idInput = z.coerce.number().int().positive();
+
+// ─── Persian validation / domain messages (VETRA is Persian-first) ─────────────
+const M = {
+  projectNotFound: "پروژه یافت نشد",
+  invalidId: "شناسه نامعتبر است",
+  invalidCalendarId: "شناسه تقویم نامعتبر است",
+  invalidCalendarInput: "ورودی تقویم نامعتبر است",
+  calendarNotFound: "تقویم یافت نشد",
+  invalidDependencyInput: "ورودی وابستگی نامعتبر است",
+  invalidActivities: "هر دو فعالیت باید در همین پروژه تعریف شده باشند",
+  selfDependency: "فعالیت نمیتواند به خودش وابسته باشد",
+  duplicateDependency: "این وابستگی قبلاً ثبت شده است",
+  cycleDependency: "ایجاد این وابستگی باعث ایجاد حلقه در شبکهٔ وابستگیها میشود",
+  dependencyNotFound: "وابستگی یافت نشد",
+  invalidBaselineInput: "ورودی خط پایه (بیسلاین) نامعتبر است",
+  invalidBaselineId: "شناسه خط پایه نامعتبر است",
+  baselineNotFound: "خط پایه (بیسلاین) یافت نشد",
+  noActivitiesToBaseline: "برای ثبت خط پایه ابتدا فعالیت تعریف کنید",
+  invalidProgressInput: "ورودی پیشرفت نامعتبر است",
+  activityNotInProject: "فعالیت موردنظر در این پروژه یافت نشد",
+  invalidEvmInput: "ورودی EVM نامعتبر است؛ مقادیر مالی باید عددی و غیرمنفی باشند",
+  noEvmData: "برای این پروژه دادهٔ EVM معتبری ثبت نشده است؛ ابتدا شاخصها را ثبت کنید",
+  invalidResourceTypeInput: "ورودی نوع منبع نامعتبر است",
+  resourceTypeNotFound: "نوع منبع یافت نشد",
+  invalidResourceAssignmentInput: "ورودی تخصیص منبع نامعتبر است",
+  resourceAssignmentNotFound: "تخصیص منبع یافت نشد",
+  cycleCpm: "گراف وابستگیها دارای حلقه است؛ وابستگیهای حلقوی را اصلاح کنید",
+};
 
 // ─── Calendars ────────────────────────────────────────────────────────────────
 
@@ -37,7 +67,7 @@ const calendarInput = z.object({
 
 router.get("/projects/:projectId/calendars", requirePermission("planning.read"), async (req, res): Promise<void> => {
   const projectId = idInput.safeParse(req.params.projectId);
-  if (!projectId.success || !(await ownedProject(req, projectId.data))) { res.status(404).json({ error: "Project not found" }); return; }
+  if (!projectId.success || !(await ownedProject(req, projectId.data))) { res.status(404).json({ error: M.projectNotFound }); return; }
   const rows = await db.select().from(projectCalendarsTable).where(and(
     eq(projectCalendarsTable.projectId, projectId.data),
     eq(projectCalendarsTable.organizationId, tenantId(req)),
@@ -49,9 +79,9 @@ router.get("/projects/:projectId/calendars", requirePermission("planning.read"),
 router.post("/projects/:projectId/calendars", requirePermission("planning.manage"), async (req, res): Promise<void> => {
   const projectId = idInput.safeParse(req.params.projectId);
   const parsed = calendarInput.safeParse(req.body);
-  if (!projectId.success || !parsed.success) { res.status(400).json({ error: "Invalid calendar input" }); return; }
+  if (!projectId.success || !parsed.success) { res.status(400).json({ error: M.invalidCalendarInput }); return; }
   const orgId = tenantId(req);
-  if (!(await ownedProject(req, projectId.data))) { res.status(404).json({ error: "Project not found" }); return; }
+  if (!(await ownedProject(req, projectId.data))) { res.status(404).json({ error: M.projectNotFound }); return; }
   const [row] = await db.insert(projectCalendarsTable).values({
     ...parsed.data, projectId: projectId.data, organizationId: orgId,
   }).returning();
@@ -62,9 +92,9 @@ router.post("/projects/:projectId/calendars", requirePermission("planning.manage
 router.patch("/calendars/:id", requirePermission("planning.manage"), async (req, res): Promise<void> => {
   const id = idInput.safeParse(req.params.id);
   const parsed = calendarInput.partial().safeParse(req.body);
-  if (!id.success || !parsed.success) { res.status(400).json({ error: "Invalid input" }); return; }
+  if (!id.success || !parsed.success) { res.status(400).json({ error: M.invalidInput }); return; }
   const [old] = await db.select().from(projectCalendarsTable).where(and(eq(projectCalendarsTable.id, id.data), eq(projectCalendarsTable.organizationId, tenantId(req))));
-  if (!old) { res.status(404).json({ error: "Calendar not found" }); return; }
+  if (!old) { res.status(404).json({ error: M.calendarNotFound }); return; }
   const [row] = await db.update(projectCalendarsTable).set(parsed.data).where(and(eq(projectCalendarsTable.id, id.data), eq(projectCalendarsTable.organizationId, tenantId(req)))).returning();
   res.json(row);
   audit(req, "scheduling.calendar.updated", "calendar", { resourceId: id.data, oldValues: { name: old.name }, newValues: { name: row.name } });
@@ -72,9 +102,9 @@ router.patch("/calendars/:id", requirePermission("planning.manage"), async (req,
 
 router.delete("/calendars/:id", requirePermission("planning.manage"), async (req, res): Promise<void> => {
   const id = idInput.safeParse(req.params.id);
-  if (!id.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!id.success) { res.status(400).json({ error: M.invalidId }); return; }
   const [old] = await db.select().from(projectCalendarsTable).where(and(eq(projectCalendarsTable.id, id.data), eq(projectCalendarsTable.organizationId, tenantId(req))));
-  if (!old) { res.status(404).json({ error: "Calendar not found" }); return; }
+  if (!old) { res.status(404).json({ error: M.calendarNotFound }); return; }
   await db.update(projectCalendarsTable).set({ deletedAt: new Date() }).where(eq(projectCalendarsTable.id, id.data));
   res.status(204).send();
   audit(req, "scheduling.calendar.deleted", "calendar", { resourceId: id.data });
@@ -91,7 +121,7 @@ const exceptionInput = z.object({
 
 router.get("/calendars/:calendarId/exceptions", requirePermission("planning.read"), async (req, res): Promise<void> => {
   const calendarId = idInput.safeParse(req.params.calendarId);
-  if (!calendarId.success) { res.status(400).json({ error: "Invalid calendar id" }); return; }
+  if (!calendarId.success) { res.status(400).json({ error: M.invalidCalendarId }); return; }
   const rows = await db.select().from(calendarExceptionsTable).where(and(
     eq(calendarExceptionsTable.calendarId, calendarId.data),
     eq(calendarExceptionsTable.organizationId, tenantId(req)),
@@ -102,10 +132,10 @@ router.get("/calendars/:calendarId/exceptions", requirePermission("planning.read
 router.post("/calendars/:calendarId/exceptions", requirePermission("planning.manage"), async (req, res): Promise<void> => {
   const calendarId = idInput.safeParse(req.params.calendarId);
   const parsed = exceptionInput.omit({ calendarId: true }).safeParse(req.body);
-  if (!calendarId.success || !parsed.success) { res.status(400).json({ error: "Invalid input" }); return; }
+  if (!calendarId.success || !parsed.success) { res.status(400).json({ error: M.invalidInput }); return; }
   const orgId = tenantId(req);
   const [cal] = await db.select().from(projectCalendarsTable).where(and(eq(projectCalendarsTable.id, calendarId.data), eq(projectCalendarsTable.organizationId, orgId)));
-  if (!cal) { res.status(404).json({ error: "Calendar not found" }); return; }
+  if (!cal) { res.status(404).json({ error: M.calendarNotFound }); return; }
   const [row] = await db.insert(calendarExceptionsTable).values({
     ...parsed.data, calendarId: calendarId.data, organizationId: orgId,
   }).returning();
@@ -123,7 +153,7 @@ const dependencyInput = z.object({
 
 router.get("/projects/:projectId/dependencies", requirePermission("planning.read"), async (req, res): Promise<void> => {
   const projectId = idInput.safeParse(req.params.projectId);
-  if (!projectId.success || !(await ownedProject(req, projectId.data))) { res.status(404).json({ error: "Project not found" }); return; }
+  if (!projectId.success || !(await ownedProject(req, projectId.data))) { res.status(404).json({ error: M.projectNotFound }); return; }
   const rows = await db.select().from(activityDependenciesTable).where(and(
     eq(activityDependenciesTable.projectId, projectId.data),
     eq(activityDependenciesTable.organizationId, tenantId(req)),
@@ -135,22 +165,52 @@ router.get("/projects/:projectId/dependencies", requirePermission("planning.read
 router.post("/projects/:projectId/dependencies", requirePermission("planning.manage"), async (req, res): Promise<void> => {
   const projectId = idInput.safeParse(req.params.projectId);
   const parsed = dependencyInput.safeParse(req.body);
-  if (!projectId.success || !parsed.success) { res.status(400).json({ error: "Invalid dependency input" }); return; }
+  if (!projectId.success || !parsed.success) { res.status(400).json({ error: M.invalidDependencyInput }); return; }
   const orgId = tenantId(req);
-  if (!(await ownedProject(req, projectId.data))) { res.status(404).json({ error: "Project not found" }); return; }
+  if (!(await ownedProject(req, projectId.data))) { res.status(404).json({ error: M.projectNotFound }); return; }
   const [predecessor, successor] = await Promise.all([
     db.select().from(planningActivitiesTable).where(and(eq(planningActivitiesTable.id, parsed.data.predecessorId), eq(planningActivitiesTable.projectId, projectId.data), eq(planningActivitiesTable.organizationId, orgId), isNull(planningActivitiesTable.deletedAt))),
     db.select().from(planningActivitiesTable).where(and(eq(planningActivitiesTable.id, parsed.data.successorId), eq(planningActivitiesTable.projectId, projectId.data), eq(planningActivitiesTable.organizationId, orgId), isNull(planningActivitiesTable.deletedAt))),
   ]);
-  if (!predecessor.length || !successor.length) { res.status(400).json({ error: "Both activities must exist in the same project" }); return; }
-  if (parsed.data.predecessorId === parsed.data.successorId) { res.status(400).json({ error: "Cannot depend on itself" }); return; }
+  if (!predecessor.length || !successor.length) { res.status(400).json({ error: M.invalidActivities }); return; }
+  if (parsed.data.predecessorId === parsed.data.successorId) { res.status(400).json({ error: M.selfDependency }); return; }
   const [dup] = await db.select().from(activityDependenciesTable).where(and(
     eq(activityDependenciesTable.predecessorId, parsed.data.predecessorId),
     eq(activityDependenciesTable.successorId, parsed.data.successorId),
     eq(activityDependenciesTable.projectId, projectId.data),
     isNull(activityDependenciesTable.deletedAt),
   ));
-  if (dup) { res.status(409).json({ error: "Dependency already exists" }); return; }
+  if (dup) { res.status(409).json({ error: M.duplicateDependency }); return; }
+
+  // Reject a new edge that would create a cycle (A→B→A etc.).
+  const [nodes, existingDeps] = await Promise.all([
+    db.select({ id: planningActivitiesTable.id }).from(planningActivitiesTable).where(and(
+      eq(planningActivitiesTable.projectId, projectId.data),
+      eq(planningActivitiesTable.organizationId, orgId),
+      isNull(planningActivitiesTable.deletedAt),
+    )),
+    db.select().from(activityDependenciesTable).where(and(
+      eq(activityDependenciesTable.projectId, projectId.data),
+      eq(activityDependenciesTable.organizationId, orgId),
+      isNull(activityDependenciesTable.deletedAt),
+    )),
+  ]);
+  const activityNodes = nodes.map((n) => ({
+    id: n.id, code: "", name: "", durationDays: 1, plannedStart: "", plannedFinish: "",
+  }));
+  const graph = existingDeps.map((d) => ({
+    id: d.id, predecessorId: d.predecessorId, successorId: d.successorId,
+    dependencyType: d.dependencyType as "FS" | "SS" | "FF" | "SF", lagDays: d.lagDays,
+  }));
+  graph.push({
+    id: -1, predecessorId: parsed.data.predecessorId, successorId: parsed.data.successorId,
+    dependencyType: parsed.data.dependencyType, lagDays: parsed.data.lagDays,
+  });
+  if (detectCycle(activityNodes, graph)) {
+    res.status(409).json({ error: M.cycleDependency });
+    return;
+  }
+
   const [row] = await db.insert(activityDependenciesTable).values({
     ...parsed.data, projectId: projectId.data, organizationId: orgId,
   }).returning();
@@ -160,9 +220,9 @@ router.post("/projects/:projectId/dependencies", requirePermission("planning.man
 
 router.delete("/dependencies/:id", requirePermission("planning.manage"), async (req, res): Promise<void> => {
   const id = idInput.safeParse(req.params.id);
-  if (!id.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!id.success) { res.status(400).json({ error: M.invalidId }); return; }
   const [old] = await db.select().from(activityDependenciesTable).where(and(eq(activityDependenciesTable.id, id.data), eq(activityDependenciesTable.organizationId, tenantId(req))));
-  if (!old) { res.status(404).json({ error: "Dependency not found" }); return; }
+  if (!old) { res.status(404).json({ error: M.dependencyNotFound }); return; }
   await db.update(activityDependenciesTable).set({ deletedAt: new Date() }).where(eq(activityDependenciesTable.id, id.data));
   res.status(204).send();
   audit(req, "scheduling.dependency.deleted", "dependency", { resourceId: id.data });
@@ -172,12 +232,12 @@ router.delete("/dependencies/:id", requirePermission("planning.manage"), async (
 
 router.get("/projects/:projectId/cpm", requirePermission("planning.read"), async (req, res): Promise<void> => {
   const projectId = idInput.safeParse(req.params.projectId);
-  if (!projectId.success || !(await ownedProject(req, projectId.data))) { res.status(404).json({ error: "Project not found" }); return; }
+  if (!projectId.success || !(await ownedProject(req, projectId.data))) { res.status(404).json({ error: M.projectNotFound }); return; }
   const orgId = tenantId(req);
 
   // Optional calendar integration: pass ?calendarId= to get calendar-adjusted dates
   const calendarId = req.query.calendarId ? idInput.safeParse(req.query.calendarId) : null;
-  if (calendarId && !calendarId.success) { res.status(400).json({ error: "Invalid calendarId" }); return; }
+  if (calendarId && !calendarId.success) { res.status(400).json({ error: M.invalidCalendarId }); return; }
 
   let calendar: (typeof projectCalendarsTable.$inferSelect) | null = null;
   let calendarExceptions: { exceptionDate: string; isWorkingDay: number; description?: string | null }[] = [];
@@ -192,7 +252,7 @@ router.get("/projects/:projectId/cpm", requirePermission("planning.read"), async
       calendarExceptions = await db.select({
         exceptionDate: calendarExceptionsTable.exceptionDate,
         isWorkingDay: calendarExceptionsTable.isWorkingDay,
- description: calendarExceptionsTable.description,
+        description: calendarExceptionsTable.description,
       }).from(calendarExceptionsTable).where(and(
         eq(calendarExceptionsTable.calendarId, calendar.id),
         eq(calendarExceptionsTable.organizationId, orgId),
@@ -213,92 +273,49 @@ router.get("/projects/:projectId/cpm", requirePermission("planning.read"), async
     )),
   ]);
 
-  const activityMap = new Map(activities.map((a) => [a.id, { ...a, earlyStart: 0, earlyFinish: 0, lateStart: 0, lateFinish: 0, totalFloat: 0 }]));
-  const successors = new Map<number, number[]>();
-  const predecessors = new Map<number, number[]>();
-  for (const dep of dependencies) {
-    if (!successors.has(dep.predecessorId)) successors.set(dep.predecessorId, []);
-    successors.get(dep.predecessorId)!.push(dep.successorId);
-    if (!predecessors.has(dep.successorId)) predecessors.set(dep.successorId, []);
-    predecessors.get(dep.successorId)!.push(dep.predecessorId);
+  // Reject cycle graphs instead of returning misleading zero-float output.
+  if (detectCycle(activities, dependencies)) {
+    res.status(409).json({ error: M.cycleCpm });
+    return;
   }
 
-  const inDegree = new Map<number, number>();
-  for (const a of activities) inDegree.set(a.id, (predecessors.get(a.id) || []).length);
-  const queue: number[] = [];
-  for (const [id, deg] of inDegree) { if (deg === 0) queue.push(id); }
-  const topoOrder: number[] = [];
-  while (queue.length > 0) {
-    const node = queue.shift()!;
-    topoOrder.push(node);
-    for (const succ of (successors.get(node) || [])) {
-      const newDeg = (inDegree.get(succ) || 1) - 1;
-      inDegree.set(succ, newDeg);
-      if (newDeg === 0) queue.push(succ);
+  // VETRA-PC-02: run the real domain CPM service (honours FS/SS/FF/SF + lag).
+  const result = computeCPM(activities, dependencies);
+
+  const byActivityId = new Map(result.activities.map((a) => [a.activityId, a]));
+  const projectStartDate = activities.length > 0 ? activities[0].plannedStart : "";
+
+  const withDates = result.activities.map((r) => {
+    const out: Record<string, unknown> = {
+      id: r.activityId,
+      code: r.code,
+      name: r.name,
+      durationDays: r.durationDays,
+      earlyStart: r.earlyStart,
+      earlyFinish: r.earlyFinish,
+      lateStart: r.lateStart,
+      lateFinish: r.lateFinish,
+      totalFloat: r.totalFloat,
+      isCritical: r.isCritical,
+      earlyStartDate: null,
+      earlyFinishDate: null,
+      lateStartDate: null,
+      lateFinishDate: null,
+    };
+    if (calendar && activities.length > 0) {
+      out.earlyStartDate = offsetToCalendarDate(calendar, calendarExceptions, projectStartDate, r.earlyStart);
+      out.earlyFinishDate = offsetToCalendarDate(calendar, calendarExceptions, projectStartDate, r.earlyFinish);
+      out.lateStartDate = offsetToCalendarDate(calendar, calendarExceptions, projectStartDate, r.lateStart);
+      out.lateFinishDate = offsetToCalendarDate(calendar, calendarExceptions, projectStartDate, r.lateFinish);
     }
-  }
-
-  for (const nodeId of topoOrder) {
-    const node = activityMap.get(nodeId)!;
-    const preds = predecessors.get(nodeId) || [];
-    node.earlyStart = preds.length > 0
-      ? Math.max(...preds.map((p) => activityMap.get(p)!.earlyFinish))
-      : 0;
-    node.earlyFinish = node.earlyStart + node.durationDays;
-  }
-
-  const projectFinish = Math.max(...activities.map((a) => activityMap.get(a.id)!.earlyFinish));
-  for (const nodeId of [...topoOrder].reverse()) {
-    const node = activityMap.get(nodeId)!;
-    const succs = successors.get(nodeId) || [];
-    node.lateFinish = succs.length > 0
-      ? Math.min(...succs.map((s) => activityMap.get(s)!.lateStart))
-      : projectFinish;
-    node.lateStart = node.lateFinish - node.durationDays;
-    node.totalFloat = node.lateStart - node.earlyStart;
-  }
-
-  // Calendar-adjusted dates (populated when ?calendarId= is provided)
-  let calendarAdjusted = false;
-  let projectStartDate = "";
-  if (calendar && activities.length > 0) {
-    calendarAdjusted = true;
-    projectStartDate = activities[0].plannedStart;
-    const { offsetToCalendarDate } = await import("../lib/scheduling/calendar");
-    for (const a of activities) {
-      const node = activityMap.get(a.id)!;
-      (node as any).earlyStartDate = offsetToCalendarDate(calendar, calendarExceptions, projectStartDate, node.earlyStart);
-      (node as any).earlyFinishDate = offsetToCalendarDate(calendar, calendarExceptions, projectStartDate, node.earlyFinish);
-      (node as any).lateStartDate = offsetToCalendarDate(calendar, calendarExceptions, projectStartDate, node.lateStart);
-      (node as any).lateFinishDate = offsetToCalendarDate(calendar, calendarExceptions, projectStartDate, node.lateFinish);
-    }
-  }
-
-  const criticalPath = activities.filter((a) => activityMap.get(a.id)!.totalFloat === 0).map((a) => a.id);
+    return out;
+  });
 
   res.json({
-    activities: activities.map((a) => {
-      const n = activityMap.get(a.id)!;
-      const nAny = n as any;
-      return {
-      id: a.id,
-      code: a.code,
-      name: a.name,
-      durationDays: a.durationDays,
-      earlyStart: n.earlyStart,
-      earlyFinish: n.earlyFinish,
-      lateStart: n.lateStart,
-      lateFinish: n.lateFinish,
-      totalFloat: n.totalFloat,
-      earlyStartDate: nAny.earlyStartDate ?? null,
-      earlyFinishDate: nAny.earlyFinishDate ?? null,
-      lateStartDate: nAny.lateStartDate ?? null,
-      lateFinishDate: nAny.lateFinishDate ?? null,
-      };
-    }),
-    criticalPath,
-    projectFinishDays: projectFinish,
-    calendarAdjusted,
+    activities: withDates,
+    criticalPath: result.criticalPathIds,
+    projectFinishDays: result.totalDurationDays,
+    calendarAdjusted: calendar !== null,
     calendarId: calendar?.id ?? null,
     calendarName: calendar?.name ?? null,
   });
@@ -314,7 +331,7 @@ const baselineInput = z.object({
 
 router.get("/projects/:projectId/baselines", requirePermission("planning.read"), async (req, res): Promise<void> => {
   const projectId = idInput.safeParse(req.params.projectId);
-  if (!projectId.success || !(await ownedProject(req, projectId.data))) { res.status(404).json({ error: "Project not found" }); return; }
+  if (!projectId.success || !(await ownedProject(req, projectId.data))) { res.status(404).json({ error: M.projectNotFound }); return; }
   const rows = await db.select().from(baselinesTable).where(and(
     eq(baselinesTable.projectId, projectId.data),
     eq(baselinesTable.organizationId, tenantId(req)),
@@ -326,9 +343,9 @@ router.get("/projects/:projectId/baselines", requirePermission("planning.read"),
 router.post("/projects/:projectId/baselines", requirePermission("planning.manage"), async (req, res): Promise<void> => {
   const projectId = idInput.safeParse(req.params.projectId);
   const parsed = baselineInput.safeParse(req.body);
-  if (!projectId.success || !parsed.success) { res.status(400).json({ error: "Invalid baseline input" }); return; }
+  if (!projectId.success || !parsed.success) { res.status(400).json({ error: M.invalidBaselineInput }); return; }
   const orgId = tenantId(req);
-  if (!(await ownedProject(req, projectId.data))) { res.status(404).json({ error: "Project not found" }); return; }
+  if (!(await ownedProject(req, projectId.data))) { res.status(404).json({ error: M.projectNotFound }); return; }
 
   const [maxVer] = await db.select({ max: sql<number>`COALESCE(MAX(${baselinesTable.version}), 0)` }).from(baselinesTable).where(and(
     eq(baselinesTable.projectId, projectId.data),
@@ -353,10 +370,10 @@ router.post("/projects/:projectId/baselines", requirePermission("planning.manage
 
 router.post("/baselines/:baselineId/activities", requirePermission("planning.manage"), async (req, res): Promise<void> => {
   const baselineId = idInput.safeParse(req.params.baselineId);
-  if (!baselineId.success) { res.status(400).json({ error: "Invalid baseline id" }); return; }
+  if (!baselineId.success) { res.status(400).json({ error: M.invalidBaselineId }); return; }
   const orgId = tenantId(req);
   const [baseline] = await db.select().from(baselinesTable).where(and(eq(baselinesTable.id, baselineId.data), eq(baselinesTable.organizationId, orgId)));
-  if (!baseline) { res.status(404).json({ error: "Baseline not found" }); return; }
+  if (!baseline) { res.status(404).json({ error: M.baselineNotFound }); return; }
 
   const activities = await db.select().from(planningActivitiesTable).where(and(
     eq(planningActivitiesTable.projectId, baseline.projectId),
@@ -364,7 +381,7 @@ router.post("/baselines/:baselineId/activities", requirePermission("planning.man
     isNull(planningActivitiesTable.deletedAt),
   ));
 
-  if (activities.length === 0) { res.status(400).json({ error: "No activities to baseline" }); return; }
+  if (activities.length === 0) { res.status(400).json({ error: M.noActivitiesToBaseline }); return; }
 
   const values = activities.map((a) => ({
     baselineId: baselineId.data,
@@ -383,7 +400,7 @@ router.post("/baselines/:baselineId/activities", requirePermission("planning.man
 
 router.get("/baselines/:baselineId/activities", requirePermission("planning.read"), async (req, res): Promise<void> => {
   const baselineId = idInput.safeParse(req.params.baselineId);
-  if (!baselineId.success) { res.status(400).json({ error: "Invalid baseline id" }); return; }
+  if (!baselineId.success) { res.status(400).json({ error: M.invalidBaselineId }); return; }
   const rows = await db.select().from(baselineActivitiesTable).where(and(
     eq(baselineActivitiesTable.baselineId, baselineId.data),
     eq(baselineActivitiesTable.organizationId, tenantId(req)),
@@ -406,7 +423,7 @@ const progressInput = z.object({
 
 router.get("/projects/:projectId/progress", requirePermission("planning.read"), async (req, res): Promise<void> => {
   const projectId = idInput.safeParse(req.params.projectId);
-  if (!projectId.success || !(await ownedProject(req, projectId.data))) { res.status(404).json({ error: "Project not found" }); return; }
+  if (!projectId.success || !(await ownedProject(req, projectId.data))) { res.status(404).json({ error: M.projectNotFound }); return; }
   const rows = await db.select().from(actualProgressTable).where(and(
     eq(actualProgressTable.projectId, projectId.data),
     eq(actualProgressTable.organizationId, tenantId(req)),
@@ -417,15 +434,15 @@ router.get("/projects/:projectId/progress", requirePermission("planning.read"), 
 router.post("/projects/:projectId/progress", requirePermission("planning.manage"), async (req, res): Promise<void> => {
   const projectId = idInput.safeParse(req.params.projectId);
   const parsed = progressInput.safeParse(req.body);
-  if (!projectId.success || !parsed.success) { res.status(400).json({ error: "Invalid progress input" }); return; }
+  if (!projectId.success || !parsed.success) { res.status(400).json({ error: M.invalidProgressInput }); return; }
   const orgId = tenantId(req);
-  if (!(await ownedProject(req, projectId.data))) { res.status(404).json({ error: "Project not found" }); return; }
+  if (!(await ownedProject(req, projectId.data))) { res.status(404).json({ error: M.projectNotFound }); return; }
   const [activity] = await db.select().from(planningActivitiesTable).where(and(
     eq(planningActivitiesTable.id, parsed.data.activityId),
     eq(planningActivitiesTable.projectId, projectId.data),
     eq(planningActivitiesTable.organizationId, orgId),
   ));
-  if (!activity) { res.status(400).json({ error: "Activity not found in this project" }); return; }
+  if (!activity) { res.status(400).json({ error: M.activityNotInProject }); return; }
   const [row] = await db.insert(actualProgressTable).values({
     ...parsed.data, projectId: projectId.data, organizationId: orgId, recordedBy: req.vetraUser!.id,
   }).returning();
@@ -440,7 +457,7 @@ router.post("/projects/:projectId/progress", requirePermission("planning.manage"
 
 router.get("/projects/:projectId/progress-summary", requirePermission("planning.read"), async (req, res): Promise<void> => {
   const projectId = idInput.safeParse(req.params.projectId);
-  if (!projectId.success || !(await ownedProject(req, projectId.data))) { res.status(404).json({ error: "Project not found" }); return; }
+  if (!projectId.success || !(await ownedProject(req, projectId.data))) { res.status(404).json({ error: M.projectNotFound }); return; }
   const orgId = tenantId(req);
 
   // Optional date-range filter for as-of-date progress reporting
@@ -532,10 +549,10 @@ router.get("/projects/:projectId/progress-summary", requirePermission("planning.
 
 router.get("/projects/:projectId/calendar-schedule", requirePermission("planning.read"), async (req, res): Promise<void> => {
   const projectId = idInput.safeParse(req.params.projectId);
-  if (!projectId.success || !(await ownedProject(req, projectId.data))) { res.status(404).json({ error: "Project not found" }); return; }
+  if (!projectId.success || !(await ownedProject(req, projectId.data))) { res.status(404).json({ error: M.projectNotFound }); return; }
   const orgId = tenantId(req);
   const calendarId = req.query.calendarId ? idInput.safeParse(req.query.calendarId) : null;
-  if (calendarId && !calendarId.success) { res.status(400).json({ error: "Invalid calendarId" }); return; }
+  if (calendarId && !calendarId.success) { res.status(400).json({ error: M.invalidCalendarId }); return; }
   const [calendars, activities, dependencies] = await Promise.all([
     db.select().from(projectCalendarsTable).where(and(
       eq(projectCalendarsTable.projectId, projectId.data),
@@ -585,7 +602,7 @@ router.get("/projects/:projectId/calendar-schedule", requirePermission("planning
 
 router.get("/projects/:projectId/evm", requirePermission("planning.read"), async (req, res): Promise<void> => {
   const projectId = idInput.safeParse(req.params.projectId);
-  if (!projectId.success || !(await ownedProject(req, projectId.data))) { res.status(404).json({ error: "Project not found" }); return; }
+  if (!projectId.success || !(await ownedProject(req, projectId.data))) { res.status(404).json({ error: M.projectNotFound }); return; }
   const rows = await db.select().from(evmMetricsTable).where(and(
     eq(evmMetricsTable.projectId, projectId.data),
     eq(evmMetricsTable.organizationId, tenantId(req)),
@@ -605,7 +622,7 @@ router.post("/projects/:projectId/evm", requirePermission("planning.manage"), as
   }).safeParse(req.body);
   if (!projectId.success || !parsed.success) { res.status(400).json({ error: "Invalid EVM input" }); return; }
   const orgId = tenantId(req);
-  if (!(await ownedProject(req, projectId.data))) { res.status(404).json({ error: "Project not found" }); return; }
+  if (!(await ownedProject(req, projectId.data))) { res.status(404).json({ error: M.projectNotFound }); return; }
 
   const pv = parseFloat(parsed.data.plannedValue);
   const ev = parseFloat(parsed.data.earnedValue);
@@ -645,7 +662,7 @@ router.post("/projects/:projectId/evm", requirePermission("planning.manage"), as
 
 router.get("/projects/:projectId/evm-forecast", requirePermission("planning.read"), async (req, res): Promise<void> => {
   const projectId = idInput.safeParse(req.params.projectId);
-  if (!projectId.success || !(await ownedProject(req, projectId.data))) { res.status(404).json({ error: "Project not found" }); return; }
+  if (!projectId.success || !(await ownedProject(req, projectId.data))) { res.status(404).json({ error: M.projectNotFound }); return; }
   const orgId = tenantId(req);
 
   // Fetch the latest EVM record for this project
@@ -713,7 +730,7 @@ router.get("/resource-types", requirePermission("planning.read"), async (req, re
 
 router.post("/resource-types", requirePermission("planning.manage"), async (req, res): Promise<void> => {
   const parsed = resourceTypeInput.safeParse(req.body);
-  if (!parsed.success) { res.status(400).json({ error: "Invalid resource type input" }); return; }
+  if (!parsed.success) { res.status(400).json({ error: M.invalidResourceTypeInput }); return; }
   const [row] = await db.insert(resourceTypesTable).values({
     ...parsed.data, organizationId: tenantId(req),
   }).returning();
@@ -724,18 +741,18 @@ router.post("/resource-types", requirePermission("planning.manage"), async (req,
 router.patch("/resource-types/:id", requirePermission("planning.manage"), async (req, res): Promise<void> => {
   const id = idInput.safeParse(req.params.id);
   const parsed = resourceTypeInput.partial().safeParse(req.body);
-  if (!id.success || !parsed.success) { res.status(400).json({ error: "Invalid input" }); return; }
+  if (!id.success || !parsed.success) { res.status(400).json({ error: M.invalidInput }); return; }
   const [old] = await db.select().from(resourceTypesTable).where(and(eq(resourceTypesTable.id, id.data), eq(resourceTypesTable.organizationId, tenantId(req))));
-  if (!old) { res.status(404).json({ error: "Resource type not found" }); return; }
+  if (!old) { res.status(404).json({ error: M.resourceTypeNotFound }); return; }
   const [row] = await db.update(resourceTypesTable).set(parsed.data).where(and(eq(resourceTypesTable.id, id.data), eq(resourceTypesTable.organizationId, tenantId(req)))).returning();
   res.json(row);
 });
 
 router.delete("/resource-types/:id", requirePermission("planning.manage"), async (req, res): Promise<void> => {
   const id = idInput.safeParse(req.params.id);
-  if (!id.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!id.success) { res.status(400).json({ error: M.invalidId }); return; }
   const [old] = await db.select().from(resourceTypesTable).where(and(eq(resourceTypesTable.id, id.data), eq(resourceTypesTable.organizationId, tenantId(req))));
-  if (!old) { res.status(404).json({ error: "Resource type not found" }); return; }
+  if (!old) { res.status(404).json({ error: M.resourceTypeNotFound }); return; }
   await db.update(resourceTypesTable).set({ deletedAt: new Date() }).where(eq(resourceTypesTable.id, id.data));
   res.status(204).send();
 });
@@ -755,7 +772,7 @@ const resourceAssignmentInput = z.object({
 
 router.get("/projects/:projectId/resource-assignments", requirePermission("planning.read"), async (req, res): Promise<void> => {
   const projectId = idInput.safeParse(req.params.projectId);
-  if (!projectId.success || !(await ownedProject(req, projectId.data))) { res.status(404).json({ error: "Project not found" }); return; }
+  if (!projectId.success || !(await ownedProject(req, projectId.data))) { res.status(404).json({ error: M.projectNotFound }); return; }
   const rows = await db.select().from(resourceAssignmentsTable).where(and(
     eq(resourceAssignmentsTable.projectId, projectId.data),
     eq(resourceAssignmentsTable.organizationId, tenantId(req)),
@@ -767,17 +784,17 @@ router.get("/projects/:projectId/resource-assignments", requirePermission("plann
 router.post("/projects/:projectId/resource-assignments", requirePermission("planning.manage"), async (req, res): Promise<void> => {
   const projectId = idInput.safeParse(req.params.projectId);
   const parsed = resourceAssignmentInput.safeParse(req.body);
-  if (!projectId.success || !parsed.success) { res.status(400).json({ error: "Invalid resource assignment input" }); return; }
+  if (!projectId.success || !parsed.success) { res.status(400).json({ error: M.invalidResourceAssignmentInput }); return; }
   const orgId = tenantId(req);
-  if (!(await ownedProject(req, projectId.data))) { res.status(404).json({ error: "Project not found" }); return; }
+  if (!(await ownedProject(req, projectId.data))) { res.status(404).json({ error: M.projectNotFound }); return; }
   const [activity] = await db.select().from(planningActivitiesTable).where(and(
     eq(planningActivitiesTable.id, parsed.data.activityId),
     eq(planningActivitiesTable.projectId, projectId.data),
     eq(planningActivitiesTable.organizationId, orgId),
   ));
-  if (!activity) { res.status(400).json({ error: "Activity not found in this project" }); return; }
+  if (!activity) { res.status(400).json({ error: M.activityNotInProject }); return; }
   const [rt] = await db.select().from(resourceTypesTable).where(and(eq(resourceTypesTable.id, parsed.data.resourceTypeId), eq(resourceTypesTable.organizationId, orgId)));
-  if (!rt) { res.status(400).json({ error: "Resource type not found" }); return; }
+  if (!rt) { res.status(400).json({ error: M.resourceTypeNotFound }); return; }
   const [row] = await db.insert(resourceAssignmentsTable).values({
     ...parsed.data, projectId: projectId.data, organizationId: orgId,
   }).returning();
@@ -788,18 +805,18 @@ router.post("/projects/:projectId/resource-assignments", requirePermission("plan
 router.patch("/resource-assignments/:id", requirePermission("planning.manage"), async (req, res): Promise<void> => {
   const id = idInput.safeParse(req.params.id);
   const parsed = resourceAssignmentInput.partial().safeParse(req.body);
-  if (!id.success || !parsed.success) { res.status(400).json({ error: "Invalid input" }); return; }
+  if (!id.success || !parsed.success) { res.status(400).json({ error: M.invalidInput }); return; }
   const [old] = await db.select().from(resourceAssignmentsTable).where(and(eq(resourceAssignmentsTable.id, id.data), eq(resourceAssignmentsTable.organizationId, tenantId(req))));
-  if (!old) { res.status(404).json({ error: "Resource assignment not found" }); return; }
+  if (!old) { res.status(404).json({ error: M.resourceAssignmentNotFound }); return; }
   const [row] = await db.update(resourceAssignmentsTable).set(parsed.data).where(and(eq(resourceAssignmentsTable.id, id.data), eq(resourceAssignmentsTable.organizationId, tenantId(req)))).returning();
   res.json(row);
 });
 
 router.delete("/resource-assignments/:id", requirePermission("planning.manage"), async (req, res): Promise<void> => {
   const id = idInput.safeParse(req.params.id);
-  if (!id.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!id.success) { res.status(400).json({ error: M.invalidId }); return; }
   const [old] = await db.select().from(resourceAssignmentsTable).where(and(eq(resourceAssignmentsTable.id, id.data), eq(resourceAssignmentsTable.organizationId, tenantId(req))));
-  if (!old) { res.status(404).json({ error: "Resource assignment not found" }); return; }
+  if (!old) { res.status(404).json({ error: M.resourceAssignmentNotFound }); return; }
   await db.update(resourceAssignmentsTable).set({ deletedAt: new Date() }).where(eq(resourceAssignmentsTable.id, id.data));
   res.status(204).send();
 });
@@ -808,7 +825,7 @@ router.delete("/resource-assignments/:id", requirePermission("planning.manage"),
 
 router.get("/projects/:projectId/resource-summary", requirePermission("planning.read"), async (req, res): Promise<void> => {
   const projectId = idInput.safeParse(req.params.projectId);
-  if (!projectId.success || !(await ownedProject(req, projectId.data))) { res.status(404).json({ error: "Project not found" }); return; }
+  if (!projectId.success || !(await ownedProject(req, projectId.data))) { res.status(404).json({ error: M.projectNotFound }); return; }
   const orgId = tenantId(req);
 
   const [assignments, types] = await Promise.all([
