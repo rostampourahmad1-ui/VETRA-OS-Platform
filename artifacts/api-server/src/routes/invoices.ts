@@ -13,11 +13,11 @@ router.use(requireAuth);
 // ─── GET /invoices ───────────────────────────────────────────────────────────
 router.get("/invoices", requirePermission("invoices.read"), async (req, res): Promise<void> => {
   const org = tenantId(req);
-  const { status, contractId } = req.query as { status?: string; contractId?: string };
+  const { status } = req.query as { status?: string };
 
   const filters = [eq(invoicesTable.organizationId, org)];
   if (status) filters.push(eq(invoicesTable.status, status));
-  if (contractId) filters.push(eq(invoicesTable.contractId, Number(contractId)));
+  
 
   const rows = await db.select().from(invoicesTable)
     .where(and(...filters))
@@ -26,8 +26,8 @@ router.get("/invoices", requirePermission("invoices.read"), async (req, res): Pr
   res.json(rows.map(r => ({
     ...r,
     subtotal: Number(r.subtotal),
-    taxAmount: Number(r.taxAmount),
-    totalAmount: Number(r.totalAmount),
+    taxAmount: Number(r.tax),
+    totalAmount: Number(r.total),
   })));
 });
 
@@ -35,7 +35,7 @@ router.get("/invoices", requirePermission("invoices.read"), async (req, res): Pr
 router.post("/invoices", requirePermission("invoices.create"), async (req, res): Promise<void> => {
   const org = tenantId(req);
   const userId = req.vetraUser!.id;
-  const { invoiceNumber, contractId, projectId, issueDate, dueDate, notes, lines } = req.body;
+  const { invoiceNumber, projectId, issueDate, dueDate, notes, lines } = req.body;
 
   if (!invoiceNumber || !issueDate || !Array.isArray(lines) || lines.length === 0) {
     res.status(400).json({ error: "invoiceNumber, issueDate, and lines[] are required" });
@@ -56,13 +56,13 @@ router.post("/invoices", requirePermission("invoices.create"), async (req, res):
     const [inv] = await tx.insert(invoicesTable).values({
       organizationId: org,
       invoiceNumber,
-      contractId: contractId ?? null,
+      
       projectId: projectId ?? null,
       issueDate: new Date(issueDate),
       dueDate: dueDate ? new Date(dueDate) : null,
       subtotal: subtotal.toString(),
-      taxAmount: taxAmount.toString(),
-      totalAmount: totalAmount.toString(),
+      tax: taxAmount.toString(),
+      total: totalAmount.toString(),
       status: "draft",
       notes: notes ?? null,
       createdBy: userId,
@@ -79,7 +79,7 @@ router.post("/invoices", requirePermission("invoices.create"), async (req, res):
         description: line.description,
         quantity: qty.toString(),
         unitPrice: price.toString(),
-        totalPrice: lineTotal.toString(),
+        lineTotal: lineTotal.toString(),
       });
     }
 
@@ -89,8 +89,8 @@ router.post("/invoices", requirePermission("invoices.create"), async (req, res):
   res.status(201).json({
     ...invoice,
     subtotal: Number(invoice.subtotal),
-    taxAmount: Number(invoice.taxAmount),
-    totalAmount: Number(invoice.totalAmount),
+    taxAmount: Number(invoice.tax),
+    totalAmount: Number(invoice.total),
   });
   audit(req, "invoice.created", "invoice", { resourceId: invoice.id, newValues: { invoiceNumber, totalAmount } });
 });
@@ -110,13 +110,13 @@ router.get("/invoices/:id", requirePermission("invoices.read"), async (req, res)
   res.json({
     ...invoice,
     subtotal: Number(invoice.subtotal),
-    taxAmount: Number(invoice.taxAmount),
-    totalAmount: Number(invoice.totalAmount),
+    taxAmount: Number(invoice.tax),
+    totalAmount: Number(invoice.total),
     lines: lines.map(l => ({
       ...l,
       quantity: Number(l.quantity),
       unitPrice: Number(l.unitPrice),
-      totalPrice: Number(l.totalPrice),
+      totalPrice: Number(l.lineTotal),
     })),
   });
 });
@@ -145,14 +145,14 @@ router.patch("/invoices/:id/approve", requirePermission("invoices.update"), asyn
   res.json({
     ...invoice,
     subtotal: Number(invoice.subtotal),
-    taxAmount: Number(invoice.taxAmount),
-    totalAmount: Number(invoice.totalAmount),
+    taxAmount: Number(invoice.tax),
+    totalAmount: Number(invoice.total),
   });
   audit(req, "invoice.approved", "invoice", { resourceId: id, newValues: { status: "approved" } });
 
   // Invoice due notification (fire-and-forget)
   if (invoice.dueDate && invoice.createdBy) {
-    const dueInDays = Math.ceil((invoice.dueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    const dueInDays = Math.ceil((new Date(invoice.dueDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
     if (dueInDays <= 7) {
       createNotification({
         organizationId: org,
@@ -191,8 +191,8 @@ router.patch("/invoices/:id", requirePermission("invoices.update"), async (req, 
   res.json({
     ...invoice,
     subtotal: Number(invoice.subtotal),
-    taxAmount: Number(invoice.taxAmount),
-    totalAmount: Number(invoice.totalAmount),
+    taxAmount: Number(invoice.tax),
+    totalAmount: Number(invoice.total),
   });
   audit(req, "invoice.updated", "invoice", { resourceId: id, oldValues: { status: current.status }, newValues: { status: invoice.status } });
 });
@@ -223,10 +223,10 @@ router.delete("/invoices/:id", requirePermission("invoices.delete"), async (req,
 
 router.get("/payment-schedules", requirePermission("payment-schedule.read"), async (req, res): Promise<void> => {
   const org = tenantId(req);
-  const { contractId, status } = req.query as { contractId?: string; status?: string };
+  const { status } = req.query as { status?: string };
 
   const filters = [eq(paymentSchedulesTable.organizationId, org)];
-  if (contractId) filters.push(eq(paymentSchedulesTable.contractId, Number(contractId)));
+  
   if (status) filters.push(eq(paymentSchedulesTable.status, status));
 
   const rows = await db.select().from(paymentSchedulesTable)
@@ -237,34 +237,34 @@ router.get("/payment-schedules", requirePermission("payment-schedule.read"), asy
   res.json(rows.map(r => ({
     ...r,
     amount: Number(r.amount),
-    paidAmount: Number(r.paidAmount),
-    isOverdue: r.status !== "paid" && r.dueDate < now,
+    paidAmount: r.status === "paid" ? Number(r.amount) : 0,
+    isOverdue: r.status !== "paid" && new Date(r.dueDate) < now,
   })));
 });
 
 router.post("/payment-schedules", requirePermission("payment-schedule.create"), async (req, res): Promise<void> => {
   const org = tenantId(req);
   const userId = req.vetraUser!.id;
-  const { contractId, description, amount, dueDate, notes } = req.body;
+  const { description, amount, dueDate, notes } = req.body;
 
-  if (!contractId || !description || !amount || !dueDate) {
-    res.status(400).json({ error: "contractId, description, amount, dueDate are required" });
+  if (!description || !amount || !dueDate) {
+    res.status(400).json({ error: " description, amount, dueDate are required" });
     return;
   }
 
   const [row] = await db.insert(paymentSchedulesTable).values({
     organizationId: org,
-    contractId,
+    
     description,
     amount: Number(amount).toString(),
-    paidAmount: "0",
-    dueDate: new Date(dueDate),
+    
+    dueDate: dueDate,
     status: "pending",
     notes: notes ?? null,
     createdBy: userId,
   }).returning();
 
-  res.status(201).json({ ...row, amount: Number(row.amount), paidAmount: Number(row.paidAmount) });
+  res.status(201).json({ ...row, amount: Number(row.amount), paidAmount: row.status === "paid" ? Number(row.amount) : 0 });
   audit(req, "payment_schedule.created", "payment_schedule", { resourceId: row.id, newValues: { description, amount } });
 });
 
@@ -281,14 +281,16 @@ router.patch("/payment-schedules/:id", requirePermission("payment-schedule.updat
     if (req.body[k] !== undefined) upd[k] = req.body[k];
   }
   if (req.body.amount !== undefined) upd.amount = Number(req.body.amount).toString();
-  if (req.body.paidAmount !== undefined) upd.paidAmount = Number(req.body.paidAmount).toString();
+  
 
   const [row] = await db.update(paymentSchedulesTable).set(upd)
     .where(and(eq(paymentSchedulesTable.id, id), eq(paymentSchedulesTable.organizationId, org)))
     .returning();
 
-  res.json({ ...row, amount: Number(row.amount), paidAmount: Number(row.paidAmount) });
+  res.json({ ...row, amount: Number(row.amount), paidAmount: row.status === "paid" ? Number(row.amount) : 0 });
   audit(req, "payment_schedule.updated", "payment_schedule", { resourceId: id, oldValues: { status: current.status }, newValues: { status: row.status } });
 });
 
 export default router;
+
+

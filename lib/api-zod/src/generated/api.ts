@@ -1915,20 +1915,21 @@ export const ListEvmMetricsParams = zod.object({
 })
 
 export const ListEvmMetricsResponseItem = zod.object({
-  "plannedValue": zod.number(),
-  "earnedValue": zod.number(),
-  "actualCost": zod.number(),
-  "costVariance": zod.number(),
-  "scheduleVariance": zod.number(),
-  "costPerformanceIndex": zod.number(),
-  "schedulePerformanceIndex": zod.number(),
-  "estimateAtCompletion": zod.number(),
-  "estimateToComplete": zod.number(),
-  "varianceAtCompletion": zod.number(),
-  "toCompletePerformanceIndex": zod.number(),
-  "eacCpiSpi": zod.number().optional(),
-  "etcBottomUp": zod.number().optional(),
-  "eacBottomUp": zod.number().optional()
+  "id": zod.number().int(),
+  "projectId": zod.number().int(),
+  "organizationId": zod.number().int(),
+  "baselineId": zod.number().int(),
+  "reportDate": zod.coerce.date(),
+  "plannedValue": zod.string(),
+  "earnedValue": zod.string(),
+  "actualCost": zod.string(),
+  "costVariance": zod.string(),
+  "scheduleVariance": zod.string(),
+  "costPerformanceIndex": zod.string(),
+  "schedulePerformanceIndex": zod.string(),
+  "estimateAtCompletion": zod.string().nullable(),
+  "estimateToComplete": zod.string().nullable(),
+  "createdAt": zod.coerce.date()
 })
 export const ListEvmMetricsResponse = zod.array(ListEvmMetricsResponseItem)
 
@@ -1940,29 +1941,36 @@ export const CreateEvmMetricParams = zod.object({
   "projectId": zod.coerce.number().int()
 })
 
+
+export const createEvmMetricBodyPlannedValueDefault = `0`;
+export const createEvmMetricBodyEarnedValueDefault = `0`;
+export const createEvmMetricBodyActualCostDefault = `0`;
+
 export const CreateEvmMetricBody = zod.object({
-  "plannedValue": zod.number(),
-  "earnedValue": zod.number(),
-  "actualCost": zod.number(),
-  "budgetAtCompletion": zod.number(),
-  "bottomUpEstimateToComplete": zod.number().optional()
+  "baselineId": zod.number().int().min(1),
+  "reportDate": zod.coerce.date(),
+  "plannedValue": zod.string().default(createEvmMetricBodyPlannedValueDefault),
+  "earnedValue": zod.string().default(createEvmMetricBodyEarnedValueDefault),
+  "actualCost": zod.string().default(createEvmMetricBodyActualCostDefault),
+  "bottomUpEstimateToComplete": zod.string().nullish()
 })
 
 export const CreateEvmMetricResponse = zod.object({
-  "plannedValue": zod.number(),
-  "earnedValue": zod.number(),
-  "actualCost": zod.number(),
-  "costVariance": zod.number(),
-  "scheduleVariance": zod.number(),
-  "costPerformanceIndex": zod.number(),
-  "schedulePerformanceIndex": zod.number(),
-  "estimateAtCompletion": zod.number(),
-  "estimateToComplete": zod.number(),
-  "varianceAtCompletion": zod.number(),
-  "toCompletePerformanceIndex": zod.number(),
-  "eacCpiSpi": zod.number().optional(),
-  "etcBottomUp": zod.number().optional(),
-  "eacBottomUp": zod.number().optional()
+  "id": zod.number().int(),
+  "projectId": zod.number().int(),
+  "organizationId": zod.number().int(),
+  "baselineId": zod.number().int(),
+  "reportDate": zod.coerce.date(),
+  "plannedValue": zod.string(),
+  "earnedValue": zod.string(),
+  "actualCost": zod.string(),
+  "costVariance": zod.string(),
+  "scheduleVariance": zod.string(),
+  "costPerformanceIndex": zod.string(),
+  "schedulePerformanceIndex": zod.string(),
+  "estimateAtCompletion": zod.string().nullable(),
+  "estimateToComplete": zod.string().nullable(),
+  "createdAt": zod.coerce.date()
 })
 
 
@@ -1974,11 +1982,20 @@ export const GetEvmForecastParams = zod.object({
 })
 
 export const GetEvmForecastResponse = zod.object({
-  "estimateAtCompletion": zod.number(),
-  "eacCpiSpi": zod.number().optional(),
-  "eacBottomUp": zod.number().optional(),
+  "projectId": zod.number().int(),
+  "reportDate": zod.coerce.date(),
+  "baselineId": zod.number().int(),
+  "plannedValue": zod.number(),
+  "earnedValue": zod.number(),
+  "actualCost": zod.number(),
+  "cpi": zod.number(),
+  "spi": zod.number(),
+  "eacCpi": zod.number(),
+  "eacCpiSpi": zod.number(),
+  "eacBottomUp": zod.number(),
+  "costVariance": zod.number(),
+  "scheduleVariance": zod.number(),
   "estimateToComplete": zod.number(),
-  "etcBottomUp": zod.number().optional(),
   "varianceAtCompletion": zod.number(),
   "toCompletePerformanceIndex": zod.number()
 })
@@ -2815,7 +2832,7 @@ export const PostFormSubmissionsIdSubmitResponse = zod.object({
  * @summary Upload a document to local storage
  */
 export const PostDocumentsUploadBody = zod.object({
-  "file": zod.any(),
+  "file": zod.instanceof(File),
   "projectId": zod.number().int()
 })
 
@@ -3190,4 +3207,5 @@ export const DeleteProcurementProcurementIdItemsIdParams = zod.object({
 })
 
 export const DeleteProcurementProcurementIdItemsIdResponse = zod.void()
+
 

@@ -882,6 +882,56 @@ export interface Notification {
   createdAt: string;
 }
 
+export interface EvmMetric {
+  id: number;
+  projectId: number;
+  organizationId: number;
+  baselineId: number;
+  reportDate: string;
+  plannedValue: string;
+  earnedValue: string;
+  actualCost: string;
+  costVariance: string;
+  scheduleVariance: string;
+  costPerformanceIndex: string;
+  schedulePerformanceIndex: string;
+  /** @nullable */
+  estimateAtCompletion: string | null;
+  /** @nullable */
+  estimateToComplete: string | null;
+  createdAt: string;
+}
+
+export interface EvmInput {
+  /** @minimum 1 */
+  baselineId: number;
+  reportDate: string;
+  plannedValue: string;
+  earnedValue: string;
+  actualCost: string;
+  /** @nullable */
+  bottomUpEstimateToComplete?: string | null;
+}
+
+export interface EvmForecast {
+  projectId: number;
+  reportDate: string;
+  baselineId: number;
+  plannedValue: number;
+  earnedValue: number;
+  actualCost: number;
+  cpi: number;
+  spi: number;
+  eacCpi: number;
+  eacCpiSpi: number;
+  eacBottomUp: number;
+  costVariance: number;
+  scheduleVariance: number;
+  estimateToComplete: number;
+  varianceAtCompletion: number;
+  toCompletePerformanceIndex: number;
+}
+
 export interface Organization {
   id: number;
   name: string;
@@ -1295,3 +1345,4 @@ export type PostPayrollCalculateBody = {
   deductions?: number;
   notes?: string;
 };
+

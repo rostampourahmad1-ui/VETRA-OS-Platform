@@ -55,7 +55,7 @@ router.get("/cost-control/budgets", requirePermission("cost-control.read"), asyn
 router.post("/cost-control/budgets", requirePermission("cost-control.manage"), async (req, res): Promise<void> => {
   const parsed = CreateBudgetBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Invalid budget", details: parsed.error.issues }); return; }
-  const { projectId, categoryId, name, amount, period, notes, category } = parsed.data;
+  const { projectId, categoryId, name, amount, period } = parsed.data;
   if (projectId && !(await ownedProject(req, projectId))) { res.status(400).json({ error: "Project not found" }); return; }
   const [row] = await db.insert(budgetsTable).values({
     organizationId: tenantId(req),
@@ -64,8 +64,8 @@ router.post("/cost-control/budgets", requirePermission("cost-control.manage"), a
     name,
     amount: String(amount),
     period: period ?? "annual",
-    notes: (notes as string | undefined) ?? null,
-    category: (category as string | undefined) ?? null,
+    
+    
   }).returning();
   res.status(201).json(row);
   audit(req, "cost_control.budget.created", "budget", { resourceId: row.id, newValues: { name: row.name, projectId: row.projectId, amount: row.amount } });
@@ -121,7 +121,7 @@ router.patch("/cost-control/expenses/:id/approve", requirePermission("cost-contr
     status: "approved",
     approvedBy: userId,
     approvedAt: new Date(),
-    updatedAt: new Date(),
+    
   }).where(and(eq(expensesTable.id, id), eq(expensesTable.organizationId, orgId))).returning();
 
   res.json(row);
@@ -129,3 +129,4 @@ router.patch("/cost-control/expenses/:id/approve", requirePermission("cost-contr
 });
 
 export default router;
+

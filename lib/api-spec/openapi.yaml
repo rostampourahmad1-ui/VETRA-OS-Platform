@@ -2998,6 +2998,95 @@ components:
         link: { type: ["string", "null"] }
         createdAt: { type: string }
 
+    # ─── EVM Schemas ────────────────────────────────────────────────────────────
+    EvmMetric:
+      type: object
+      required:
+        - id
+        - projectId
+        - organizationId
+        - baselineId
+        - reportDate
+        - plannedValue
+        - earnedValue
+        - actualCost
+        - costVariance
+        - scheduleVariance
+        - costPerformanceIndex
+        - schedulePerformanceIndex
+        - estimateAtCompletion
+        - estimateToComplete
+        - createdAt
+      properties:
+        id: { type: integer }
+        projectId: { type: integer }
+        organizationId: { type: integer }
+        baselineId: { type: integer }
+        reportDate: { type: string, format: date }
+        plannedValue: { type: string }
+        earnedValue: { type: string }
+        actualCost: { type: string }
+        costVariance: { type: string }
+        scheduleVariance: { type: string }
+        costPerformanceIndex: { type: string }
+        schedulePerformanceIndex: { type: string }
+        estimateAtCompletion: { type: ["string", "null"] }
+        estimateToComplete: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+
+    EvmInput:
+      type: object
+      required:
+        - baselineId
+        - reportDate
+        - plannedValue
+        - earnedValue
+        - actualCost
+      properties:
+        baselineId: { type: integer, minimum: 1 }
+        reportDate: { type: string, format: date }
+        plannedValue: { type: string, default: "0" }
+        earnedValue: { type: string, default: "0" }
+        actualCost: { type: string, default: "0" }
+        bottomUpEstimateToComplete: { type: ["string", "null"] }
+
+    EvmForecast:
+      type: object
+      required:
+        - projectId
+        - reportDate
+        - baselineId
+        - plannedValue
+        - earnedValue
+        - actualCost
+        - cpi
+        - spi
+        - eacCpi
+        - eacCpiSpi
+        - eacBottomUp
+        - costVariance
+        - scheduleVariance
+        - estimateToComplete
+        - varianceAtCompletion
+        - toCompletePerformanceIndex
+      properties:
+        projectId: { type: integer }
+        reportDate: { type: string, format: date }
+        baselineId: { type: integer }
+        plannedValue: { type: number }
+        earnedValue: { type: number }
+        actualCost: { type: number }
+        cpi: { type: number }
+        spi: { type: number }
+        eacCpi: { type: number }
+        eacCpiSpi: { type: number }
+        eacBottomUp: { type: number }
+        costVariance: { type: number }
+        scheduleVariance: { type: number }
+        estimateToComplete: { type: number }
+        varianceAtCompletion: { type: number }
+        toCompletePerformanceIndex: { type: number }
+
     # ─── Organization Schemas ─────────────────────────────────────────────────
     Organization:
       type: object
@@ -3263,3 +3352,4 @@ components:
         description: { type: [string, "null"] }
         parentId: { type: [integer, "null"] }
         sortOrder: { type: integer }
+
