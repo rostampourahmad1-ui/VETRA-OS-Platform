@@ -1,0 +1,202 @@
+$ vitest run
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 C:/Users/VETRA_AI/Documents/VETRA-OS-Platform
+
+ Γ¥» tests/security/daily-reports-materials.test.ts (0 test)
+ Γ¥» tests/integration/phase1.financial.test.ts (18 tests | 2 failed) 332ms
+     ├ù lists invoices scoped to tenant with numeric totals 42ms
+     ├ù returns invoice with lines by id 9ms
+ Γ¥» tests/hr-attendance.test.ts (16 tests | 4 failed) 321ms
+     ├ù lists only attendance records belonging to the tenant 49ms
+     ├ù returns dates in ISO format compatible with Jalali conversion 11ms
+       ├ù rejects attendance list without required permission with 403 13ms
+       ├ù prevents tenant A from reading tenant B attendance via forced organizationId 32ms
+[2026-09-15 08:20:44.876] [32mINFO[39m (vetra-api): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 1,
+      "method": "OPTIONS",
+      "url": "/api/projects"
+    }
+    [35mres[39m: {
+      "statusCode": 204
+    }
+    [35mresponseTime[39m: 23
+ Γ¥» tests/forms-contract-validation.test.ts (48 tests | 1 failed) 37ms
+     ├ù FormFieldType enum matches expected values 12ms
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ» Failed Suites 1 ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+
+ FAIL  tests/security/daily-reports-materials.test.ts [ tests/security/daily-reports-materials.test.ts ]
+Error: Transform failed with 1 error:
+
+[PARSE_ERROR] Unexpected flag 1 in regular expression literal
+     Γò¡ΓöÇ[ tests/security/daily-reports-materials.test.ts:604:29 ]
+     Γöé
+ 604 Γöé       .patch(/daily-reports/1/materials/)
+     Γöé                             Γö¼  
+     Γöé                             Γò░ΓöÇΓöÇ 
+     Γöé 
+     Γöé Help: The allowed flags are `gimsuydv`
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓò»
+
+  Plugin: vite:oxc
+  File: C:/Users/VETRA_AI/Documents/VETRA-OS-Platform/tests/security/daily-reports-materials.test.ts
+ Γ¥» transformWithOxc node_modules/.pnpm/vite@8.2.1_@types+node@26.2_957ade5b8060f2d37a7879596dd4c285/node_modules/vite/dist/node/chunks/node.js:4097:19
+ Γ¥» TransformPluginContext.transform node_modules/.pnpm/vite@8.2.1_@types+node@26.2_957ade5b8060f2d37a7879596dd4c285/node_modules/vite/dist/node/chunks/node.js:4168:26
+ Γ¥» EnvironmentPluginContainer.transform node_modules/.pnpm/vite@8.2.1_@types+node@26.2_957ade5b8060f2d37a7879596dd4c285/node_modules/vite/dist/node/chunks/node.js:30851:51
+ Γ¥» loadAndTransform node_modules/.pnpm/vite@8.2.1_@types+node@26.2_957ade5b8060f2d37a7879596dd4c285/node_modules/vite/dist/node/chunks/node.js:20619:26
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[1/8]ΓÄ»
+
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ» Failed Tests 7 ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+
+ FAIL  tests/forms-contract-validation.test.ts > Forms: API/client type compatibility > FormFieldType enum matches expected values
+AssertionError: expected undefined to deeply equal { Object (text, number, ...) }
+
+- Expected:
+{
+  "checkbox": "checkbox",
+  "date": "date",
+  "number": "number",
+  "select": "select",
+  "text": "text",
+}
+
++ Received:
+undefined
+
+ Γ¥» tests/forms-contract-validation.test.ts:331:27
+    329|
+    330|   it("FormFieldType enum matches expected values", () => {
+    331|     expect(FormFieldType).toEqual({
+       |                           ^
+    332|       text: "text",
+    333|       number: "number",
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[2/8]ΓÄ»
+
+ FAIL  tests/hr-attendance.test.ts > Attendance API ΓÇö tenant isolation & jalali date support > lists only attendance records belonging to the tenant
+AssertionError: expected 404 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 404
+
+ Γ¥» tests/hr-attendance.test.ts:199:29
+    197|     ]);
+    198|     const response = await request(appWith(hrRouter)).get("/attendanceΓÇª
+    199|     expect(response.status).toBe(200);
+       |                             ^
+    200|     expect(response.body).toHaveLength(1);
+    201|     expect(response.body[0].organizationId).toBe(1);
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[3/8]ΓÄ»
+
+ FAIL  tests/hr-attendance.test.ts > Attendance API ΓÇö tenant isolation & jalali date support > returns dates in ISO format compatible with Jalali conversion
+AssertionError: expected 404 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 404
+
+ Γ¥» tests/hr-attendance.test.ts:239:29
+    237|     ]);
+    238|     const response = await request(appWith(hrRouter)).get("/attendanceΓÇª
+    239|     expect(response.status).toBe(200);
+       |                             ^
+    240|     expect(response.body[0].date).toBe("2026-08-23");
+    241|     expect(response.body[0].date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[4/8]ΓÄ»
+
+ FAIL  tests/hr-attendance.test.ts > Attendance API ΓÇö tenant isolation & jalali date support > Security - authentication & authorization > rejects attendance list without required permission with 403
+AssertionError: expected 404 to be 403 // Object.is equality
+
+- Expected
++ Received
+
+- 403
++ 404
+
+ Γ¥» tests/hr-attendance.test.ts:281:31
+    279|       mocks.mockPermission.permission = "hr.read";
+    280|       const response = await request(appWith(hrRouter)).get("/attendanΓÇª
+    281|       expect(response.status).toBe(403);
+       |                               ^
+    282|       expect(response.body.error).toContain("Forbidden");
+    283|     });
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[5/8]ΓÄ»
+
+ FAIL  tests/hr-attendance.test.ts > Attendance API ΓÇö tenant isolation & jalali date support > Security - cross-tenant isolation > prevents tenant A from reading tenant B attendance via forced organizationId
+AssertionError: expected 404 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 404
+
+ Γ¥» tests/hr-attendance.test.ts:304:31
+    302|       ]);
+    303|       const response = await request(appWith(hrRouter)).get("/attendanΓÇª
+    304|       expect(response.status).toBe(200);
+       |                               ^
+    305|       expect(response.body).toHaveLength(1);
+    306|       expect(response.body[0].organizationId).toBe(1);
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[6/8]ΓÄ»
+
+ FAIL  tests/integration/phase1.financial.test.ts > Phase 1 Step 3: Financial (Invoices & Payment Schedules) > lists invoices scoped to tenant with numeric totals
+AssertionError: expected null to be 545 // Object.is equality
+
+- Expected:
+545
+
++ Received:
+null
+
+ Γ¥» tests/integration/phase1.financial.test.ts:198:37
+    196|     expect(res.status).toBe(200);
+    197|     expect(res.body).toHaveLength(1);
+    198|     expect(res.body[0].totalAmount).toBe(545);
+       |                                     ^
+    199|   });
+    200|
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[7/8]ΓÄ»
+
+ FAIL  tests/integration/phase1.financial.test.ts > Phase 1 Step 3: Financial (Invoices & Payment Schedules) > returns invoice with lines by id
+AssertionError: expected null to be 500 // Object.is equality
+
+- Expected:
+500
+
++ Received:
+null
+
+ Γ¥» tests/integration/phase1.financial.test.ts:223:42
+    221|     expect(res.status).toBe(200);
+    222|     expect(res.body.lines).toHaveLength(1);
+    223|     expect(res.body.lines[0].totalPrice).toBe(500);
+       |                                          ^
+    224|   });
+    225|
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[8/8]ΓÄ»
+
+
+ Test Files  4 failed | 38 passed (42)
+      Tests  7 failed | 659 passed (666)
+   Start at  08:20:41
+   Duration  11.01s (transform 4.68s, setup 788ms, import 40.63s, tests 10.80s, environment 14ms)
+
+[ELIFECYCLE] Test failed. See above for more details.
