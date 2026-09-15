@@ -17,7 +17,9 @@
       (function () {
         try {
           var stored = window.localStorage.getItem('vetra-theme');
-          var theme = stored === 'comfort' || stored === 'dark' ? stored : 'light';
+          // Legacy migration: comfort → gray
+          if (stored === 'comfort') stored = 'gray';
+          var theme = stored === 'gray' || stored === 'dark' ? stored : 'light';
           var root = document.documentElement;
           root.dataset.theme = theme;
           if (theme === 'dark') root.classList.add('dark');

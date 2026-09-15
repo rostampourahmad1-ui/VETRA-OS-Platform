@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from "react";
 import { useListDailyReports, useCreateDailyReport, getListDailyReportsQueryKey } from "@workspace/api-client-react";
 import type { DailyReport } from "@workspace/api-client-react";
+import { t } from "@/lib/i18n";
 import { Plus, Users, CloudRain, Sun, Pencil, Trash2, Send, CheckCircle2, XCircle, RotateCcw, History, Loader2, UserPlus, Clock, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,12 +16,12 @@ import { useQueryClient } from "@tanstack/react-query";
 // ─── Status helpers ────────────────────────────────────────────────────────
 
 const STATUS_LABELS: Record<string, string> = {
-  draft: "Draft",
-  submitted: "Submitted",
-  in_review: "In Review",
-  approved: "Approved",
-  rejected: "Rejected",
-  revision_requested: "Revision Requested",
+  draft: "dailyReports.statusDraft",
+  submitted: "dailyReports.statusSubmitted",
+  in_review: "dailyReports.statusInReview",
+  approved: "dailyReports.statusApproved",
+  rejected: "dailyReports.statusRejected",
+  revision_requested: "dailyReports.statusRevisionRequested",
 };
 
 function statusBadge(status: string | undefined) {
@@ -34,8 +35,8 @@ function statusBadge(status: string | undefined) {
     revision_requested: "bg-purple-500/10 text-purple-600 border-purple-500/20",
   };
   return (
-    <Badge variant="outline" className={`border ${colors[s] ?? colors.draft} font-mono text-[10px] uppercase`}>
-      {STATUS_LABELS[s] ?? s}
+    <Badge variant="outline" className={`border ${colors[s] ?? colors.draft} font-sans text-[10px]`}>
+      {t((STATUS_LABELS[s] ?? s) as any)}
     </Badge>
   );
 }
@@ -129,7 +130,7 @@ export default function DailyReportList() {
 
   const openCreate = () => {
     if (!project?.id) {
-      setError("Please select a project first.");
+      setError(t('forms.noProjectError'));
       return;
     }
     resetForm();
@@ -156,7 +157,7 @@ export default function DailyReportList() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!project?.id && !editId) {
-      setError("Please select a project first.");
+      setError(t('forms.noProjectError'));
       return;
     }
     setSubmitting(true);

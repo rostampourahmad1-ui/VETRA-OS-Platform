@@ -1,4 +1,4 @@
-export const THEMES = ['light', 'comfort', 'dark'] as const;
+export const THEMES = ['light', 'gray', 'dark'] as const;
 export type Theme = (typeof THEMES)[number];
 
 export const THEME_STORAGE_KEY = 'vetra-theme';
@@ -11,6 +11,8 @@ export function isTheme(value: unknown): value is Theme {
 export function getStoredTheme(): Theme {
   if (typeof window === 'undefined') return DEFAULT_THEME;
   const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+  // Legacy migration: comfort → gray
+  if (stored === 'comfort') return 'gray';
   return isTheme(stored) ? stored : DEFAULT_THEME;
 }
 

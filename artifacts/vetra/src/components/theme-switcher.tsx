@@ -4,7 +4,7 @@ import { applyTheme, getStoredTheme, THEMES, THEME_STORAGE_KEY, type Theme } fro
 
 const THEME_LABELS: Record<Theme, string> = {
   light: 'روشن',
-  comfort: 'خاکستری',
+  gray: 'خاکستری',
   dark: 'تیره',
 };
 

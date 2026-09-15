@@ -13,19 +13,19 @@
   --gradient-end: #e0f2fe;
   --shadow: 0 18px 45px rgba(15, 23, 42, 0.1);
 }
-[data-theme='comfort'] {
+[data-theme='gray'] {
   color-scheme: light;
-  --glass-bg: rgba(255, 251, 235, 0.78);
-  --glass-border: rgba(180, 139, 74, 0.3);
+  --glass-bg: rgba(248, 250, 252, 0.75);
+  --glass-border: rgba(148, 163, 184, 0.28);
   --glass-blur: 16px;
-  --text-primary: #3f2d20;
-  --text-secondary: #806a58;
-  --accent: #b45309;
-  --surface: #fffaf0;
-  --background: #f6efe3;
-  --gradient-start: #fffbeb;
-  --gradient-end: #fed7aa;
-  --shadow: 0 18px 45px rgba(120, 77, 35, 0.12);
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --accent: #0ea5e9;
+  --surface: #f8fafc;
+  --background: #f1f5f9;
+  --gradient-start: #f8fafc;
+  --gradient-end: #e2e8f0;
+  --shadow: 0 18px 45px rgba(15, 23, 42, 0.09);
 }
 [data-theme='dark'] {
   color-scheme: dark;
