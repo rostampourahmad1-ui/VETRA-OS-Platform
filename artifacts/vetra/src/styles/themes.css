@@ -1,5 +1,6 @@
 :root,
 [data-theme='light'] {
+  color-scheme: light;
   --glass-bg: rgba(255, 255, 255, 0.72);
   --glass-border: rgba(148, 163, 184, 0.28);
   --glass-blur: 18px;
@@ -13,6 +14,7 @@
   --shadow: 0 18px 45px rgba(15, 23, 42, 0.1);
 }
 [data-theme='comfort'] {
+  color-scheme: light;
   --glass-bg: rgba(255, 251, 235, 0.78);
   --glass-border: rgba(180, 139, 74, 0.3);
   --glass-blur: 16px;
@@ -26,6 +28,7 @@
   --shadow: 0 18px 45px rgba(120, 77, 35, 0.12);
 }
 [data-theme='dark'] {
+  color-scheme: dark;
   --glass-bg: rgba(15, 23, 42, 0.68);
   --glass-border: rgba(148, 163, 184, 0.22);
   --glass-blur: 20px;

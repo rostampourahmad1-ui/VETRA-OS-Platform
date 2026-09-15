@@ -1,24 +1,31 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { applyTheme, getStoredTheme, THEMES, THEME_STORAGE_KEY, type Theme } from '@/lib/theme';
 
-const themes = [
-  { id: 'light', label: 'روشن' },
-  { id: 'comfort', label: 'آرام' },
-  { id: 'dark', label: 'تیره' },
-] as const;
-type Theme = (typeof themes)[number]['id'];
+const THEME_LABELS: Record<Theme, string> = {
+  light: 'روشن',
+  comfort: 'خاکستری',
+  dark: 'تیره',
+};
 
 export default function ThemeSwitcher() {
-  const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('vetra-theme') as Theme) || 'light');
+  const [theme, setTheme] = useState<Theme>(getStoredTheme);
   useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    localStorage.setItem('vetra-theme', theme);
+    applyTheme(document.documentElement, theme);
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
   return (
-    <div className="flex items-center gap-1 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-1" aria-label="انتخاب پوسته">
-      {themes.map((item) => (
-        <Button key={item.id} type="button" size="sm" variant={item.id === theme ? 'glass' : 'ghost'} onClick={() => setTheme(item.id)}>
-          {item.label}
+    <div className="flex items-center gap-1 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-1" role="group" aria-label="انتخاب پوسته">
+      {THEMES.map((item) => (
+        <Button
+          key={item}
+          type="button"
+          size="sm"
+          variant={item === theme ? 'glass' : 'ghost'}
+          onClick={() => setTheme(item)}
+          aria-pressed={item === theme}
+        >
+          {THEME_LABELS[item]}
         </Button>
       ))}
     </div>

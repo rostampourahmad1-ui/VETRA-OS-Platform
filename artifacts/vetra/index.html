@@ -13,8 +13,18 @@
     <meta name="twitter:title" content="VETRA Platform" />
     <meta name="twitter:description" content="VETRA Platform — سامانه مدیریت پروژه‌های ساختمانی" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <script>
+      (function () {
+        try {
+          var stored = window.localStorage.getItem('vetra-theme');
+          var theme = stored === 'comfort' || stored === 'dark' ? stored : 'light';
+          var root = document.documentElement;
+          root.dataset.theme = theme;
+          if (theme === 'dark') root.classList.add('dark');
+          root.style.colorScheme = theme;
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
