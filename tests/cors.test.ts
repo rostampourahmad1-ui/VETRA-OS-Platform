@@ -1,5 +1,6 @@
 import request from "supertest";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import type { Express } from "express";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("@clerk/express", () => ({
   clerkMiddleware: () => (_req: unknown, _res: unknown, next: () => void) => next(),
@@ -18,21 +19,22 @@ vi.mock("../artifacts/api-server/src/routes", () => ({
 
 const originalAllowedOrigins = process.env.CORS_ALLOWED_ORIGINS;
 
-async function appWithOrigins(origins: string) {
-  vi.resetModules();
-  process.env.CORS_ALLOWED_ORIGINS = origins;
-  const { default: app } = await import("../artifacts/api-server/src/app");
-  return app;
-}
+// Both cases exercise the same configured allowlist. Import the app once so the
+// heavy bootstrap is not repeated (and not bounded by a per-test timeout) under
+// parallel workers.
+let app: Express;
 
-afterEach(() => {
+beforeAll(async () => {
+  process.env.CORS_ALLOWED_ORIGINS = "https://app.example.com";
+  ({ default: app } = await import("../artifacts/api-server/src/app"));
+});
+
+afterAll(() => {
   process.env.CORS_ALLOWED_ORIGINS = originalAllowedOrigins;
 });
 
 describe("CORS origin allowlist", () => {
-  it("allows a configured origin for credentialed preflight requests", { timeout: 15000 }, async () => {
-    const app = await appWithOrigins("https://app.example.com");
-
+  it("allows a configured origin for credentialed preflight requests", async () => {
     const response = await request(app)
       .options("/api/projects")
       .set("Origin", "https://app.example.com")
@@ -46,8 +48,6 @@ describe("CORS origin allowlist", () => {
   });
 
   it("does not grant CORS access to an unconfigured origin", async () => {
-    const app = await appWithOrigins("https://app.example.com");
-
     const response = await request(app)
       .options("/api/projects")
       .set("Origin", "https://untrusted.example")

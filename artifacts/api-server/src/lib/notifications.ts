@@ -1,5 +1,5 @@
 import type { Request } from "express";
-import { db, notificationsTable, notificationPreferencesTable, usersTable, projectsTable } from "@workspace/db";
+import { db, notificationsTable, notificationPreferencesTable, usersTable, projectsTable, projectMembersTable } from "@workspace/db";
 import { and, eq, sql } from "drizzle-orm";
 import { sseBroadcaster } from "./sseBroadcaster";
 import { logger } from "./logger";
@@ -25,6 +25,24 @@ export interface NotificationEntry {
  * Sends email if preferences allow and EMAIL_ENABLED=true.
  */
 export async function createNotification(entry: NotificationEntry): Promise<void> {
+  // 0. Verify the recipient is a member of the tenant before storing or sending.
+  //    Never trust a caller-supplied userId as an email target without proving
+  //    it belongs to entry.organizationId (prevents cross-tenant email/SSE leak).
+  const [recipient] = await db
+    .select({ id: usersTable.id, email: usersTable.email })
+    .from(usersTable)
+    .where(and(
+      eq(usersTable.id, entry.userId),
+      eq(usersTable.organizationId, entry.organizationId),
+    ));
+  if (!recipient) {
+    logger.warn(
+      { userId: entry.userId, organizationId: entry.organizationId, type: entry.type },
+      "Notification skipped - recipient is not a member of the organization",
+    );
+    return;
+  }
+
   // 1. Check user's notification preference for this type
   let optedIn = true;
   try {
@@ -82,15 +100,13 @@ export async function createNotification(entry: NotificationEntry): Promise<void
   if (saved && optedIn) {
     setImmediate(async () => {
       try {
-        const [user] = await db.select({ email: usersTable.email }).from(usersTable)
-          .where(eq(usersTable.id, entry.userId));
-        if (!user?.email) return;
+        if (!recipient.email) return;
 
         const baseUrl = process.env.BASE_URL || "http://localhost:3000";
         const fullLink = entry.link?.startsWith("http") ? entry.link : `${baseUrl}${entry.link ?? ""}`;
 
         const status = await sendMail({
-          to: user.email,
+          to: recipient.email,
           subject: entry.title,
           text: `${entry.message}\n\nمشاهده: ${fullLink}`,
           html: `<p>${entry.message}</p><p><a href="${fullLink}">مشاهده</a></p>`,
@@ -178,18 +194,23 @@ export async function notifyDocumentUploaded(
   const organizationId = (req as any).vetraUser?.organizationId;
   if (!organizationId) return;
 
-  // Notify all project members
-  const members = await db.select({ id: usersTable.id }).from(usersTable)
-    .where(eq(usersTable.organizationId, organizationId));
+  // Notify project members only (membership + tenant scope verified server-side)
+  const members = await db
+    .select({ userId: projectMembersTable.userId })
+    .from(projectMembersTable)
+    .where(and(
+      eq(projectMembersTable.projectId, projectId),
+      eq(projectMembersTable.organizationId, organizationId),
+    ));
 
   const [project] = await db.select({ name: projectsTable.name }).from(projectsTable)
     .where(and(eq(projectsTable.id, projectId), eq(projectsTable.organizationId, organizationId)));
 
   for (const member of members) {
-    if (member.id === (req as any).vetraUser?.id) continue; // skip uploader
+    if (member.userId === (req as any).vetraUser?.id) continue; // skip uploader
     await createNotification({
       organizationId,
-      userId: member.id,
+      userId: member.userId,
       title: "سند جدید آپلود شد",
       message: "سند \"" + documentName + "\"" + (project ? " در پروژه \"" + project.name + "\"" : "") + " آپلود شد",
       type: "document_uploaded",

@@ -2832,7 +2832,7 @@ export const PostFormSubmissionsIdSubmitResponse = zod.object({
  * @summary Upload a document to local storage
  */
 export const PostDocumentsUploadBody = zod.object({
-  "file": zod.instanceof(File),
+  "file": zod.any(),
   "projectId": zod.number().int()
 })
 

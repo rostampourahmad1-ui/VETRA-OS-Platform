@@ -42,17 +42,28 @@ const aliases = new Map([
   ],
 ]);
 
-let typesIndex = await readFile(typesIndexPath, "utf8");
-for (const [source, replacement] of aliases) {
-  typesIndex = typesIndex.replace(source, replacement);
+// Orval emits operation-body TypeScript interfaces in `generated/types` for some
+// configurations. Newer orval versions emit a single `api.ts` for the zod client
+// and produce no barrel, so normalize the barrel only when it exists.
+let typesIndex = null;
+try {
+  typesIndex = await readFile(typesIndexPath, "utf8");
+} catch (error) {
+  if (error?.code !== "ENOENT") throw error;
 }
-await writeFile(typesIndexPath, typesIndex, "utf8");
+
+if (typesIndex !== null) {
+  for (const [source, replacement] of aliases) {
+    typesIndex = typesIndex.replace(source, replacement);
+  }
+  await writeFile(typesIndexPath, typesIndex, "utf8");
+  for (const replacement of aliases.values()) {
+    if (!typesIndex.includes(replacement)) {
+      throw new Error(`Generated Zod type export was not normalized: ${replacement}`);
+    }
+  }
+}
 
 if (normalizedApi.includes("zod.instanceof(File)")) {
   throw new Error("Generated Zod output still references the Node-unsafe File global");
-}
-for (const replacement of aliases.values()) {
-  if (!typesIndex.includes(replacement)) {
-    throw new Error(`Generated Zod type export was not normalized: ${replacement}`);
-  }
 }

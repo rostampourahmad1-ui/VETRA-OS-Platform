@@ -6,9 +6,22 @@ const hasDatabaseUrl = Boolean(process.env.DATABASE_MIGRATION_URL || process.env
 const hasDatabaseTestUrl = Boolean(process.env.DATABASE_TEST_APP_URL);
 const nodeMajor = Number.parseInt(process.versions.node.split(".")[0] ?? "0", 10);
 
+// Windows resolves pnpm/git through .cmd shims that cannot be spawned directly.
+// Invoke cmd.exe explicitly there so the gate runs on Windows without relying on
+// spawn(shell: true) argument concatenation (Node DEP0190).
+function spawnCommand(command, args) {
+  if (process.platform === "win32") {
+    return spawnSync(process.env.ComSpec ?? "cmd.exe", ["/d", "/s", "/c", command, ...args], {
+      stdio: "inherit",
+      env: process.env,
+    });
+  }
+  return spawnSync(command, args, { stdio: "inherit", env: process.env });
+}
+
 function run(label, args) {
   process.stdout.write(`\n=== ${label} ===\n`);
-  const result = spawnSync(executable, args, { stdio: "inherit", env: process.env });
+  const result = spawnCommand(executable, args);
   if (result.error) throw result.error;
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
@@ -37,7 +50,7 @@ run("Unit and regression tests", ["test"]);
 
 run("Production build", ["build"]);
 process.stdout.write("\n=== Diff hygiene ===\n");
-const diff = spawnSync("git", ["diff", "--check"], { stdio: "inherit", env: process.env });
+const diff = spawnCommand("git", ["diff", "--check"]);
 if (diff.error) throw diff.error;
 if (diff.status !== 0) process.exit(diff.status ?? 1);
 
