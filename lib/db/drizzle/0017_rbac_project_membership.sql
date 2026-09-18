@@ -190,7 +190,7 @@ CREATE TABLE IF NOT EXISTS "project_members" (
 -- RLS for project_members
 ALTER TABLE project_members ENABLE ROW LEVEL SECURITY;
 
-DO 
+DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies
@@ -203,14 +203,14 @@ BEGIN
       USING ("organization_id" = (SELECT current_setting('app.current_organization_id', TRUE)::integer));
     ALTER TABLE project_members FORCE ROW LEVEL SECURITY;
   END IF;
-END ;
+END $$;
 
 -- Grant vetra_app
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE project_members TO vetra_app;
 
 -- Grant sequence
-DO 
+DO $$
 BEGIN
   GRANT USAGE, SELECT ON SEQUENCE project_members_id_seq TO vetra_app;
 EXCEPTION WHEN undefined_table THEN NULL;
-END ;
+END $$;

@@ -13,7 +13,7 @@ DELETE FROM "notifications" WHERE "organization_id" = 0 OR "user_id" = 0;
 --> statement-breakpoint
 
 -- Step 2: Re-assert FK constraints (idempotent via IF NOT EXISTS)
-DO \$\$
+DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'notifications_organization_id_organizations_id_fk') THEN
     ALTER TABLE "notifications" ADD CONSTRAINT "notifications_organization_id_organizations_id_fk"
@@ -24,11 +24,11 @@ BEGIN
     ALTER TABLE "notifications" ADD CONSTRAINT "notifications_user_id_users_id_fk"
       FOREIGN KEY ("user_id") REFERENCES "users"("id");
   END IF;
-END \$\$;
+END $$;
 --> statement-breakpoint
 
 -- Step 3: Verify no zero-org rows remain
-DO \$\$
+DO $$
 DECLARE
   orphan_count integer;
 BEGIN
@@ -37,4 +37,4 @@ BEGIN
     RAISE EXCEPTION 'VETRA-SEC-08: % notification rows still have organization_id=0 or user_id=0', orphan_count;
   END IF;
   RAISE NOTICE 'VETRA-SEC-08: notifications corrective migration complete. No zero-org rows.';
-END \$\$;
+END $$;
