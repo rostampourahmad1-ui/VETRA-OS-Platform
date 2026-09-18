@@ -69,7 +69,7 @@ if (-not $SkipPrerequisites) {
         $nodeVersion = node --version 2>&1
         Write-OK "Node.js $nodeVersion"
     } catch {
-        Write-Err "Node.js not found! Please install Node.js 22+ from https://nodejs.org"
+        Write-Err "Node.js not found! Please install Node.js 24+ from https://nodejs.org"
         $allOk = $false
     }
 
@@ -82,7 +82,6 @@ if (-not $SkipPrerequisites) {
         Write-Warn "pnpm not found. Attempting to enable via corepack..."
         try {
             corepack enable 2>&1 | Out-Null
-            corepack prepare pnpm@latest --activate 2>&1 | Out-Null
             $pnpmVersion = pnpm --version 2>&1
             Write-OK "pnpm $pnpmVersion (via corepack)"
         } catch {

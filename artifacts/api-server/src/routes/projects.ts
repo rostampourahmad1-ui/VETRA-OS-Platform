@@ -28,6 +28,10 @@ router.post("/projects", requirePermission("projects.create"), async (req, res):
   const parsed = CreateProjectBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const d = parsed.data;
+  if (d.managerId != null) {
+    const [mgr] = await db.select({ id: usersTable.id }).from(usersTable).where(and(eq(usersTable.id, d.managerId), eq(usersTable.organizationId, tenantId(req))));
+    if (!mgr) { res.status(400).json({ error: "Manager must belong to the current organization" }); return; }
+  }
   const [row] = await db.insert(projectsTable).values({
     name: d.name, description: d.description, client: d.client, location: d.location,
     startDate: d.startDate, endDate: d.endDate, budget: d.budget?.toString() ?? "0",
@@ -54,6 +58,10 @@ router.patch("/projects/:id", requirePermission("projects.update"), async (req, 
   const d = parsed.data;
   const updates: Record<string, unknown> = {};
   for (const key of ["name", "description", "status", "client", "location", "startDate", "endDate", "managerId", "priority", "phase"] as const) if (d[key] !== undefined) updates[key] = d[key];
+  if (d.managerId != null) {
+    const [mgr] = await db.select({ id: usersTable.id }).from(usersTable).where(and(eq(usersTable.id, d.managerId), eq(usersTable.organizationId, tenantId(req))));
+    if (!mgr) { res.status(400).json({ error: "Manager must belong to the current organization" }); return; }
+  }
   for (const key of ["progress", "budget", "spent"] as const) if (d[key] !== undefined) updates[key] = d[key]!.toString();
   // VETRA-SEC-06: Capture old values for audit before update
   const [old] = await db.select({ name: projectsTable.name, status: projectsTable.status, phase: projectsTable.phase, budget: projectsTable.budget })

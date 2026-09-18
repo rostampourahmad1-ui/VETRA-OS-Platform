@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { and, eq, sql } from "drizzle-orm";
-import { db, stockMovementsTable, materialsTable, warehouseTable, procurementItemsTable, userRolesTable, rolePermissionsTable, permissionsTable, usersTable } from "@workspace/db";
+import { db, stockMovementsTable, materialsTable, warehouseTable, procurementItemsTable, userRolesTable, rolePermissionsTable, permissionsTable, rolesTable, usersTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requirePermission } from "../middlewares/permissions";
 import { audit } from "../lib/audit";
@@ -336,8 +336,10 @@ async function checkLowStock(org: number, materialId: number, materialName: stri
     .from(userRolesTable)
     .innerJoin(rolePermissionsTable, eq(userRolesTable.roleId, rolePermissionsTable.roleId))
     .innerJoin(permissionsTable, eq(rolePermissionsTable.permissionId, permissionsTable.id))
+    .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
     .where(and(
       eq(permissionsTable.key, "stock.read"),
+      eq(rolesTable.organizationId, org),
     ));
 
   // Also find org admin users

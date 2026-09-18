@@ -107,7 +107,7 @@ router.delete("/calendars/:id", requirePermission("planning.manage"), async (req
   if (!id.success) { res.status(400).json({ error: M.invalidId }); return; }
   const [old] = await db.select().from(projectCalendarsTable).where(and(eq(projectCalendarsTable.id, id.data), eq(projectCalendarsTable.organizationId, tenantId(req))));
   if (!old) { res.status(404).json({ error: M.calendarNotFound }); return; }
-  await db.update(projectCalendarsTable).set({ deletedAt: new Date() }).where(eq(projectCalendarsTable.id, id.data));
+  await db.update(projectCalendarsTable).set({ deletedAt: new Date() }).where(and(eq(projectCalendarsTable.id, id.data), eq(projectCalendarsTable.organizationId, tenantId(req))));
   res.status(204).send();
   audit(req, "scheduling.calendar.deleted", "calendar", { resourceId: id.data });
 });
@@ -225,7 +225,7 @@ router.delete("/dependencies/:id", requirePermission("planning.manage"), async (
   if (!id.success) { res.status(400).json({ error: M.invalidId }); return; }
   const [old] = await db.select().from(activityDependenciesTable).where(and(eq(activityDependenciesTable.id, id.data), eq(activityDependenciesTable.organizationId, tenantId(req))));
   if (!old) { res.status(404).json({ error: M.dependencyNotFound }); return; }
-  await db.update(activityDependenciesTable).set({ deletedAt: new Date() }).where(eq(activityDependenciesTable.id, id.data));
+  await db.update(activityDependenciesTable).set({ deletedAt: new Date() }).where(and(eq(activityDependenciesTable.id, id.data), eq(activityDependenciesTable.organizationId, tenantId(req))));
   res.status(204).send();
   audit(req, "scheduling.dependency.deleted", "dependency", { resourceId: id.data });
 });
@@ -457,7 +457,7 @@ router.post("/projects/:projectId/progress", requirePermission("planning.manage"
   }).returning();
 
   const newStatus = parsed.data.progressPercent >= 100 ? "completed" : parsed.data.progressPercent > 0 ? "in_progress" : "not_started";
-  await db.update(planningActivitiesTable).set({ status: newStatus }).where(eq(planningActivitiesTable.id, parsed.data.activityId));
+  await db.update(planningActivitiesTable).set({ status: newStatus }).where(and(eq(planningActivitiesTable.id, parsed.data.activityId), eq(planningActivitiesTable.projectId, projectId.data), eq(planningActivitiesTable.organizationId, orgId)));
 
   res.status(201).json(row);
   audit(req, "scheduling.progress.reported", "progress", { resourceId: row.id, newValues: { activityId: row.activityId, progressPercent: row.progressPercent, reportDate: row.reportDate } });
@@ -771,7 +771,7 @@ router.delete("/resource-types/:id", requirePermission("planning.manage"), async
   if (!id.success) { res.status(400).json({ error: M.invalidId }); return; }
   const [old] = await db.select().from(resourceTypesTable).where(and(eq(resourceTypesTable.id, id.data), eq(resourceTypesTable.organizationId, tenantId(req))));
   if (!old) { res.status(404).json({ error: M.resourceTypeNotFound }); return; }
-  await db.update(resourceTypesTable).set({ deletedAt: new Date() }).where(eq(resourceTypesTable.id, id.data));
+  await db.update(resourceTypesTable).set({ deletedAt: new Date() }).where(and(eq(resourceTypesTable.id, id.data), eq(resourceTypesTable.organizationId, tenantId(req))));
   res.status(204).send();
 });
 
@@ -835,7 +835,7 @@ router.delete("/resource-assignments/:id", requirePermission("planning.manage"),
   if (!id.success) { res.status(400).json({ error: M.invalidId }); return; }
   const [old] = await db.select().from(resourceAssignmentsTable).where(and(eq(resourceAssignmentsTable.id, id.data), eq(resourceAssignmentsTable.organizationId, tenantId(req))));
   if (!old) { res.status(404).json({ error: M.resourceAssignmentNotFound }); return; }
-  await db.update(resourceAssignmentsTable).set({ deletedAt: new Date() }).where(eq(resourceAssignmentsTable.id, id.data));
+  await db.update(resourceAssignmentsTable).set({ deletedAt: new Date() }).where(and(eq(resourceAssignmentsTable.id, id.data), eq(resourceAssignmentsTable.organizationId, tenantId(req))));
   res.status(204).send();
 });
 

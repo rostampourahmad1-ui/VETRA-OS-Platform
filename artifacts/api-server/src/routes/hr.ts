@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { and, eq, desc, isNull, sql, sum } from "drizzle-orm";
-import { db, employeesTable, attendanceTable, payrollTable, projectsTable } from "@workspace/db";
+import { db, employeesTable, attendanceTable, payrollTable, projectsTable, usersTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requirePermission } from "../middlewares/permissions";
 import { audit } from "../lib/audit";
@@ -53,6 +53,11 @@ router.patch("/employees/:id", requirePermission("hr.update"), async (req, res):
   }
   if (req.body.projectId !== undefined) upd.projectId = req.body.projectId;
   if (req.body.userId !== undefined) upd.userId = req.body.userId;
+  if (req.body.projectId != null && !(await ownedProject(req, req.body.projectId))) { res.status(404).json({ error: "Project not found" }); return; }
+  if (req.body.userId != null) {
+    const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(and(eq(usersTable.id, req.body.userId), eq(usersTable.organizationId, tenantId(req))));
+    if (!user) { res.status(400).json({ error: "User must belong to the current organization" }); return; }
+  }
   if (req.body.hireDate !== undefined) upd.hireDate = req.body.hireDate;
   if (req.body.salary !== undefined) upd.salary = req.body.salary.toString();
   if (req.body.dailyWage !== undefined) upd.dailyWage = req.body.dailyWage.toString();

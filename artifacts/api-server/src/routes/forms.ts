@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { and, asc, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import {
   db,
   formSubmissionsTable,
@@ -175,8 +175,9 @@ router.get("/forms/analytics", requirePermission("forms.read"), async (req, res)
     eq(workflowRunsTable.entityType, "form_submission"),
     eq(workflowRunsTable.status, "pending"),
   ));
-  const steps = pendingRuns.length
-    ? await db.select().from(workflowStepsTable)
+  const workflowIds = [...new Set(pendingRuns.map((run) => run.workflowId))];
+  const steps = workflowIds.length
+    ? await db.select().from(workflowStepsTable).where(inArray(workflowStepsTable.workflowId, workflowIds))
     : [];
   const stepWaits = new Map<string, { total: number; count: number }>();
   for (const run of pendingRuns) {

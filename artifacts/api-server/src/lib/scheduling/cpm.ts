@@ -202,8 +202,8 @@ function backwardPass(
           }
           const lag = s.lagDays;
           const succDuration = durationMap.get(s.predId) ?? 0;
-          const base = s.type === "FF" ? succLF : succLS;
-          const durationAdjust = s.type === "FF" ? 0 : a.durationDays;
+          const base = s.type === "FF" || s.type === "SF" ? succLF : succLS;
+          const durationAdjust = s.type === "SS" || s.type === "SF" ? a.durationDays : 0;
           const candidate = base - lag + durationAdjust;
           if (candidate < minSuccLF) minSuccLF = candidate;
         }

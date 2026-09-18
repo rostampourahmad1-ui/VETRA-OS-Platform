@@ -51,6 +51,7 @@ const mocks = vi.hoisted(() => {
     if (Array.isArray(expr)) return expr.every((e: any) => evaluate(e, pair));
     if (expr.kind === "eq") return valueOf(expr.left, pair) === expr.right;
     if (expr.kind === "isNull") return valueOf(expr.col, pair) == null;
+    if (expr.kind === "in") return Array.isArray(expr.right) ? expr.right.includes(valueOf(expr.left, pair)) : false;
     return true;
   };
 
@@ -131,6 +132,7 @@ vi.mock("drizzle-orm", () => ({
   eq: (left: any, right: any) => ({ kind: "eq", left, right }),
   and: (...args: any[]) => args,
   isNull: (col: any) => ({ kind: "isNull", col }),
+  inArray: (left: any, right: any[]) => ({ kind: "in", left, right }),
   asc: (col: any) => col,
   desc: (col: any) => ({ __desc: true, col }),
 }));

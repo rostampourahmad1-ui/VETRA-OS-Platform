@@ -83,7 +83,7 @@ router.delete("/tasks/:id", requirePermission("tasks.delete"), async (req, res):
   const owned = await db.select({ id: tasksTable.id, projectId: tasksTable.projectId }).from(tasksTable).innerJoin(projectsTable, eq(tasksTable.projectId, projectsTable.id)).where(and(eq(tasksTable.id, Number(req.params.id)), eq(tasksTable.organizationId, tenantId(req)), eq(projectsTable.organizationId, tenantId(req))));
   if (!owned.length) { res.status(404).json({ error: "Not found" }); return; }
   if (!(await isProjectMember(req, owned[0].projectId))) { res.status(403).json({ error: "Forbidden: not a member of this project" }); return; }
-  await db.delete(tasksTable).where(eq(tasksTable.id, Number(req.params.id))); res.status(204).send();
+  await db.delete(tasksTable).where(and(eq(tasksTable.id, Number(req.params.id)), eq(tasksTable.organizationId, tenantId(req)))); res.status(204).send();
   audit(req, "task.deleted", "task", { resourceId: Number(req.params.id) });
 });
 export default router;

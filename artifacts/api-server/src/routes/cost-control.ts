@@ -57,6 +57,10 @@ router.post("/cost-control/budgets", requirePermission("cost-control.manage"), a
   if (!parsed.success) { res.status(400).json({ error: "Invalid budget", details: parsed.error.issues }); return; }
   const { projectId, categoryId, name, amount, period } = parsed.data;
   if (projectId && !(await ownedProject(req, projectId))) { res.status(400).json({ error: "Project not found" }); return; }
+  if (categoryId != null) {
+    const [cat] = await db.select({ id: expenseCategoriesTable.id }).from(expenseCategoriesTable).where(and(eq(expenseCategoriesTable.id, categoryId), eq(expenseCategoriesTable.organizationId, tenantId(req))));
+    if (!cat) { res.status(400).json({ error: "Category must belong to the current organization" }); return; }
+  }
   const [row] = await db.insert(budgetsTable).values({
     organizationId: tenantId(req),
     projectId: projectId ?? null,
@@ -102,6 +106,10 @@ router.post("/cost-control/expenses", requirePermission("cost-control.manage"), 
   if (!parsed.success) { res.status(400).json({ error: "Invalid expense", details: parsed.error.issues }); return; }
   const { projectId, categoryId, description, amount, expenseDate } = parsed.data;
   if (!(await ownedProject(req, projectId))) { res.status(400).json({ error: "Project not found" }); return; }
+  if (categoryId != null) {
+    const [cat] = await db.select({ id: expenseCategoriesTable.id }).from(expenseCategoriesTable).where(and(eq(expenseCategoriesTable.id, categoryId), eq(expenseCategoriesTable.organizationId, tenantId(req))));
+    if (!cat) { res.status(400).json({ error: "Category must belong to the current organization" }); return; }
+  }
 const expenseDateStr = expenseDate instanceof Date ? expenseDate.toISOString().slice(0, 10) : String(expenseDate);
   // New expenses always start pending; approval is a server-side transition via /approve.
   const [row] = await db.insert(expensesTable).values({ organizationId: tenantId(req), projectId, categoryId, submittedBy: req.vetraUser?.id, description, amount: String(amount), expenseDate: expenseDateStr, status: "pending" }).returning();

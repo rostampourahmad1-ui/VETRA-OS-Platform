@@ -69,6 +69,11 @@ router.get("/materials", requirePermission("procurement.read"), async (req, res)
 router.post("/materials", requirePermission("procurement.create"), async (req, res): Promise<void> => {
   const { code, name, category, unit, unitPrice, minStock, currentStock, description, supplierId, projectId } = req.body;
   if (!code || !name || !category || !unit) { res.status(400).json({ error: "code, name, category, unit are required" }); return; }
+  if (supplierId != null) {
+    const [sup] = await db.select({ id: suppliersTable.id }).from(suppliersTable).where(and(eq(suppliersTable.id, supplierId), eq(suppliersTable.organizationId, tenantId(req))));
+    if (!sup) { res.status(400).json({ error: "Supplier must belong to the current organization" }); return; }
+  }
+  if (projectId != null && !(await ownedProject(req, projectId))) { res.status(404).json({ error: "Project not found" }); return; }
   const [row] = await db.insert(materialsTable).values({
     organizationId: tenantId(req), code, name, category, unit, unitPrice: (unitPrice ?? "0").toString(),
     minStock: minStock?.toString(), currentStock: (currentStock ?? "0").toString(), description,
@@ -89,6 +94,11 @@ router.patch("/materials/:id", requirePermission("procurement.update"), async (r
   if (req.body.unitPrice !== undefined) upd.unitPrice = req.body.unitPrice.toString();
   if (req.body.minStock !== undefined) upd.minStock = req.body.minStock.toString();
   if (req.body.currentStock !== undefined) upd.currentStock = req.body.currentStock.toString();
+  if (req.body.supplierId != null) {
+    const [sup] = await db.select({ id: suppliersTable.id }).from(suppliersTable).where(and(eq(suppliersTable.id, req.body.supplierId), eq(suppliersTable.organizationId, tenantId(req))));
+    if (!sup) { res.status(400).json({ error: "Supplier must belong to the current organization" }); return; }
+  }
+  if (req.body.projectId != null && !(await ownedProject(req, req.body.projectId))) { res.status(404).json({ error: "Project not found" }); return; }
   upd.updatedAt = new Date();
   const [row] = await db.update(materialsTable).set(upd).where(and(eq(materialsTable.id, id), eq(materialsTable.organizationId, tenantId(req)))).returning();
   res.json({ ...row, unitPrice: Number(row.unitPrice), currentStock: Number(row.currentStock), minStock: row.minStock ? Number(row.minStock) : null });
@@ -118,6 +128,7 @@ router.get("/warehouse", requirePermission("procurement.read"), async (req, res)
 router.post("/warehouse", requirePermission("procurement.create"), async (req, res): Promise<void> => {
   const { name, location, manager, projectId, notes } = req.body;
   if (!name) { res.status(400).json({ error: "name is required" }); return; }
+  if (projectId != null && !(await ownedProject(req, projectId))) { res.status(404).json({ error: "Project not found" }); return; }
   const [row] = await db.insert(warehouseTable).values({
     organizationId: tenantId(req), name, location, manager, projectId: projectId ?? null, notes,
   }).returning();
@@ -133,6 +144,7 @@ router.patch("/warehouse/:id", requirePermission("procurement.update"), async (r
   for (const k of ["name", "location", "manager", "status", "notes", "projectId"] as const) {
     if (req.body[k] !== undefined) upd[k] = req.body[k];
   }
+  if (req.body.projectId != null && !(await ownedProject(req, req.body.projectId))) { res.status(404).json({ error: "Project not found" }); return; }
   upd.updatedAt = new Date();
   const [row] = await db.update(warehouseTable).set(upd).where(and(eq(warehouseTable.id, id), eq(warehouseTable.organizationId, tenantId(req)))).returning();
   res.json(row);
@@ -166,6 +178,14 @@ router.post("/procurement/:procurementId/items", requirePermission("procurement.
   const [order] = await db.select().from(procurementTable).where(and(eq(procurementTable.id, procurementId), eq(procurementTable.organizationId, tenantId(req))));
   if (!order) { res.status(404).json({ error: "Procurement order not found" }); return; }
   if (!description || !unit || !quantity) { res.status(400).json({ error: "description, unit, quantity are required" }); return; }
+  if (materialId != null) {
+    const [mat] = await db.select({ id: materialsTable.id }).from(materialsTable).where(and(eq(materialsTable.id, materialId), eq(materialsTable.organizationId, tenantId(req))));
+    if (!mat) { res.status(400).json({ error: "Material must belong to the current organization" }); return; }
+  }
+  if (warehouseId != null) {
+    const [wh] = await db.select({ id: warehouseTable.id }).from(warehouseTable).where(and(eq(warehouseTable.id, warehouseId), eq(warehouseTable.organizationId, tenantId(req))));
+    if (!wh) { res.status(400).json({ error: "Warehouse must belong to the current organization" }); return; }
+  }
   const totalPrice = (Number(quantity) || 0) * (Number(unitPrice) || 0);
   const [row] = await db.insert(procurementItemsTable).values({
     procurementId, organizationId: tenantId(req), materialId: materialId ?? null, description, unit,
