@@ -9,8 +9,22 @@ export default defineConfig({
     clearMocks: true,
     testTimeout: 30_000,
     hookTimeout: 30_000,
+    server: {
+      deps: {
+        // Inlined so `vi.mock("@clerk/express")` can intercept `getAuth` in the
+        // real auth/tenant middlewares under test.
+        inline: ["@clerk/express"],
+      },
+    },
   },
   resolve: {
-    alias: { "@workspace/db": path.resolve(__dirname, "lib/db/src/index.ts"), "@workspace/api-zod": path.resolve(__dirname, "lib/api-zod/src/index.ts"), express: path.resolve(__dirname, "artifacts/api-server/node_modules/express") },
+    alias: {
+      "@workspace/db": path.resolve(__dirname, "lib/db/src/index.ts"),
+      "@workspace/api-zod": path.resolve(__dirname, "lib/api-zod/src/index.ts"),
+      // Single physical copy so `vi.mock("@clerk/express")` intercepts the
+      // `getAuth` used by the real middlewares under test.
+      "@clerk/express": path.resolve(__dirname, "artifacts/api-server/node_modules/@clerk/express"),
+      express: path.resolve(__dirname, "artifacts/api-server/node_modules/express"),
+    },
   },
 });

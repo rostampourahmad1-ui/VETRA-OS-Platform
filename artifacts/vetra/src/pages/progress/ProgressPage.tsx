@@ -27,9 +27,9 @@ interface ProgressSummary {
 }
 
 function statusBadge(status: string) {
-  if (status === "completed") return <Badge variant="default">Completed</Badge>;
-  if (status === "in_progress") return <Badge variant="secondary">In Progress</Badge>;
-  return <Badge variant="outline">Not Started</Badge>;
+  if (status === "completed") return <Badge variant="default">{t('progress.statusCompleted')}</Badge>;
+  if (status === "in_progress") return <Badge variant="secondary">{t('progress.statusInProgress')}</Badge>;
+  return <Badge variant="outline">{t('progress.statusNotStarted')}</Badge>;
 }
 
 function ProgressBar({ value, max, variant }: { value: number; max: number; variant?: "actual" | "planned" }) {
@@ -49,7 +49,7 @@ function TrendChart({ records }: { records: ProgressRecord[] }) {
   const barWidth = Math.max(8, Math.min(24, Math.floor(600 / sorted.length)));
   return (
     <div className="flex items-end gap-1 h-32 overflow-x-auto py-2">
-      {sorted.map((r, i) => (
+      {sorted.map((r) => (
         <div key={r.id} className="flex flex-col items-center gap-1 flex-shrink-0" style={{ width: barWidth + 8 }}>
           <span className="text-[10px] text-muted-foreground">{r.progressPercent}%</span>
           <div className="bg-emerald-500/70 rounded-t w-full transition-all" style={{ height: `${(r.progressPercent / maxPct) * 100}%`, minWidth: barWidth }} />
@@ -87,7 +87,7 @@ export default function ProgressPage() {
         const ps = await get<ProgressSummary>(`/projects/${pid}/progress-summary`);
         setProgressSummary(ps);
       } catch { setProgressSummary(null); }
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to load progress data."); }
+    } catch (cause) { setError(cause instanceof Error ? cause.message : t('progress.loadFailed')); }
     finally { setLoading(false); }
   };
 
@@ -96,25 +96,25 @@ export default function ProgressPage() {
   const createBaseline = async (e: FormEvent) => {
     e.preventDefault(); if (!projectId) return;
     try { await post(`/projects/${projectId}/baselines`, blForm); setBlForm({ name: "", description: "" }); await load(projectId); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to create baseline."); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : t('progress.createBaselineFailed')); }
   };
 
   const snapshotBaseline = async (baselineId: number) => {
     if (!projectId) return;
     try { await post(`/baselines/${baselineId}/activities`, {}); await load(projectId); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to snapshot baseline."); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : t('progress.snapshotFailed')); }
   };
 
   const reportProgress = async (e: FormEvent) => {
     e.preventDefault(); if (!projectId) return;
     try { await post(`/projects/${projectId}/progress`, { ...prForm, activityId: Number(prForm.activityId), progressPercent: Number(prForm.progressPercent) }); setPrForm({ activityId: "", reportDate: "", progressPercent: "0", actualCost: "0", actualLaborHours: "0", notes: "" }); await load(projectId); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to report progress."); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : t('progress.reportFailed')); }
   };
 
   const calculateEvm = async (e: FormEvent) => {
     e.preventDefault(); if (!projectId) return;
     try { await post(`/projects/${projectId}/evm`, { ...evmForm, baselineId: Number(evmForm.baselineId) }); setEvmForm({ baselineId: "", reportDate: "", plannedValue: "0", earnedValue: "0", actualCost: "0" }); await load(projectId); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to calculate EVM."); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : t('progress.evmFailed')); }
   };
 
   const hasEvm = evm.length > 0;
@@ -130,11 +130,11 @@ export default function ProgressPage() {
         <div>
           <p className="text-sm font-medium text-primary">{t("progress.breadcrumb")}</p>
           <h1 className="text-3xl font-semibold tracking-tight">{t("progress.title")}</h1>
-          <p className="mt-1 text-muted-foreground">Track actual progress, manage baselines, and compute EVM metrics.</p>
+          <p className="mt-1 text-muted-foreground">{t('progress.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm" aria-label={t("progress.activeProject")}>{t("progress.activeProject")}: {project?.name ?? t("progress.notSelected")}</div>
-          <Button variant="outline" onClick={() => projectId && load(projectId)} disabled={!projectId}><RefreshCw className="mr-2 h-4 w-4" />{t("progress.load")}</Button>
+          <Button variant="outline" onClick={() => projectId && load(projectId)} disabled={!projectId}><RefreshCw className="me-2 h-4 w-4" />{t("progress.load")}</Button>
         </div>
       </div>
 
@@ -143,26 +143,26 @@ export default function ProgressPage() {
       {/* ─── Planned vs Actual Progress ─── */}
       {hasSummary && (
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><Target className="h-5 w-5" />Progress Overview</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2"><Target className="h-5 w-5" />{t('progress.overview')}</CardTitle></CardHeader>
           <CardContent>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div className="rounded-lg border p-4 text-center">
                 <p className="text-2xl font-bold text-emerald-600">{progressSummary.overallProgressPercent}%</p>
-                <p className="text-xs text-muted-foreground">Actual (Weighted)</p>
+                <p className="text-xs text-muted-foreground">{t('progress.actualWeighted')}</p>
                 <ProgressBar value={progressSummary.overallProgressPercent} max={100} variant="actual" />
               </div>
               <div className="rounded-lg border p-4 text-center">
                 <p className="text-2xl font-bold text-blue-600">{progressSummary.plannedProgressPercent}%</p>
-                <p className="text-xs text-muted-foreground">Planned (as of {formatJalali(progressSummary.asOfDate)})</p>
+                <p className="text-xs text-muted-foreground">{t('progress.plannedAsOf', { date: formatJalali(progressSummary.asOfDate) })}</p>
                 <ProgressBar value={progressSummary.plannedProgressPercent} max={100} variant="planned" />
               </div>
               <div className="rounded-lg border p-4 text-center">
                 <p className="text-2xl font-bold">{progressSummary.reportedActivityCount}/{progressSummary.activityCount}</p>
-                <p className="text-xs text-muted-foreground">Activities with Progress</p>
+                <p className="text-xs text-muted-foreground">{t('progress.activitiesWithProgress')}</p>
               </div>
               <div className="rounded-lg border p-4 text-center">
                 <p className="text-2xl font-bold">{progressSummary.totalWeight}</p>
-                <p className="text-xs text-muted-foreground">Total Weight (Days)</p>
+                <p className="text-xs text-muted-foreground">{t('progress.totalWeightDays')}</p>
               </div>
             </div>
           </CardContent>
@@ -173,15 +173,15 @@ export default function ProgressPage() {
       {hasEvm && latestEvm && (
         <div className="grid gap-4 md:grid-cols-4">
           {([
-            ["CPI", cpi.toFixed(2), cpi >= 1 ? "Under budget" : "Over budget", (cpi >= 1 ? "default" : "destructive") as "default" | "destructive" | "outline"],
-            ["SPI", spi.toFixed(2), spi >= 1 ? "Ahead of schedule" : "Behind schedule", (spi >= 1 ? "default" : "destructive") as "default" | "destructive" | "outline"],
-            ["EAC", Number(latestEvm.estimateAtCompletion).toLocaleString(), "Estimate at completion", "outline" as const],
-            ["ETC", Number(latestEvm.estimateToComplete).toLocaleString(), "Remaining to complete", "outline" as const],
+            ["CPI", cpi.toFixed(2), cpi >= 1 ? t('progress.underBudget') : t('progress.overBudget'), (cpi >= 1 ? "default" : "destructive") as "default" | "destructive" | "outline"],
+            ["SPI", spi.toFixed(2), spi >= 1 ? t('progress.aheadOfSchedule') : t('progress.behindSchedule'), (spi >= 1 ? "default" : "destructive") as "default" | "destructive" | "outline"],
+            ["EAC", Number(latestEvm.estimateAtCompletion).toLocaleString(), t('progress.estimateAtCompletion'), "outline" as const],
+            ["ETC", Number(latestEvm.estimateToComplete).toLocaleString(), t('progress.remainingToComplete'), "outline" as const],
           ] as const).map(([label, value, desc, variant]) => (
             <Card key={label}>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">{label}</p>
+                  <p dir="ltr" className="text-sm text-muted-foreground">{label}</p>
                   <Badge variant={variant}>{desc}</Badge>
                 </div>
                 <p className="text-2xl font-semibold mt-2">{value}</p>
@@ -194,23 +194,23 @@ export default function ProgressPage() {
       {/* ─── EAC Forecast Variants ─── */}
       {hasEvm && latestEvm && (
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><TrendingUp className="h-5 w-5" />EAC Forecast Variants</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2"><TrendingUp className="h-5 w-5" />{t('progress.eacVariants')}</CardTitle></CardHeader>
           <CardContent>
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="rounded-lg border p-4">
-                <p className="text-xs text-muted-foreground">EAC (CPI-based)</p>
+                <p className="text-xs text-muted-foreground">{t('progress.eacCpiBased')}</p>
                 <p className="mt-1 font-mono text-lg font-bold">{Number(latestEvm.estimateAtCompletion).toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">BAC / CPI</p>
+                <p dir="ltr" className="text-xs text-muted-foreground">BAC / CPI</p>
               </div>
               <div className="rounded-lg border p-4">
-                <p className="text-xs text-muted-foreground">EAC (CPI × SPI)</p>
+                <p className="text-xs text-muted-foreground">{t('progress.eacCpiSpi')}</p>
                 <p className="mt-1 font-mono text-lg font-bold">{Number(latestEvm.eacCpiSpi ?? 0).toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">BAC / (CPI × SPI)</p>
+                <p dir="ltr" className="text-xs text-muted-foreground">BAC / (CPI × SPI)</p>
               </div>
               <div className="rounded-lg border p-4">
-                <p className="text-xs text-muted-foreground">EAC (Bottom-up)</p>
+                <p className="text-xs text-muted-foreground">{t('progress.eacBottomUp')}</p>
                 <p className="mt-1 font-mono text-lg font-bold">{Number(latestEvm.eacBottomUp ?? 0).toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">AC + Bottom-up ETC</p>
+                <p dir="ltr" className="text-xs text-muted-foreground">AC + Bottom-up ETC</p>
               </div>
             </div>
           </CardContent>
@@ -220,10 +220,10 @@ export default function ProgressPage() {
       {/* ─── Progress Trend Chart ─── */}
       {hasProgress && (
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><Activity className="h-5 w-5" />Progress Trend</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2"><Activity className="h-5 w-5" />{t('progress.trend')}</CardTitle></CardHeader>
           <CardContent>
             {progress.length < 2 ? (
-              <p className="text-sm text-muted-foreground">Need at least 2 progress records to show trend.</p>
+              <p className="text-sm text-muted-foreground">{t('progress.trendNeedMore')}</p>
             ) : (
               <TrendChart records={progress} />
             )}
@@ -235,19 +235,19 @@ export default function ProgressPage() {
       {hasSummary && progressSummary.activities.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Activity className="h-5 w-5" />Activity Breakdown</CardTitle>
+            <CardTitle className="flex items-center gap-2"><Activity className="h-5 w-5" />{t('progress.activityBreakdown')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b text-left">
-                    <th className="py-2 px-3 font-medium">Code</th>
-                    <th className="py-2 px-3 font-medium">Name</th>
-                    <th className="py-2 px-3 font-medium">Status</th>
-                    <th className="py-2 px-3 font-medium text-right">Weight</th>
-                    <th className="py-2 px-3 font-medium text-right">Actual</th>
-                    <th className="py-2 px-3 font-medium text-right">Planned</th>
+                  <tr className="border-b text-start">
+                    <th className="py-2 px-3 font-medium">{t('progress.colCode')}</th>
+                    <th className="py-2 px-3 font-medium">{t('progress.colName')}</th>
+                    <th className="py-2 px-3 font-medium">{t('progress.colStatus')}</th>
+                    <th className="py-2 px-3 font-medium text-end">{t('progress.colWeight')}</th>
+                    <th className="py-2 px-3 font-medium text-end">{t('progress.colActual')}</th>
+                    <th className="py-2 px-3 font-medium text-end">{t('progress.colPlanned')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -256,12 +256,12 @@ export default function ProgressPage() {
                       <td className="py-2 px-3 font-mono text-xs">{a.code}</td>
                       <td className="py-2 px-3">{a.name}</td>
                       <td className="py-2 px-3">{statusBadge(a.status)}</td>
-                      <td className="py-2 px-3 text-right">{a.weight}</td>
-                      <td className="py-2 px-3 text-right">
+                      <td className="py-2 px-3 text-end">{a.weight}</td>
+                      <td className="py-2 px-3 text-end">
                         <span className="font-medium">{a.progressPercent}%</span>
                         <ProgressBar value={a.progressPercent} max={100} variant="actual" />
                       </td>
-                      <td className="py-2 px-3 text-right">
+                      <td className="py-2 px-3 text-end">
                         <span className="font-medium text-blue-600">{a.plannedProgress}%</span>
                         <ProgressBar value={a.plannedProgress} max={100} variant="planned" />
                       </td>
@@ -277,31 +277,31 @@ export default function ProgressPage() {
       {/* ─── Forms ─── */}
       <div className="grid gap-6 lg:grid-cols-3">
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><Target className="h-5 w-5" />New baseline</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2"><Target className="h-5 w-5" />{t('progress.newBaseline')}</CardTitle></CardHeader>
           <CardContent>
             <form className="grid gap-3" onSubmit={createBaseline}>
-              <Input required placeholder="Baseline name" value={blForm.name} onChange={(e) => setBlForm({ ...blForm, name: e.target.value })} />
-              <Textarea placeholder="Description" value={blForm.description} onChange={(e) => setBlForm({ ...blForm, description: e.target.value })} />
-              <Button type="submit"><Plus className="mr-2 h-4 w-4" />Create baseline</Button>
+              <Input required placeholder={t('progress.baselineName')} value={blForm.name} onChange={(e) => setBlForm({ ...blForm, name: e.target.value })} />
+              <Textarea placeholder={t('progress.description')} value={blForm.description} onChange={(e) => setBlForm({ ...blForm, description: e.target.value })} />
+              <Button type="submit"><Plus className="me-2 h-4 w-4" />{t('progress.createBaseline')}</Button>
             </form>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5" />Report progress</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5" />{t('progress.reportProgress')}</CardTitle></CardHeader>
           <CardContent>
             <form className="grid gap-3" onSubmit={reportProgress}>
               <div className="grid gap-3 sm:grid-cols-2">
-                <Input required type="number" min="1" placeholder="Activity ID" value={prForm.activityId} onChange={(e) => setPrForm({ ...prForm, activityId: e.target.value })} />
+                <Input required type="number" min="1" placeholder={t('progress.activityId')} value={prForm.activityId} onChange={(e) => setPrForm({ ...prForm, activityId: e.target.value })} />
                 <Input required type="date" value={prForm.reportDate} onChange={(e) => setPrForm({ ...prForm, reportDate: e.target.value })} />
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
-                <Input type="number" min="0" max="100" placeholder="Progress %" value={prForm.progressPercent} onChange={(e) => setPrForm({ ...prForm, progressPercent: e.target.value })} />
-                <Input placeholder="Actual cost" value={prForm.actualCost} onChange={(e) => setPrForm({ ...prForm, actualCost: e.target.value })} />
-                <Input placeholder="Labor hours" value={prForm.actualLaborHours} onChange={(e) => setPrForm({ ...prForm, actualLaborHours: e.target.value })} />
+                <Input type="number" min="0" max="100" placeholder={t('progress.progressPercent')} value={prForm.progressPercent} onChange={(e) => setPrForm({ ...prForm, progressPercent: e.target.value })} />
+                <Input placeholder={t('progress.actualCost')} value={prForm.actualCost} onChange={(e) => setPrForm({ ...prForm, actualCost: e.target.value })} />
+                <Input placeholder={t('progress.laborHours')} value={prForm.actualLaborHours} onChange={(e) => setPrForm({ ...prForm, actualLaborHours: e.target.value })} />
               </div>
-              <Textarea placeholder="Notes" value={prForm.notes} onChange={(e) => setPrForm({ ...prForm, notes: e.target.value })} />
-              <Button type="submit"><Plus className="mr-2 h-4 w-4" />Report progress</Button>
+              <Textarea placeholder={t('progress.notes')} value={prForm.notes} onChange={(e) => setPrForm({ ...prForm, notes: e.target.value })} />
+              <Button type="submit"><Plus className="me-2 h-4 w-4" />{t('progress.reportProgress')}</Button>
             </form>
           </CardContent>
         </Card>
@@ -310,14 +310,14 @@ export default function ProgressPage() {
           <CardHeader><CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" />{t("progress.calculateEvm")}</CardTitle></CardHeader>
           <CardContent>
             <form className="grid gap-3" onSubmit={calculateEvm}>
-              <Input required type="number" min="1" placeholder="Baseline ID" value={evmForm.baselineId} onChange={(e) => setEvmForm({ ...evmForm, baselineId: e.target.value })} />
+              <Input required type="number" min="1" placeholder={t('progress.baselineId')} value={evmForm.baselineId} onChange={(e) => setEvmForm({ ...evmForm, baselineId: e.target.value })} />
               <Input required type="date" value={evmForm.reportDate} onChange={(e) => setEvmForm({ ...evmForm, reportDate: e.target.value })} />
               <div className="grid gap-3 sm:grid-cols-3">
-                <Input placeholder="Planned value (PV)" value={evmForm.plannedValue} onChange={(e) => setEvmForm({ ...evmForm, plannedValue: e.target.value })} />
-                <Input placeholder="Earned value (EV)" value={evmForm.earnedValue} onChange={(e) => setEvmForm({ ...evmForm, earnedValue: e.target.value })} />
-                <Input placeholder="Actual cost (AC)" value={evmForm.actualCost} onChange={(e) => setEvmForm({ ...evmForm, actualCost: e.target.value })} />
+                <Input placeholder={t('progress.plannedValuePv')} value={evmForm.plannedValue} onChange={(e) => setEvmForm({ ...evmForm, plannedValue: e.target.value })} />
+                <Input placeholder={t('progress.earnedValueEv')} value={evmForm.earnedValue} onChange={(e) => setEvmForm({ ...evmForm, earnedValue: e.target.value })} />
+                <Input placeholder={t('progress.actualCostAc')} value={evmForm.actualCost} onChange={(e) => setEvmForm({ ...evmForm, actualCost: e.target.value })} />
               </div>
-              <Button type="submit"><BarChart3 className="mr-2 h-4 w-4" />{t("common.submit")}</Button>
+              <Button type="submit"><BarChart3 className="me-2 h-4 w-4" />{t("common.submit")}</Button>
             </form>
           </CardContent>
         </Card>
@@ -328,22 +328,22 @@ export default function ProgressPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between gap-3">
-              <CardTitle>Baselines <span className="text-sm font-normal text-muted-foreground">({baselines.length})</span></CardTitle>
+              <CardTitle>{t('progress.baselines')} <span className="text-sm font-normal text-muted-foreground">({baselines.length})</span></CardTitle>
             </div>
           </CardHeader>
           <CardContent>
-            {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : baselines.length === 0 ? <p className="text-sm text-muted-foreground">No baselines defined.</p> : <div className="space-y-3">{baselines.map((bl) => <div key={bl.id} className="rounded-lg border p-4"><div className="flex items-start justify-between gap-3"><div><h3 className="font-medium">{bl.name} <span className="text-xs text-muted-foreground">v{bl.version}</span></h3><p className="text-sm text-muted-foreground">{bl.description || "—"}</p></div><div className="flex items-center gap-2">{bl.isActive ? <Badge variant="default">Active</Badge> : null}<Button variant="outline" size="sm" onClick={() => snapshotBaseline(bl.id)}>Snapshot</Button></div></div></div>)}</div>}
+            {loading ? <p className="text-sm text-muted-foreground">{t('progress.loading')}</p> : baselines.length === 0 ? <p className="text-sm text-muted-foreground">{t('progress.noBaselines')}</p> : <div className="space-y-3">{baselines.map((bl) => <div key={bl.id} className="rounded-lg border p-4"><div className="flex items-start justify-between gap-3"><div><h3 className="font-medium">{bl.name} <span className="text-xs text-muted-foreground">v{bl.version}</span></h3><p className="text-sm text-muted-foreground">{bl.description || "—"}</p></div><div className="flex items-center gap-2">{bl.isActive ? <Badge variant="default">{t('progress.active')}</Badge> : null}<Button variant="outline" size="sm" onClick={() => snapshotBaseline(bl.id)}>{t('progress.snapshot')}</Button></div></div></div>)}</div>}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between gap-3">
-              <CardTitle>Progress Records <span className="text-sm font-normal text-muted-foreground">({progress.length})</span></CardTitle>
+              <CardTitle>{t('progress.progressRecords')} <span className="text-sm font-normal text-muted-foreground">({progress.length})</span></CardTitle>
             </div>
           </CardHeader>
           <CardContent>
-            {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : progress.length === 0 ? <p className="text-sm text-muted-foreground">No progress records.</p> : <div className="space-y-3">{progress.slice(0, 10).map((pr) => <div key={pr.id} className="rounded-lg border p-4"><div className="flex items-start justify-between gap-3"><div><h3 className="font-medium text-sm">Activity #{pr.activityId}</h3><p className="text-xs text-muted-foreground">{formatJalali(pr.reportDate)}</p></div><Badge variant={pr.progressPercent >= 100 ? "default" : pr.progressPercent > 0 ? "secondary" : "outline"}>{pr.progressPercent}%</Badge></div>{pr.notes && <p className="mt-1 text-xs text-muted-foreground">{pr.notes}</p>}</div>)}</div>}
+            {loading ? <p className="text-sm text-muted-foreground">{t('progress.loading')}</p> : progress.length === 0 ? <p className="text-sm text-muted-foreground">{t('progress.noProgressRecords')}</p> : <div className="space-y-3">{progress.slice(0, 10).map((pr) => <div key={pr.id} className="rounded-lg border p-4"><div className="flex items-start justify-between gap-3"><div><h3 className="font-medium text-sm">{t('progress.activityPrefix', { id: pr.activityId })}</h3><p className="text-xs text-muted-foreground">{formatJalali(pr.reportDate)}</p></div><Badge variant={pr.progressPercent >= 100 ? "default" : pr.progressPercent > 0 ? "secondary" : "outline"}>{pr.progressPercent}%</Badge></div>{pr.notes && <p className="mt-1 text-xs text-muted-foreground">{pr.notes}</p>}</div>)}</div>}
           </CardContent>
         </Card>
       </div>

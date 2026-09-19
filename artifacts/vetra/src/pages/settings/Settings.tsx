@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { get, patch } from '@/lib/phase2-api';
+import { t } from '@/lib/i18n';
 
 interface NotificationPref {
   type: string;
@@ -71,59 +72,54 @@ export default function Settings() {
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
-        <p className="text-xs font-mono tracking-widest text-primary">WORKSPACE CONFIGURATION</p>
-        <h1 className="text-3xl font-bold mt-2">Settings</h1>
-        <p className="text-muted-foreground mt-2">
-          Manage your personal profile, organization and display preferences.
-        </p>
+        <p className="text-xs font-mono tracking-widest text-primary">{t('settings.breadcrumb')}</p>
+        <h1 className="text-3xl font-bold mt-2">{t('settings.title')}</h1>
+        <p className="text-muted-foreground mt-2">{t('settings.subtitle')}</p>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Profile</CardTitle>
+          <CardTitle>{t('settings.profile')}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label>Name</Label>
+            <Label>{t('common.name')}</Label>
             <Input value={profile.name ?? ''} onChange={(e) => setProfile({ ...profile, name: e.target.value })} />
           </div>
           <div className="space-y-2">
-            <Label>Email</Label>
-            <Input value={profile.email ?? ''} disabled />
+            <Label>{t('settings.email')}</Label>
+            <Input dir="ltr" value={profile.email ?? ''} disabled />
           </div>
           <div className="space-y-2">
-            <Label>Phone</Label>
-            <Input value={profile.phone ?? ''} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} />
+            <Label>{t('settings.phone')}</Label>
+            <Input dir="ltr" value={profile.phone ?? ''} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} />
           </div>
           <div className="space-y-2">
-            <Label>Department</Label>
-            <Input
-              value={profile.department ?? ''}
-              onChange={(e) => setProfile({ ...profile, department: e.target.value })}
-            />
+            <Label>{t('settings.department')}</Label>
+            <Input value={profile.department ?? ''} onChange={(e) => setProfile({ ...profile, department: e.target.value })} />
           </div>
           <div className="md:col-span-2">
-            <Button onClick={save}>{saved ? 'Saved' : 'Save profile'}</Button>
+            <Button onClick={save}>{saved ? t('settings.saved') : t('settings.saveProfile')}</Button>
           </div>
         </CardContent>
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Organization</CardTitle>
+          <CardTitle>{t('settings.organization')}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label>Organization name</Label>
+            <Label>{t('settings.orgName')}</Label>
             <Input value={organization.name ?? ''} disabled />
           </div>
           <div className="space-y-2">
-            <Label>Organization code</Label>
-            <Input value={organization.code ?? ''} disabled />
+            <Label>{t('settings.orgCode')}</Label>
+            <Input dir="ltr" value={organization.code ?? ''} disabled />
           </div>
         </CardContent>
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Notification Preferences</CardTitle>
+          <CardTitle>{t('settings.notifPrefs')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
           {notificationTypes.map((nt) => {
@@ -133,33 +129,33 @@ export default function Settings() {
               <div key={nt.key} className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">{nt.label}</p>
-                  <p className="text-sm text-muted-foreground">دریافت اعلان برای این نوع رویداد</p>
+                  <p className="text-sm text-muted-foreground">{t('settings.notifPrefDesc')}</p>
                 </div>
                 <Switch checked={isOptedIn} onCheckedChange={() => toggleNotificationPref(nt.key)} />
               </div>
             );
           })}
           <div className="pt-4">
-            <Button onClick={saveNotificationPrefs}>{saved ? 'Saved' : 'Save preferences'}</Button>
+            <Button onClick={saveNotificationPrefs}>{saved ? t('settings.saved') : t('settings.savePreferences')}</Button>
           </div>
         </CardContent>
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Preferences</CardTitle>
+          <CardTitle>{t('settings.preferences')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium">Jalali calendar</p>
-              <p className="text-sm text-muted-foreground">Display operational dates in the Persian calendar.</p>
+              <p className="font-medium">{t('settings.jalaliCalendar')}</p>
+              <p className="text-sm text-muted-foreground">{t('settings.jalaliDesc')}</p>
             </div>
             <Switch defaultChecked />
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium">Weekly digest</p>
-              <p className="text-sm text-muted-foreground">Receive a summary of project activity.</p>
+              <p className="font-medium">{t('settings.weeklyDigest')}</p>
+              <p className="text-sm text-muted-foreground">{t('settings.weeklyDigestDesc')}</p>
             </div>
             <Switch defaultChecked />
           </div>

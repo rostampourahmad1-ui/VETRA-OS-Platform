@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useListInventory } from '@workspace/api-client-react';
 import { Plus, Search, Package, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'wouter';
 import { formatCurrency } from '@/lib/jalali';
+import { t } from '@/lib/i18n';
 
 export default function InventoryList() {
   const [search, setSearch] = useState('');
@@ -15,20 +16,20 @@ export default function InventoryList() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Inventory</h1>
-          <p className="text-muted-foreground">Material stock levels and warehouse management.</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t('inventory.title')}</h1>
+          <p className="text-muted-foreground">{t('inventory.subtitle')}</p>
         </div>
         <Button className="shrink-0 gap-2">
-          <Plus className="h-4 w-4" /> Add Item
+          <Plus className="h-4 w-4" /> {t('inventory.add')}
         </Button>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-card p-4 rounded-lg border shadow-sm">
         <div className="relative w-full sm:w-96">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="Search materials..." 
-            className="pl-9 font-sans"
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder={t('inventory.search')}
+            className="ps-9 font-sans"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -37,18 +38,18 @@ export default function InventoryList() {
 
       <div className="bg-card border rounded-lg shadow-sm overflow-hidden">
         {isLoading ? (
-          <div className="py-20 text-center font-mono text-muted-foreground">LOADING INVENTORY...</div>
+          <div className="py-20 text-center font-mono text-muted-foreground">{t('inventory.loading')}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b bg-muted/50 text-left text-muted-foreground">
+                <tr className="border-b bg-muted/50 text-start text-muted-foreground">
                   <th className="py-3 px-4 font-medium w-10"></th>
-                  <th className="py-3 px-4 font-medium">Item Name</th>
-                  <th className="py-3 px-4 font-medium">Category</th>
-                  <th className="py-3 px-4 font-medium text-right">Stock Level</th>
-                  <th className="py-3 px-4 font-medium text-right">Unit Cost</th>
-                  <th className="py-3 px-4 font-medium">Project Allocation</th>
+                  <th className="py-3 px-4 font-medium">{t('inventory.colName')}</th>
+                  <th className="py-3 px-4 font-medium">{t('inventory.colCategory')}</th>
+                  <th className="py-3 px-4 font-medium text-end">{t('inventory.colStock')}</th>
+                  <th className="py-3 px-4 font-medium text-end">{t('inventory.colUnitCost')}</th>
+                  <th className="py-3 px-4 font-medium">{t('inventory.colProject')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -63,19 +64,19 @@ export default function InventoryList() {
                         {item.name}
                       </td>
                       <td className="py-3 px-4">
-                        <Badge variant="outline" className="font-mono text-[10px] bg-background">
+                        <Badge variant="outline" dir="ltr" className="font-mono text-[10px] bg-background">
                           {item.category}
                         </Badge>
                       </td>
-                      <td className="py-3 px-4 text-right">
+                      <td className="py-3 px-4 text-end">
                         <div className="flex flex-col items-end gap-0.5">
                           <span className={`font-mono font-bold ${isLow ? 'text-amber-600' : ''}`}>
                             {item.quantity} <span className="font-sans font-normal text-xs text-muted-foreground">{item.unit}</span>
                           </span>
-                          {isLow && <span className="text-[10px] text-amber-600 font-medium uppercase tracking-wider">Low Stock</span>}
+                          {isLow && <span className="text-[10px] text-amber-600 font-medium tracking-wider">{t('inventory.lowStock')}</span>}
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-right font-mono text-muted-foreground">
+                      <td className="py-3 px-4 text-end font-mono text-muted-foreground">
                         {item.unitCost ? formatCurrency(item.unitCost) : '-'}
                       </td>
                       <td className="py-3 px-4">
@@ -84,7 +85,7 @@ export default function InventoryList() {
                             {item.projectName}
                           </Link>
                         ) : (
-                          <span className="text-xs text-muted-foreground">Unallocated</span>
+                          <span className="text-xs text-muted-foreground">{t('inventory.unallocated')}</span>
                         )}
                       </td>
                     </tr>
