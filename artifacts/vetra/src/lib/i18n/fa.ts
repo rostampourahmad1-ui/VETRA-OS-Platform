@@ -724,6 +724,31 @@ const fa = {
   "documents.enterProjectId": "پیش از بارگذاری، شناسهٔ پروژه را وارد کنید.",
   "documents.uploadFailed": "بارگذاری سند ناموفق بود.",
   "documents.empty": "هیچ سندی یافت نشد.",
+
+  // ─── Daily Reports (list UI residuals) ─────────────────────────────────
+  "dailyReports.loadFailed": "دریافت گزارش‌ها ناموفق بود.",
+  "dailyReports.saveFailed": "ذخیرهٔ گزارش ناموفق بود.",
+  "dailyReports.deleteFailed": "حذف گزارش ناموفق بود.",
+  "dailyReports.submitFailed": "ارسال گزارش ناموفق بود.",
+  "dailyReports.decisionFailed": "ثبت تصمیم ناموفق بود.",
+  "dailyReports.workflowLabel": "گردش کار",
+  "dailyReports.progressPercent": "پیشرفت (٪)",
+  "dailyReports.colHours": "ساعت کار",
+  "dailyReports.colRole": "نقش",
+  "dailyReports.employeePrefix": "پرسنل #{id}",
+  "dailyReports.roleRequired": "وارد کردن نقش الزامی است.",
+  "dailyReports.employeeOrGroupRequired": "شناسهٔ پرسنل یا نام گروه الزامی است.",
+  "dailyReports.workforceAddFailed": "افزودن ردیف نیروی کار ناموفق بود.",
+  "dailyReports.workforceLoadFailed": "دریافت اطلاعات نیروی کار ناموفق بود.",
+  "dailyReports.attendancePresent": "حاضر",
+  "dailyReports.attendanceAbsent": "غایب",
+  "dailyReports.attendanceLate": "تأخیر",
+  "dailyReports.attendanceOnLeave": "مرخصی",
+  "dailyReports.attendanceHalfDay": "نیم‌روز",
+  "dailyReports.eventSubmitted": "ارسال‌شده",
+  "dailyReports.eventApproved": "تأیید‌شده",
+  "dailyReports.eventRejected": "رد‌شده",
+  "dailyReports.eventRevision": "بازبینی",
 } as const;
 export type FaDictionary = typeof fa;
 export default fa;
