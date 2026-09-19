@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, integer, numeric, date } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer, numeric, date, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
@@ -34,6 +34,8 @@ export const projectMembersTable = pgTable("project_members", {
   organizationId: integer("organization_id").notNull().references(() => organizationsTable.id),
   role: text("role").notNull().default("member"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => ({
+  userProjectUnique: uniqueIndex("project_members_user_project_unique").on(table.projectId, table.userId),
+}));
 
 export type ProjectMember = typeof projectMembersTable.$inferSelect;
