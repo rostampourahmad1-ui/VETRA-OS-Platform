@@ -1,0 +1,9 @@
+#!/bin/sh
+# VETRA OS policy: never commit directly on 'main'.
+branch=$(git rev-parse --abbrev-ref HEAD)
+if [ "$branch" = "main" ]; then
+	echo "ERROR: Direct commits on 'main' are forbidden by policy."
+	echo "Switch to a feature branch first:  git switch feature/v1.1"
+	exit 1
+fi
+exit 0

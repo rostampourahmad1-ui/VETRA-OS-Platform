@@ -294,3 +294,35 @@ This document is the mandatory development governance for completing the VETRA p
 - When documentation and implementation differ, inspect the repository and preserve the real architecture rather than creating parallel or duplicate domain logic.
 
 Any deviation from this plan must be explicitly justified and documented as an architectural decision.
+
+---
+
+## 22. Branch & Merge Policy — `main` is protected (Mandatory)
+
+`main` is a protected branch. Direct commits, merges, or pushes to `main` are forbidden.
+
+**Rules**
+- Never commit directly on `main`.
+- Never merge locally into `main`.
+- Never push directly to `main` (including force-push; force-push and branch deletion are blocked).
+- All work happens on a feature branch (current working branch: `feature/v1.1`).
+- Changes reach `main` only through a Pull Request on GitHub, and only after the changes are finalized.
+
+**Enforcement layers**
+1. **Local git hooks** (versioned in `.githooks/`): `pre-commit`, `pre-merge-commit`, and `pre-push` block direct operations on `main`.
+2. **GitHub ruleset** `VETRA-2.0` (active, no bypass): requires a pull request, blocks force-push, and blocks deletion of the default branch.
+3. This documented policy.
+
+**Enable hooks after a fresh clone**
+```bash
+git config --local core.hooksPath .githooks
+```
+A hook can be skipped with `--no-verify`, but the GitHub ruleset cannot be bypassed.
+
+**Reviewed, intentional merge flow (when a feature is finalized)**
+```bash
+git switch feature/v1.1
+git push origin feature/v1.1
+# open a Pull Request -> merge on GitHub
+```
+Never merge a feature branch into `main` from a local terminal.
