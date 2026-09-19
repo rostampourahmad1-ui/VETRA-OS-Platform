@@ -284,14 +284,18 @@ function ClerkProviderWithRoutes() {
       localization={{
         signIn: {
           start: {
-            title: 'Welcome back to VETRA',
-            subtitle: 'Sign in to your workspace',
+            title: 'خوش آمدید به VETRA',
+            subtitle: 'برای ورود به فضای کاری، وارد شوید',
+            actionText: 'حساب کاربری ندارید؟',
+            actionLink: 'ثبت‌نام کنید',
           },
         },
         signUp: {
           start: {
-            title: 'Create your VETRA account',
-            subtitle: 'Start managing your projects',
+            title: 'حساب VETRA خود را بسازید',
+            subtitle: 'مدیریت پروژه‌هایتان را شروع کنید',
+            actionText: 'قبلاً حساب دارید؟',
+            actionLink: 'ورود',
           },
         },
       }}
