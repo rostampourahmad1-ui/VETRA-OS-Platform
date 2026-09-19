@@ -21,6 +21,9 @@ Receipt policy: `ready` may proceed; `degraded` must disclose limitations and ma
 Authority: Workspai evidence owns identity, topology, goals, readiness, and verification. Live source and repository-authored rules own exact implementation and source conventions.
 <!-- WORKSPAI:PROJECT-GROUNDING:END -->
 
+## Skill Auto-Routing Rule
+Before taking any action or writing code, analyze the user request and immediately call the matching `skill` from the available skills list (e.g., call `vetra-ui-rtl` for frontend, `vetra-database` for Drizzle/SQL, `vetra-security` for Auth/RBAC, etc.).
+
 # AGENTS.md
 
 # VETRA OS — Repository Instructions for AI Agents
