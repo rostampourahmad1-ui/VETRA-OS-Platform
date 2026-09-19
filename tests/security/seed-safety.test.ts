@@ -48,7 +48,10 @@ describe("local seed safety guards", () => {
     const source = read("lib/db/seed.mjs");
     expect(source).toContain("SEED_CLERK_USER_ID");
     expect(source).toContain("where clerk_user_id = $1");
-    expect(source).toContain("on conflict (project_id, user_id) do nothing");
+    // Membership insert must be idempotent even when the database lacks the
+    // `(project_id, user_id)` unique constraint (drizzle-kit push schemas).
+    expect(source).toContain("where not exists (");
+    expect(source).toContain("project_id = $1 and user_id = $2");
     expect(source).toContain("on conflict do nothing");
   });
 });
