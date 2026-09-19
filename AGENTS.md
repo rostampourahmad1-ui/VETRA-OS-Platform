@@ -305,7 +305,7 @@ Any deviation from this plan must be explicitly justified and documented as an a
 - Never commit directly on `main`.
 - Never merge locally into `main`.
 - Never push directly to `main` (including force-push; force-push and branch deletion are blocked).
-- All work happens on a feature branch (current working branch: `feature/v1.1`).
+- All work happens on a feature branch (current working branch: `feature/v2.0.00`).
 - Changes reach `main` only through a Pull Request on GitHub, and only after the changes are finalized.
 
 **Enforcement layers**
@@ -321,8 +321,8 @@ A hook can be skipped with `--no-verify`, but the GitHub ruleset cannot be bypas
 
 **Reviewed, intentional merge flow (when a feature is finalized)**
 ```bash
-git switch feature/v1.1
-git push origin feature/v1.1
+git switch feature/v2.0.00
+git push origin feature/v2.0.00
 # open a Pull Request -> merge on GitHub
 ```
 Never merge a feature branch into `main` from a local terminal.
