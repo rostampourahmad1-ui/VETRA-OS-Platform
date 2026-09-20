@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { get } from '@/lib/phase2-api';
 import {
   Building2, LayoutDashboard, FolderKanban, ListTodo, FileText,
-  Briefcase, Activity, Users, Package, Truck, ClipboardList, X,
+  Briefcase, Activity, Users, Package, Truck, X,
   Settings, ChevronDown, Bell, Search, Menu,
   Calendar, Wrench, BarChart3, Bot, ClipboardCheck,
   UserCircle, LogOut,
@@ -42,28 +42,24 @@ function Sidebar() {
   const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
 
   const navigation = [
-    { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-    { name: 'Projects', href: '/projects', icon: FolderKanban },
-    { name: 'Tasks', href: '/tasks', icon: ListTodo },
-    { name: 'Documents', href: '/documents', icon: FileText },
-    { name: 'Forms', href: '/forms', icon: ClipboardList },
-    { name: 'Form Templates', href: '/forms/templates', icon: FileText },
-    { name: 'Form Submissions', href: '/forms/submissions', icon: ClipboardCheck },
-    { name: 'Form Analytics', href: '/forms/analytics', icon: BarChart3 },
-    { name: 'Quality', href: '/quality', icon: ClipboardCheck },
-    { name: 'Contracts', href: '/contracts', icon: Briefcase },
-    { name: 'Daily Reports', href: '/daily-reports', icon: Activity },
-    { name: 'Meetings', href: '/meetings', icon: Calendar },
-    { name: 'HR & Team', href: '/hr', icon: Users },
-    { name: 'Equipment', href: '/equipment', icon: Wrench },
-    { name: 'Inventory', href: '/inventory', icon: Package },
-                { name: 'Procurement', href: '/procurement', icon: Truck },
-    { name: 'Warehouse', href: '/warehouse', icon: Warehouse },
-           { name: 'Workspace', href: '/workspace', icon: LayoutDashboard },
-    { name: 'Scheduling', href: '/scheduling', icon: CalendarClock },
-    { name: 'Progress', href: '/progress', icon: TrendingUp },
-    { name: 'Resources', href: '/resources', icon: Boxes },
-    { name: 'Notifications', href: '/notifications', icon: Bell },
+    { name: 'داشبورد', href: '/', icon: LayoutDashboard },
+    { name: 'پروژه‌ها', href: '/projects', icon: FolderKanban },
+    { name: 'وظایف', href: '/tasks', icon: ListTodo },
+    { name: 'اسناد', href: '/documents', icon: FileText },
+    { name: 'کیفیت', href: '/quality', icon: ClipboardCheck },
+    { name: 'قراردادها', href: '/contracts', icon: Briefcase },
+    { name: 'گزارش‌های روزانه', href: '/daily-reports', icon: Activity },
+    { name: 'جلسات', href: '/meetings', icon: Calendar },
+    { name: 'منابع انسانی و تیم', href: '/hr', icon: Users },
+    { name: 'تجهیزات', href: '/equipment', icon: Wrench },
+    { name: 'انبار', href: '/inventory', icon: Package },
+    { name: 'تدارکات', href: '/procurement', icon: Truck },
+    { name: 'انبارخانه', href: '/warehouse', icon: Warehouse },
+    { name: 'فضای کاری', href: '/workspace', icon: LayoutDashboard },
+    { name: 'زمان‌بندی', href: '/scheduling', icon: CalendarClock },
+    { name: 'پیشرفت', href: '/progress', icon: TrendingUp },
+    { name: 'منابع', href: '/resources', icon: Boxes },
+    { name: 'اعلان‌ها', href: '/notifications', icon: Bell },
 
   ];
 
@@ -94,7 +90,7 @@ function Sidebar() {
 
       <div className="flex-1 overflow-y-auto py-4">
         <div className="px-4 mb-2 text-xs font-mono tracking-wider text-sidebar-foreground opacity-50">
-          CORE MODULES
+          ماژول‌های اصلی
         </div>
         <nav className="space-y-1 px-2">
           {navigation.map((item) => {
@@ -117,14 +113,14 @@ function Sidebar() {
         </nav>
 
         <div className="px-4 mt-8 mb-2 text-xs font-mono tracking-wider text-sidebar-foreground opacity-50">
-          MANAGEMENT
+          مدیریت
         </div>
         <nav className="space-y-1 px-2">
           {[
-            { href: '/crm', icon: UserCircle, label: 'CRM' },
-            { href: '/reports', icon: BarChart3, label: 'Reports' },
-            { href: '/ai-assistant', icon: Bot, label: 'AI Assistant' },
-            { href: '/settings', icon: Settings, label: 'Settings' },
+           { href: '/crm', icon: UserCircle, label: 'ارتباط با مشتری' },
+             { href: '/reports', icon: BarChart3, label: 'گزارش‌ها' },
+             { href: '/ai-assistant', icon: Bot, label: 'دستیار هوشمند' },
+             { href: '/settings', icon: Settings, label: 'تنظیمات' },
           ].map(({ href, icon: Icon, label }) => (
             <Link
               key={href}
@@ -158,7 +154,7 @@ function Sidebar() {
           </div>
           <button
             onClick={() => signOut({ redirectUrl: basePath || '/' })}
-            title="Sign out"
+             title="خروج"
             className="p-1.5 rounded-md opacity-50 hover:opacity-100 hover:bg-sidebar-accent transition-all"
           >
             <LogOut className="h-4 w-4 text-sidebar-foreground" />

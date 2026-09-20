@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { formatJalali, persianNumber } from '@/lib/jalali';
 import { get, post } from '@/lib/phase2-api';
+import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 
 const STATUS_OPTIONS = [
   { value: 'present', label: t('hr.attendance.statusPresent'), icon: CheckCircle2, color: 'text-emerald-500' },
@@ -151,14 +152,7 @@ export default function AttendanceForm() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="date">{t("common.date")}</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={form.date}
-                  onChange={(e) => setForm(f => ({ ...f, date: e.target.value }))}
-                  required
-                  className="font-sans"
-                />
+                <JalaliDatePicker id="date" value={form.date} onChange={(date) => setForm(f => ({ ...f, date }))} />
                 <p className="text-xs text-muted-foreground">
                   {formatJalali(form.date, 'yyyy/MM/dd')} 
                 </p>

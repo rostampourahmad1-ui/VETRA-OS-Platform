@@ -13,6 +13,26 @@
 
 @custom-variant dark (&:is(.dark *));
 
+html,
+body,
+#root {
+  min-height: 100%;
+  direction: rtl;
+}
+
+body {
+  margin: 0;
+  font-family: var(--app-font-sans);
+  text-align: right;
+}
+
+input,
+textarea,
+select,
+button {
+  font-family: inherit;
+}
+
 @theme inline {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));

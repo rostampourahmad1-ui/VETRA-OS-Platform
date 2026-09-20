@@ -237,7 +237,6 @@ import inventoryRouter from "../artifacts/api-server/src/routes/inventory";
 import procurementRouter from "../artifacts/api-server/src/routes/procurement";
 import phase2Router from "../artifacts/api-server/src/routes/phase2";
 import documentsRouter from "../artifacts/api-server/src/routes/documents";
-import formsRouter from "../artifacts/api-server/src/routes/forms";
 
 function appWith(routers: any[], organizationId = 1): Express {
   const app = express();
@@ -383,31 +382,6 @@ describe("cross-tenant isolation", () => {
       { id: 901, name: "private.txt", organizationId: 2, projectId: 2, storagePath: "C:\\private\\secret.txt", createdAt: date },
     ]);
     const response = await request(appWith([documentsRouter])).get("/documents/901/download");
-    expect(response.status).toBe(404);
-  });
-});
-
-
-describe("Forms tenant isolation", () => {
-  beforeEach(() => mocks.reset());
-
-  it("lists only form templates owned by the authenticated organization", async () => {
-    mocks.rows.set(mocks.tables.formTemplatesTable, [
-      { id: 1001, organizationId: 1, name: "Org A form", description: null, status: "draft", definition: { fields: [] }, deletedAt: null },
-      { id: 1002, organizationId: 2, name: "Org B form", description: null, status: "draft", definition: { fields: [] }, deletedAt: null },
-    ]);
-
-    const response = await request(appWith([formsRouter], 1)).get("/forms/templates");
-    expect(response.status).toBe(200);
-    expect(response.body.map((template: any) => template.id)).toEqual([1001]);
-  });
-
-  it("returns 404 for a form template owned by another organization", async () => {
-    mocks.rows.set(mocks.tables.formTemplatesTable, [
-      { id: 1002, organizationId: 2, name: "Org B form", description: null, status: "draft", definition: { fields: [] }, deletedAt: null },
-    ]);
-
-    const response = await request(appWith([formsRouter], 1)).get("/forms/templates/1002");
     expect(response.status).toBe(404);
   });
 });

@@ -2,7 +2,6 @@ import { Router } from "express";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import {
   db,
-  formSubmissionsTable,
   nonConformanceReportsTable,
   qualityEventsTable,
   workflowRunEventsTable,
@@ -14,8 +13,6 @@ import {
   PostWorkflowRunsIdDecisionBody,
   PostWorkflowRunsIdDecisionParams,
   PostWorkflowsBody,
-  PostWorkflowsIdRunsBody,
-  PostWorkflowsIdRunsParams,
 } from "@workspace/api-zod";
 import { audit } from "../lib/audit";
 import { requireAuth } from "../middlewares/requireAuth";
@@ -122,6 +119,7 @@ router.post("/workflows", requirePermission("workflows.manage"), async (req, res
   res.status(201).json({ ...serialize(workflow), steps: steps.map(serialize) });
 });
 
+/* Form-submission workflow adapter removed with the in-product forms module.
 router.post("/workflows/:id/runs", requirePermission("workflows.execute"), async (req, res): Promise<void> => {
   const params = PostWorkflowsIdRunsParams.safeParse(req.params);
   const parsed = PostWorkflowsIdRunsBody.safeParse(req.body);
@@ -176,7 +174,7 @@ router.post("/workflows/:id/runs", requirePermission("workflows.execute"), async
   ));
   audit(req, "workflow_run.submitted", "workflow_run", { resourceId: run.id, newValues: { workflowId: run.workflowId, entityType: run.entityType, entityId: run.entityId } });
   res.status(201).json(serialize(run));
-});
+}); */
 
 router.post("/workflow-runs/:id/decision", requirePermission("workflows.approve"), async (req, res): Promise<void> => {
   const params = PostWorkflowRunsIdDecisionParams.safeParse(req.params);
@@ -216,17 +214,7 @@ router.post("/workflow-runs/:id/decision", requirePermission("workflows.approve"
 
   // VETRA-SEC-11: Cross-project ownership – the approver must be a member of
   // the linked entity's project when the entity is project-scoped.
-  const [linkedSubmission] = run.entityType === "form_submission"
-    ? await db.select().from(formSubmissionsTable).where(and(
-      eq(formSubmissionsTable.workflowRunId, run.id),
-      eq(formSubmissionsTable.organizationId, tenantId(req)),
-      isNull(formSubmissionsTable.deletedAt),
-    ))
-    : [undefined];
-  if (run.entityType === "form_submission" && !linkedSubmission) {
-    res.status(409).json({ error: "Workflow run is not linked to an active form submission" }); return;
-  }
-  const entityProjectId = linkedNcr?.projectId ?? linkedSubmission?.projectId ?? null;
+  const entityProjectId = linkedNcr?.projectId ?? null;
   if (entityProjectId != null && !(await isProjectMember(req, entityProjectId))) {
     res.status(403).json({ error: "Forbidden: not a member of the entity's project", projectId: entityProjectId });
     return;
@@ -312,18 +300,7 @@ router.post("/workflow-runs/:id/decision", requirePermission("workflows.approve"
 
   // Only update the linked entity when the workflow actually transitions
   if (updated.status !== "pending") {
-  if (run.entityType === "form_submission") {
-    const submissionStatus = decision === "approve"
-      ? (isFinalApproval ? "approved" : "submitted")
-      : decision === "reject" ? "rejected" : "revision_requested";
-    await db.update(formSubmissionsTable).set({
-      status: submissionStatus,
-      updatedAt: new Date(),
-    }).where(and(
-      eq(formSubmissionsTable.workflowRunId, run.id),
-      eq(formSubmissionsTable.organizationId, tenantId(req)),
-    ));
-  } else if (run.entityType === "non_conformance_report" && linkedNcr) {
+  if (run.entityType === "non_conformance_report" && linkedNcr) {
     const ncrStatus = decision === "approve"
       ? (isFinalApproval ? "closed" : "awaiting_approval")
       : "in_progress";

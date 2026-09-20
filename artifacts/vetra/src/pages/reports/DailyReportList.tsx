@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useOrganizationProject } from "@/contexts/OrganizationProjectContext";
 import { apiRequest } from "@/lib/phase2-api";
 import { useQueryClient } from "@tanstack/react-query";
+import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
 
 // ─── Status helpers ────────────────────────────────────────────────────────
 
@@ -542,7 +543,7 @@ export default function DailyReportList() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="date">{t('dailyReports.colDate')}</Label>
-                <Input id="date" type="date" value={form.date} onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} required />
+                <JalaliDatePicker id="date" value={form.date} onChange={(date) => setForm((f) => ({ ...f, date }))} />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="weather">{t('dailyReports.weather')}</Label>

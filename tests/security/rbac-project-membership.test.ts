@@ -360,7 +360,6 @@ describe("VETRA-SEC-07: RBAC — Permission Completeness", () => {
       "crm.read", "crm.create", "crm.update", "crm.delete",
       "search.read",
       "phase2.read", "phase2.update",
-      "forms.read", "forms.manage", "forms.submit",
       "quality.read", "quality.create", "quality.update", "quality.delete",
       "planning.read", "planning.manage",
       "workflows.read", "workflows.manage", "workflows.execute", "workflows.approve",
@@ -380,7 +379,7 @@ describe("VETRA-SEC-07: RBAC — Permission Completeness", () => {
 
   it("P1-2: All resources have at least read permission defined", () => {
     const resources = ["projects", "tasks", "documents", "contracts", "daily-reports", "meetings",
-      "equipment", "inventory", "procurement", "hr", "crm", "quality", "forms", "planning", "workflows"];
+      "equipment", "inventory", "procurement", "hr", "crm", "quality", "planning", "workflows"];
     for (const r of resources) {
       expect(`${r}.read`).toBeDefined();
     }

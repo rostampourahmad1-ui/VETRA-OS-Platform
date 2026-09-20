@@ -6,7 +6,7 @@
  * multi-locale work (en, ar, etc.) straightforward.
  */
 
-import { createContext, useContext, useMemo, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react';
 
 export type Locale = 'fa';
 export type Direction = 'rtl' | 'ltr';
@@ -39,6 +39,11 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     }),
     [],
   );
+
+  useEffect(() => {
+    document.documentElement.lang = value.locale;
+    document.documentElement.dir = value.direction;
+  }, [value]);
 
   return (
     <LocaleContext.Provider value={value}>

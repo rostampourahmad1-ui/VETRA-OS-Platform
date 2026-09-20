@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/empty";
 import { useToast } from "@/hooks/use-toast";
 import { formatJalali, persianNumber } from "@/lib/jalali";
+import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
 
 const STATUS_LABELS: Record<string, string> = {
   not_started: "شروع نشده",
@@ -166,11 +167,11 @@ function ActivityFormDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="act-start">تاریخ شروع</Label>
-              <Input id="act-start" type="date" value={plannedStart} onChange={(e) => setPlannedStart(e.target.value)} required />
+              <JalaliDatePicker id="act-start" value={plannedStart} onChange={setPlannedStart} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="act-finish">تاریخ پایان</Label>
-              <Input id="act-finish" type="date" value={plannedFinish} onChange={(e) => setPlannedFinish(e.target.value)} required />
+              <JalaliDatePicker id="act-finish" value={plannedFinish} onChange={setPlannedFinish} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">

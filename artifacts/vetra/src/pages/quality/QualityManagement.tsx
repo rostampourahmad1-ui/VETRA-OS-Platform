@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useOrganizationProject } from '@/contexts/OrganizationProjectContext';
 import { formatJalali } from '@/lib/jalali';
+import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 
 interface Inspection {
   id: number;
@@ -19,14 +20,6 @@ interface Inspection {
   inspector: string;
   date: string;
   findings?: string | null;
-  templateId?: number | null;
-}
-
-interface FormTemplate {
-  id: number;
-  name: string;
-  status: string;
-  projectId?: number | null;
 }
 
 interface Ncr {
@@ -53,28 +46,25 @@ const statusTone = (status: string) => {
 export default function QualityManagement() {
   const [inspections, setInspections] = useState<Inspection[]>([]);
   const [ncrs, setNcrs] = useState<Ncr[]>([]);
-  const [templates, setTemplates] = useState<FormTemplate[]>([]);
   const { project } = useOrganizationProject();
   const [inspectionFilter, setInspectionFilter] = useState('all');
   const [ncrFilter, setNcrFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [transitioning, setTransitioning] = useState<number | null>(null);
-  const [inspectionForm, setInspectionForm] = useState({ projectId: '', templateId: '', title: '', type: 'routine', status: 'planned', inspector: '', date: '', findings: '' });
+  const [inspectionForm, setInspectionForm] = useState({ projectId: '', title: '', type: 'routine', status: 'planned', inspector: '', date: '', findings: '' });
   const [ncrForm, setNcrForm] = useState({ projectId: '', title: '', severity: 'medium', status: 'open', description: '', correctiveAction: '', assignedTo: '', dueDate: '' });
 
   const load = async () => {
     setLoading(true);
     setError('');
     try {
-      const [inspectionRows, ncrRows, templateRows] = await Promise.all([
+      const [inspectionRows, ncrRows] = await Promise.all([
         get<Inspection[]>('/inspections', { projectId: project?.id }),
         get<Ncr[]>('/non-conformance-reports', { projectId: project?.id }),
-        get<FormTemplate[]>('/forms/templates', { projectId: project?.id, status: 'published' }),
       ]);
       setInspections(inspectionRows);
       setNcrs(ncrRows);
-      setTemplates(templateRows);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Unable to load quality records.');
     } finally {
@@ -91,8 +81,8 @@ export default function QualityManagement() {
     event.preventDefault();
     try {
       if (!project) return;
-      await post<Inspection>('/inspections', { ...inspectionForm, projectId: project.id, templateId: inspectionForm.templateId ? Number(inspectionForm.templateId) : null });
-      setInspectionForm({ projectId: '', templateId: '', title: '', type: 'routine', status: 'planned', inspector: '', date: '', findings: '' });
+      await post<Inspection>('/inspections', { ...inspectionForm, projectId: project.id });
+      setInspectionForm({ projectId: '', title: '', type: 'routine', status: 'planned', inspector: '', date: '', findings: '' });
       await load();
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Unable to create inspection.'); }
   };
@@ -144,7 +134,6 @@ export default function QualityManagement() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card><CardHeader className="pb-2"><CardTitle className="text-sm">{t('quality.inspections')}</CardTitle></CardHeader><CardContent><p className="text-2xl font-semibold">{inspections.length}</p><p className="text-xs text-muted-foreground">{inspections.filter((item) => item.status === 'completed').length} {t('quality.completed')}</p></CardContent></Card>
         <Card><CardHeader className="pb-2"><CardTitle className="text-sm">{t('quality.ncrs')}</CardTitle></CardHeader><CardContent><p className="text-2xl font-semibold">{ncrs.length}</p><p className="text-xs text-muted-foreground">{ncrs.filter((item) => !['closed', 'resolved'].includes(item.status)).length} {t('quality.open')}</p></CardContent></Card>
-        <Card><CardHeader className="pb-2"><CardTitle className="text-sm">{t('quality.formTemplates')}</CardTitle></CardHeader><CardContent><p className="text-2xl font-semibold">{templates.length}</p><p className="text-xs text-muted-foreground">{t('quality.published')}</p></CardContent></Card>
         <Card><CardHeader className="pb-2"><CardTitle className="text-sm">{t('quality.completionRate')}</CardTitle></CardHeader><CardContent><p className="text-2xl font-semibold">{inspections.length ? Math.round((inspections.filter((item) => item.status === 'completed').length / inspections.length) * 100) : 0}%</p><p className="text-xs text-muted-foreground">{t('quality.basedOnInspections')}</p></CardContent></Card>
       </div>
 
@@ -152,8 +141,8 @@ export default function QualityManagement() {
         <Card>
           <CardHeader><CardTitle className="flex items-center gap-2"><Plus className="h-5 w-5" />New inspection</CardTitle></CardHeader>
           <CardContent><form className="grid gap-3" onSubmit={createInspection}>
-            <div className="grid gap-3 sm:grid-cols-2"><Input required type="number" min="1" aria-label="{t('quality.activeProject')}" value={project?.id ?? ''} readOnly /><select className="h-10 rounded-md border bg-background px-3 text-sm" aria-label={t('quality.formTemplates')} value={inspectionForm.templateId} onChange={(e) => setInspectionForm({ ...inspectionForm, templateId: e.target.value })}><option value="">{t('forms.noTemplate')}</option>{templates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select></div><div className="grid gap-3 sm:grid-cols-2"><Input required placeholder={t('quality.submitInspection')} value={inspectionForm.title} onChange={(e) => setInspectionForm({ ...inspectionForm, title: e.target.value })} /></div>
-            <div className="grid gap-3 sm:grid-cols-3"><Input required placeholder="Inspector" value={inspectionForm.inspector} onChange={(e) => setInspectionForm({ ...inspectionForm, inspector: e.target.value })} /><Input required type="date" value={inspectionForm.date} onChange={(e) => setInspectionForm({ ...inspectionForm, date: e.target.value })} /><select className="h-10 rounded-md border bg-background px-3 text-sm" value={inspectionForm.type} onChange={(e) => setInspectionForm({ ...inspectionForm, type: e.target.value })}><option value="routine">Routine</option><option value="material">Material</option><option value="site">Site</option><option value="final">Final</option></select></div>
+            <div className="grid gap-3 sm:grid-cols-2"><Input required type="number" min="1" aria-label="{t('quality.activeProject')}" value={project?.id ?? ''} readOnly /><Input required placeholder={t('quality.submitInspection')} value={inspectionForm.title} onChange={(e) => setInspectionForm({ ...inspectionForm, title: e.target.value })} /></div>
+            <div className="grid gap-3 sm:grid-cols-3"><Input required placeholder="بازرس" value={inspectionForm.inspector} onChange={(e) => setInspectionForm({ ...inspectionForm, inspector: e.target.value })} /><JalaliDatePicker value={inspectionForm.date} onChange={(date) => setInspectionForm({ ...inspectionForm, date })} /><select className="h-10 rounded-md border bg-background px-3 text-sm" value={inspectionForm.type} onChange={(e) => setInspectionForm({ ...inspectionForm, type: e.target.value })}><option value="routine">بازرسی دوره‌ای</option><option value="material">مصالح</option><option value="site">کارگاه</option><option value="final">نهایی</option></select></div>
             <Textarea placeholder="Findings" value={inspectionForm.findings} onChange={(e) => setInspectionForm({ ...inspectionForm, findings: e.target.value })} />
             <Button type="submit"><ClipboardCheck className="mr-2 h-4 w-4" />Create inspection</Button>
           </form></CardContent>
@@ -163,7 +152,7 @@ export default function QualityManagement() {
           <CardHeader><CardTitle className="flex items-center gap-2"><Plus className="h-5 w-5" />New non-conformance report</CardTitle></CardHeader>
           <CardContent><form className="grid gap-3" onSubmit={createNcr}>
             <div className="grid gap-3 sm:grid-cols-2"><Input required type="number" min="1" aria-label="{t('quality.activeProject')}" value={project?.id ?? ''} readOnly /><Input required placeholder="NCR title" value={ncrForm.title} onChange={(e) => setNcrForm({ ...ncrForm, title: e.target.value })} /></div>
-            <div className="grid gap-3 sm:grid-cols-3"><select className="h-10 rounded-md border bg-background px-3 text-sm" value={ncrForm.severity} onChange={(e) => setNcrForm({ ...ncrForm, severity: e.target.value })}><option value="low">{t('quality.severityLow')}</option><option value="medium">{t('quality.severityMedium')}</option><option value="high">{t('quality.severityHigh')}</option><option value="critical">{t('quality.severityCritical')}</option></select><Input placeholder={t('quality.assignedTo')} value={ncrForm.assignedTo} onChange={(e) => setNcrForm({ ...ncrForm, assignedTo: e.target.value })} /><Input type="date" value={ncrForm.dueDate} onChange={(e) => setNcrForm({ ...ncrForm, dueDate: e.target.value })} /></div>
+            <div className="grid gap-3 sm:grid-cols-3"><select className="h-10 rounded-md border bg-background px-3 text-sm" value={ncrForm.severity} onChange={(e) => setNcrForm({ ...ncrForm, severity: e.target.value })}><option value="low">{t('quality.severityLow')}</option><option value="medium">{t('quality.severityMedium')}</option><option value="high">{t('quality.severityHigh')}</option><option value="critical">{t('quality.severityCritical')}</option></select><Input placeholder={t('quality.assignedTo')} value={ncrForm.assignedTo} onChange={(e) => setNcrForm({ ...ncrForm, assignedTo: e.target.value })} /><JalaliDatePicker value={ncrForm.dueDate} onChange={(dueDate) => setNcrForm({ ...ncrForm, dueDate })} /></div>
             <Textarea required placeholder="Description" value={ncrForm.description} onChange={(e) => setNcrForm({ ...ncrForm, description: e.target.value })} /><Textarea placeholder={t('quality.correctiveAction')} value={ncrForm.correctiveAction} onChange={(e) => setNcrForm({ ...ncrForm, correctiveAction: e.target.value })} />
             <Button type="submit"><FileWarning className="mr-2 h-4 w-4" />{t('quality.submitNcr')}</Button>
           </form></CardContent>

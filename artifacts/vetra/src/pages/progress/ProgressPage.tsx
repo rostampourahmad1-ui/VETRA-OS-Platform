@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useOrganizationProject } from "@/contexts/OrganizationProjectContext";
 import { formatJalali } from "@/lib/jalali";
+import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
 
 interface Baseline {
   id: number; projectId: number; name: string; version: number; isActive: number; description?: string | null; createdAt: string;
@@ -293,7 +294,7 @@ export default function ProgressPage() {
             <form className="grid gap-3" onSubmit={reportProgress}>
               <div className="grid gap-3 sm:grid-cols-2">
                 <Input required type="number" min="1" placeholder={t('progress.activityId')} value={prForm.activityId} onChange={(e) => setPrForm({ ...prForm, activityId: e.target.value })} />
-                <Input required type="date" value={prForm.reportDate} onChange={(e) => setPrForm({ ...prForm, reportDate: e.target.value })} />
+                <JalaliDatePicker value={prForm.reportDate} onChange={(reportDate) => setPrForm({ ...prForm, reportDate })} />
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
                 <Input type="number" min="0" max="100" placeholder={t('progress.progressPercent')} value={prForm.progressPercent} onChange={(e) => setPrForm({ ...prForm, progressPercent: e.target.value })} />
@@ -311,7 +312,7 @@ export default function ProgressPage() {
           <CardContent>
             <form className="grid gap-3" onSubmit={calculateEvm}>
               <Input required type="number" min="1" placeholder={t('progress.baselineId')} value={evmForm.baselineId} onChange={(e) => setEvmForm({ ...evmForm, baselineId: e.target.value })} />
-              <Input required type="date" value={evmForm.reportDate} onChange={(e) => setEvmForm({ ...evmForm, reportDate: e.target.value })} />
+              <JalaliDatePicker value={evmForm.reportDate} onChange={(reportDate) => setEvmForm({ ...evmForm, reportDate })} />
               <div className="grid gap-3 sm:grid-cols-3">
                 <Input placeholder={t('progress.plannedValuePv')} value={evmForm.plannedValue} onChange={(e) => setEvmForm({ ...evmForm, plannedValue: e.target.value })} />
                 <Input placeholder={t('progress.earnedValueEv')} value={evmForm.earnedValue} onChange={(e) => setEvmForm({ ...evmForm, earnedValue: e.target.value })} />

@@ -14,7 +14,6 @@ const fa = {
   "nav.projects": "پروژه‌ها",
   "nav.tasks": "وظایف",
   "nav.documents": "اسناد",
-  "nav.forms": "فرم‌ها",
   "nav.quality": "کیفیت",
   "nav.contracts": "قراردادها",
   "nav.dailyReports": "گزارشات روزانه",
@@ -36,9 +35,6 @@ const fa = {
   "nav.signOut": "خروج",
   "nav.warehouse": "انبارخانه",
   "nav.notifications": "اعلان‌ها",
-  "nav.formTemplates": "قالب‌های فرم",
-  "nav.formSubmissions": "ارسال فرم‌ها",
-  "nav.formAnalytics": "تحلیل فرم‌ها",
   "nav.userFallback": "کاربر",
 
   // ─── Topbar / Shell ───────────────────────────────────────────────────────
@@ -560,7 +556,6 @@ const fa = {
   // ─── Quality ───────────────────────────────────────────────────────────
   "quality.inspections": "بازرسی‌ها",
   "quality.ncrs": "عدم انطباق‌ها",
-  "quality.formTemplates": "الگوهای فرم",
   "quality.completionRate": "نرخ تکمیل",
   "quality.completed": "تکمیل‌شده",
   "quality.open": "باز",
