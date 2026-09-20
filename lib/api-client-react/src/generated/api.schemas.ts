@@ -1252,65 +1252,9 @@ status?: string;
 assigneeId?: number;
 };
 
-export type ListDocumentsParams = {
-projectId?: number;
-type?: string;
-};
-
-export type ListContractsParams = {
-projectId?: number;
-status?: string;
-};
-
-export type ListDailyReportsParams = {
-projectId?: number;
-};
-
-export type SubmitDailyReportBody = {
-  workflowId: number;
-};
-
-export type TransitionDailyReportBodyStatus = typeof TransitionDailyReportBodyStatus[keyof typeof TransitionDailyReportBodyStatus];
-
-
-export const TransitionDailyReportBodyStatus = {
-  draft: 'draft',
-  submitted: 'submitted',
-  in_review: 'in_review',
-  approved: 'approved',
-  rejected: 'rejected',
-  revision_requested: 'revision_requested',
-} as const;
-
-export type TransitionDailyReportBody = {
-  status: TransitionDailyReportBodyStatus;
-  reason?: string;
-  workflowId?: number;
-};
-
-export type ListMeetingsParams = {
-projectId?: number;
-status?: string;
-};
-
 export type ListUsersParams = {
 role?: string;
 search?: string;
-};
-
-export type ListEquipmentParams = {
-projectId?: number;
-status?: string;
-};
-
-export type ListInventoryParams = {
-projectId?: number;
-category?: string;
-};
-
-export type ListProcurementOrdersParams = {
-projectId?: number;
-status?: string;
 };
 
 export type GetCostControlSummaryParams = {
@@ -1324,25 +1268,11 @@ export type GlobalSearchParams = {
 q: string;
 };
 
-export type ListClientsParams = {
-search?: string;
-};
-
 export type UpdatePreferencesBody = { [key: string]: unknown };
 
 export type UpdatePreferences200 = { [key: string]: unknown };
 
 export type PostAiAssistantBody = {
   query: string;
-};
-
-export type PostPayrollCalculateBody = {
-  employeeId: number;
-  periodStart: string;
-  periodEnd: string;
-  baseSalary?: number;
-  bonuses?: number;
-  deductions?: number;
-  notes?: string;
 };
 

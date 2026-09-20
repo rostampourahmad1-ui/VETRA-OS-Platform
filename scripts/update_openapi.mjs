@@ -85,15 +85,6 @@ const paths = String.raw`
           application/json:
             schema: { type: object, required: [decision], properties: { decision: { type: string, enum: [approve, reject] } } }
       responses: { '200': { description: Updated workflow run } }
-  /documents/upload:
-    post:
-      summary: Upload a document to local storage
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema: { $ref: '#/components/schemas/DocumentUpload' }
-      responses: { '201': { description: Uploaded document } }
   /ai/assistant:
     post:
       summary: Ask the VETRA AI assistant
@@ -135,13 +126,7 @@ const schemas = String.raw`
             properties:
               name: { type: string }
               requiredPermission: { type: string }
-    DocumentUpload:
-      type: object
-      required: [file, projectId]
-      properties:
-        file: { type: string, format: binary }
-        projectId: { type: integer }
-`;
+    `;
 
 if (!spec.includes("/projects/{projectId}/timeline:")) {
   const index = spec.indexOf(componentsMarker);
