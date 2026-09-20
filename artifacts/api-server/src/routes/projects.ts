@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { and, eq, ilike } from "drizzle-orm";
-import { db, projectsTable, usersTable, tasksTable, documentsTable, contractsTable, meetingsTable, dailyReportsTable, equipmentTable } from "@workspace/db";
+import { db, projectsTable, usersTable, tasksTable } from "@workspace/db";
 import { CreateProjectBody, UpdateProjectBody } from "@workspace/api-zod";
 import { requirePermission } from "../middlewares/permissions";
 import { audit } from "../lib/audit";
@@ -88,12 +88,8 @@ router.get("/projects/:id/stats", requirePermission("projects.read"), async (req
   const id = Number(req.params.id);
   const [project] = await db.select({ id: projectsTable.id }).from(projectsTable).where(and(eq(projectsTable.id, id), eq(projectsTable.organizationId, tenantId(req))));
   if (!project) { res.status(404).json({ error: "Not found" }); return; }
-  const [tasks, docs, contracts, meetings, reports, equip] = await Promise.all([
-    db.select().from(tasksTable).where(and(eq(tasksTable.projectId, id), eq(tasksTable.organizationId, tenantId(req)))), db.select().from(documentsTable).where(and(eq(documentsTable.projectId, id), eq(documentsTable.organizationId, tenantId(req)))),
-    db.select().from(contractsTable).where(and(eq(contractsTable.projectId, id), eq(contractsTable.organizationId, tenantId(req)))), db.select().from(meetingsTable).where(and(eq(meetingsTable.projectId, id), eq(meetingsTable.organizationId, tenantId(req)))),
-    db.select().from(dailyReportsTable).where(and(eq(dailyReportsTable.projectId, id), eq(dailyReportsTable.organizationId, tenantId(req)))), db.select().from(equipmentTable).where(and(eq(equipmentTable.projectId, id), eq(equipmentTable.organizationId, tenantId(req)))),
-  ]);
-  res.json({ taskCount: tasks.length, completedTasks: tasks.filter((t) => t.status === "done").length, openTasks: tasks.filter((t) => t.status !== "done").length, documentCount: docs.length, contractCount: contracts.length, meetingCount: meetings.length, reportCount: reports.length, equipmentCount: equip.length });
+  const tasks = await db.select().from(tasksTable).where(and(eq(tasksTable.projectId, id), eq(tasksTable.organizationId, tenantId(req))));
+  res.json({ taskCount: tasks.length, completedTasks: tasks.filter((t) => t.status === "done").length, openTasks: tasks.filter((t) => t.status !== "done").length });
 });
 
 export default router;

@@ -230,13 +230,7 @@ vi.mock("../artifacts/api-server/src/middlewares/tenant", () => ({
 
 import dashboardRouter from "../artifacts/api-server/src/routes/dashboard";
 import searchRouter from "../artifacts/api-server/src/routes/search";
-import dailyReportsRouter from "../artifacts/api-server/src/routes/daily-reports";
-import meetingsRouter from "../artifacts/api-server/src/routes/meetings";
-import equipmentRouter from "../artifacts/api-server/src/routes/equipment";
-import inventoryRouter from "../artifacts/api-server/src/routes/inventory";
-import procurementRouter from "../artifacts/api-server/src/routes/procurement";
 import phase2Router from "../artifacts/api-server/src/routes/phase2";
-import documentsRouter from "../artifacts/api-server/src/routes/documents";
 
 function appWith(routers: any[], organizationId = 1): Express {
   const app = express();
@@ -290,98 +284,22 @@ describe("cross-tenant isolation", () => {
     expect(dashboard.status).toBe(200);
     expect(dashboard.body.activeProjects).toBe(1);
     expect(dashboard.body.totalWorkforce).toBe(1);
-    expect(dashboard.body.equipmentTotal).toBe(1);
     expect(dashboard.body.openTasks).toBe(1);
 
     const search = await request(app).get("/search?q=shared");
     expect(search.status).toBe(200);
-    expect(search.body).toHaveLength(5);
-    expect(search.body.every((item: any) => ![2, 20, 60, 80, 91].includes(item.id))).toBe(true);
+    expect(search.body).toHaveLength(2);
+    expect(search.body.every((item: any) => ![2, 20].includes(item.id))).toBe(true);
   });
 
-  it("scopes daily reports, meetings, equipment, inventory and procurement lists", async () => {
-    mocks.rows.set(mocks.tables.projectsTable, [
-      { id: 1, name: "Alpha", organizationId: 1 },
-      { id: 2, name: "Beta", organizationId: 2 },
-    ]);
-    mocks.rows.set(mocks.tables.dailyReportsTable, [
-      { id: 101, date: "2026-08-18", weather: "clear", temperature: "20", progress: "10", workersOnSite: 2, projectId: 1, organizationId: 1, createdBy: "11", createdAt: date },
-      { id: 102, date: "2026-08-18", weather: "clear", temperature: "20", progress: "90", workersOnSite: 9, projectId: 2, organizationId: 2, createdBy: "22", createdAt: date },
-    ]);
-    mocks.rows.set(mocks.tables.meetingsTable, [
-      { id: 201, title: "A meeting", date, location: "A", status: "scheduled", attendees: "", projectId: 1, organizationId: 1, organizer: "11", createdAt: date },
-      { id: 202, title: "B meeting", date, location: "B", status: "scheduled", attendees: "", projectId: 2, organizationId: 2, organizer: "22", createdAt: date },
-    ]);
-    mocks.rows.set(mocks.tables.equipmentTable, [
-      { id: 301, name: "A equipment", type: "crane", status: "available", projectId: 1, organizationId: 1, createdAt: date },
-      { id: 302, name: "B equipment", type: "crane", status: "available", projectId: 2, organizationId: 2, createdAt: date },
-    ]);
-    mocks.rows.set(mocks.tables.inventoryTable, [
-      { id: 401, name: "A steel", category: "material", quantity: "2", unit: "ton", projectId: 1, organizationId: 1, createdAt: date },
-      { id: 402, name: "B steel", category: "material", quantity: "8", unit: "ton", projectId: 2, organizationId: 2, createdAt: date },
-    ]);
-    mocks.rows.set(mocks.tables.procurementTable, [
-      { id: 501, title: "A order", supplier: "A supplier", totalAmount: "10", status: "draft", projectId: 1, organizationId: 1, requestedBy: "11", createdAt: date },
-      { id: 502, title: "B order", supplier: "B supplier", totalAmount: "20", status: "draft", projectId: 2, organizationId: 2, requestedBy: "22", createdAt: date },
-    ]);
-
-    const app = appWith([dailyReportsRouter, meetingsRouter, equipmentRouter, inventoryRouter, procurementRouter]);
-    for (const path of ["/daily-reports", "/meetings", "/equipment", "/inventory", "/procurement"]) {
-      const response = await request(app).get(path);
-      expect(response.status, path).toBe(200);
-      expect(response.body).toHaveLength(1);
-      expect(response.body[0].id).toBeGreaterThan(0);
-      expect(response.body[0].id % 100).toBe(1);
-    }
-  });
-
-  it("blocks cross-tenant detail and update operations", async () => {
-    mocks.rows.set(mocks.tables.projectsTable, [
-      { id: 1, name: "Alpha", organizationId: 1 },
-      { id: 2, name: "Beta", organizationId: 2 },
-    ]);
-    mocks.rows.set(mocks.tables.dailyReportsTable, [
-      { id: 601, date: "2026-08-18", weather: "clear", temperature: "20", progress: "10", workersOnSite: 2, projectId: 2, organizationId: 2, createdBy: "22", createdAt: date },
-    ]);
-    mocks.rows.set(mocks.tables.meetingsTable, [
-      { id: 602, title: "B meeting", date, location: "B", status: "scheduled", attendees: "", projectId: 2, organizationId: 2, organizer: "22", createdAt: date },
-    ]);
-    mocks.rows.set(mocks.tables.equipmentTable, [
-      { id: 603, name: "B equipment", type: "crane", status: "available", projectId: 2, organizationId: 2, createdAt: date },
-    ]);
-    mocks.rows.set(mocks.tables.procurementTable, [
-      { id: 604, title: "B order", supplier: "B supplier", totalAmount: "20", status: "draft", projectId: 2, organizationId: 2, requestedBy: "22", createdAt: date },
-    ]);
-
-    const app = appWith([dailyReportsRouter, meetingsRouter, equipmentRouter, procurementRouter]);
-    expect((await request(app).get("/daily-reports/601")).status).toBe(404);
-    expect((await request(app).patch("/meetings/602").send({ title: "tampered" })).status).toBe(404);
-    expect((await request(app).patch("/equipment/603").send({ name: "tampered" })).status).toBe(404);
-    expect((await request(app).patch("/procurement/604").send({ status: "approved" })).status).toBe(404);
-    expect(mocks.rows.get(mocks.tables.meetingsTable)?.[0].title).toBe("B meeting");
-  });
-
-  it("scopes phase2 workspace and report aggregates", async () => {
+  it("scopes phase2 report aggregates", async () => {
     mocks.rows.set(mocks.tables.projectsTable, [{ id: 1, name: "Alpha", status: "active", organizationId: 1 }, { id: 2, name: "Beta", status: "active", organizationId: 2 }]);
     mocks.rows.set(mocks.tables.tasksTable, [{ id: 701, title: "A task", status: "todo", projectId: 1, organizationId: 1 }, { id: 702, title: "B task", status: "todo", projectId: 2, organizationId: 2 }]);
     const app = appWith([phase2Router]);
-    const workspace = await request(app).get("/workspaces/CEO");
-    expect(workspace.status).toBe(200);
-    expect(workspace.body.metrics.projects).toBe(1);
-    expect(workspace.body.metrics).not.toHaveProperty("spent");
-    expect(workspace.body.projects.map((project: any) => project.id)).toEqual([1]);
     const report = await request(app).get("/reports/summary");
     expect(report.status).toBe(200);
     expect(report.body.projects.total).toBe(1);
     expect(report.body.tasks.total).toBe(1);
     expect(report.body).not.toHaveProperty("costs");
-  });
-
-  it("does not allow a tenant to download another tenant's document", async () => {
-    mocks.rows.set(mocks.tables.documentsTable, [
-      { id: 901, name: "private.txt", organizationId: 2, projectId: 2, storagePath: "C:\\private\\secret.txt", createdAt: date },
-    ]);
-    const response = await request(appWith([documentsRouter])).get("/documents/901/download");
-    expect(response.status).toBe(404);
   });
 });

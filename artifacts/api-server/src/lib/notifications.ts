@@ -1,5 +1,5 @@
 import type { Request } from "express";
-import { db, notificationsTable, notificationPreferencesTable, usersTable, projectsTable, projectMembersTable } from "@workspace/db";
+import { db, notificationsTable, notificationPreferencesTable, usersTable, projectsTable } from "@workspace/db";
 import { and, eq, sql } from "drizzle-orm";
 import { sseBroadcaster } from "./sseBroadcaster";
 import { logger } from "./logger";
@@ -182,52 +182,12 @@ export async function notifyWorkflowDecision(
   });
 }
 
-/**
- * Creates a notification when a document is uploaded to a project.
- */
-export async function notifyDocumentUploaded(
-  req: Request,
-  documentName: string,
-  projectId: number,
-  documentId: number,
-): Promise<void> {
-  const organizationId = (req as any).vetraUser?.organizationId;
-  if (!organizationId) return;
-
-  // Notify project members only (membership + tenant scope verified server-side)
-  const members = await db
-    .select({ userId: projectMembersTable.userId })
-    .from(projectMembersTable)
-    .where(and(
-      eq(projectMembersTable.projectId, projectId),
-      eq(projectMembersTable.organizationId, organizationId),
-    ));
-
-  const [project] = await db.select({ name: projectsTable.name }).from(projectsTable)
-    .where(and(eq(projectsTable.id, projectId), eq(projectsTable.organizationId, organizationId)));
-
-  for (const member of members) {
-    if (member.userId === (req as any).vetraUser?.id) continue; // skip uploader
-    await createNotification({
-      organizationId,
-      userId: member.userId,
-      title: "سند جدید آپلود شد",
-      message: "سند \"" + documentName + "\"" + (project ? " در پروژه \"" + project.name + "\"" : "") + " آپلود شد",
-      type: "document_uploaded",
-      link: "/documents/" + documentId,
-    });
-  }
-}
-
 // Notification type constants
 export const NotificationType = {
   TASK_ASSIGNED: "task_assigned",
   WORKFLOW_APPROVED: "workflow_approved",
   WORKFLOW_REJECTED: "workflow_rejected",
   WORKFLOW_REVISION_REQUESTED: "workflow_revision_requested",
-  DOCUMENT_UPLOADED: "document_uploaded",
-  PAYROLL_PAID: "payroll_paid",
-  LOW_STOCK: "low_stock",
   WORKFLOW_ESCALATED: "workflow_escalated",
   INVOICE_DUE: "invoice_due",
 } as const;

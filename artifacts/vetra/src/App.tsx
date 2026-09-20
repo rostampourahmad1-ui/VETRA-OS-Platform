@@ -21,34 +21,15 @@ const ProjectDetail = lazy(() => import('@/pages/projects/ProjectDetail'));
 const ProjectTimeline = lazy(() => import('@/pages/planning/ProjectTimeline'));
 const AIAssistant = lazy(() => import('@/pages/ai/AIAssistant'));
 const TaskList = lazy(() => import('@/pages/tasks/TaskList'));
-const DocumentList = lazy(() => import('@/pages/documents/DocumentList'));
-const ContractList = lazy(() => import('@/pages/contracts/ContractList'));
-const DailyReportList = lazy(() => import('@/pages/reports/DailyReportList'));
-const MeetingList = lazy(() => import('@/pages/meetings/MeetingList'));
-const UserList = lazy(() => import('@/pages/hr/UserList'));
-const AttendanceForm = lazy(() => import('@/pages/hr/AttendanceForm'));
-const EquipmentList = lazy(() => import('@/pages/equipment/EquipmentList'));
-const InventoryList = lazy(() => import('@/pages/inventory/InventoryList'));
-const ProcurementList = lazy(() => import('@/pages/procurement/ProcurementList'));
 const PlaceholderPage = lazy(() => import('@/pages/placeholders/PlaceholderPage'));
-const WorkspacePage = lazy(() => import('@/pages/workspace/Workspace'));
-const WorkspaceDashboard = lazy(() => import('@/pages/workspace/Workspace').then(m => ({ default: m.WorkspaceDashboard })));
-const CRM = lazy(() => import('@/pages/crm/CRM'));
 const Reports = lazy(() => import('@/pages/reports/Reports'));
 const Settings = lazy(() => import('@/pages/settings/Settings'));
 const OrgProjectSelector = lazy(() => import('@/pages/onboarding/OrgProjectSelector'));
-const QualityManagement = lazy(() => import('@/pages/quality/QualityManagement'));
 const NotFound = lazy(() => import('@/pages/not-found'));
 const SchedulingPage = lazy(() => import('@/pages/scheduling/SchedulingPage'));
 const ProgressPage = lazy(() => import('@/pages/progress/ProgressPage'));
-const ResourcesPage = lazy(() => import('@/pages/resources/ResourcesPage'));
 const ActivityManagement = lazy(() => import('@/pages/planning/ActivityManagement'));
 const NotificationsPage = lazy(() => import('@/pages/notifications/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
-const WarehousesPage = lazy(() => import('@/pages/warehouse/WarehousesPage').then(m => ({ default: m.WarehousesPage })));
-const MaterialsPage = lazy(() => import('@/pages/warehouse/MaterialsPage').then(m => ({ default: m.MaterialsPage })));
-const SuppliersPage = lazy(() => import('@/pages/warehouse/SuppliersPage').then(m => ({ default: m.SuppliersPage })));
-const ReceivePage = lazy(() => import('@/pages/warehouse/ReceivePage').then(m => ({ default: m.ReceivePage })));
-const StockLedgerPage = lazy(() => import('@/pages/warehouse/StockLedgerPage').then(m => ({ default: m.StockLedgerPage })));
 // ─── Clerk key resolution ────────────────────────────────────────────────────
 // Must use publishableKeyFromHost — resolves the correct key for the current
 // hostname so the same build works in dev and prod without branching.
@@ -132,6 +113,7 @@ const queryClient = new QueryClient();
 function SignInPage() {
   return (
     <div className="dark flex min-h-[100dvh] flex-col items-center justify-center bg-[#0e121a] px-4 py-12">
+      <img src={`${basePath}/logo-akopark.svg`} alt="آکوپارک آرا" className="mb-6 h-24 w-auto" />
       <SignIn
         routing="path"
         path={`${basePath}/sign-in`}
@@ -145,6 +127,7 @@ function SignInPage() {
 function SignUpPage() {
   return (
     <div className="dark flex min-h-[100dvh] flex-col items-center justify-center bg-[#0e121a] px-4 py-12">
+      <img src={`${basePath}/logo-akopark.svg`} alt="آکوپارک آرا" className="mb-6 h-24 w-auto" />
       <SignUp
         routing="path"
         path={`${basePath}/sign-up`}
@@ -205,31 +188,12 @@ function AppRoutes() {
             <Route path="/projects/:id/wbs" component={WbsTree} />
             <Route path="/projects/:id/activities" component={ActivityManagement} />
             <Route path="/tasks" component={TaskList} />
-            <Route path="/documents" component={DocumentList} />
-            <Route path="/quality" component={QualityManagement} />
-            <Route path="/contracts" component={ContractList} />
-            <Route path="/daily-reports" component={DailyReportList} />
-            <Route path="/meetings" component={MeetingList} />
-            <Route path="/hr" component={UserList} />
-            <Route path="/hr/attendance" component={AttendanceForm} />
-            <Route path="/equipment" component={EquipmentList} />
-            <Route path="/inventory" component={InventoryList} />
-            <Route path="/procurement" component={ProcurementList} />
-            <Route path="/workspace"><WorkspacePage /></Route>
-            <Route path="/workspace/:role">{(params) => <WorkspaceDashboard role={params.role} />}</Route>
-            <Route path="/crm"><CRM /></Route>
             <Route path="/reports"><Reports /></Route>
             <Route path="/ai-assistant" component={AIAssistant} />
             <Route path="/settings"><Settings /></Route>
             <Route path="/notifications"><NotificationsPage /></Route>
-            <Route path="/warehouse"><WarehousesPage /></Route>
-            <Route path="/materials"><MaterialsPage /></Route>
-            <Route path="/suppliers"><SuppliersPage /></Route>
-            <Route path="/warehouse/receive"><ReceivePage /></Route>
-            <Route path="/warehouse/ledger"><StockLedgerPage /></Route>
             <Route path="/scheduling" component={SchedulingPage} />
             <Route path="/progress" component={ProgressPage} />
-            <Route path="/resources" component={ResourcesPage} />
             <Route component={NotFound} />
           </Switch></Suspense>
           </ErrorBoundary>

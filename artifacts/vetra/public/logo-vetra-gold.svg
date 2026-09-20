@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 110" fill="none" role="img" aria-label="VETRA">
+  <defs>
+    <linearGradient id="vetraGold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F2C94C"/>
+      <stop offset="0.5" stop-color="#D4A017"/>
+      <stop offset="1" stop-color="#B8860B"/>
+    </linearGradient>
+  </defs>
+  <!-- Hexagonal cube mark -->
+  <g stroke="url(#vetraGold)" stroke-width="5" stroke-linejoin="round" fill="none">
+    <path d="M45 8 L80 30 L80 74 L45 96 L10 74 L10 30 Z"/>
+    <path d="M45 8 L45 96"/>
+  </g>
+  <!-- Divider -->
+  <line x1="104" y1="20" x2="104" y2="90" stroke="url(#vetraGold)" stroke-width="3"/>
+  <!-- Wordmark -->
+  <text x="124" y="72" font-family="Outfit, 'Segoe UI', Arial, sans-serif" font-size="52" font-weight="600" letter-spacing="10" fill="url(#vetraGold)">VETRA</text>
+</svg>

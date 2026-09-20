@@ -7,7 +7,6 @@ import {
   projectsTable,
   tasksTable,
   usersTable,
-  equipmentTable,
 } from "@workspace/db";
 import { tenantId } from "../middlewares/tenant";
 
@@ -16,11 +15,10 @@ router.use(requireAuth);
 
 router.get("/dashboard/summary", requirePermission("dashboard.read"), async (req, res): Promise<void> => {
   const organizationId = tenantId(req);
-  const [projects, tasks, users, equipment] = await Promise.all([
+  const [projects, tasks, users] = await Promise.all([
     db.select().from(projectsTable).where(eq(projectsTable.organizationId, organizationId)),
     db.select().from(tasksTable).where(eq(tasksTable.organizationId, organizationId)),
     db.select().from(usersTable).where(eq(usersTable.organizationId, organizationId)),
-    db.select().from(equipmentTable).where(eq(equipmentTable.organizationId, organizationId)),
   ]);
 
   const activeProjects = projects.filter(p => p.status === "active").length;
@@ -40,7 +38,6 @@ router.get("/dashboard/summary", requirePermission("dashboard.read"), async (req
   ).length;
 
   const pendingApprovals = tasks.filter(t => t.status === "review").length;
-  const equipmentActive = equipment.filter(e => e.status === "in-use").length;
 
   res.json({
     activeProjects,
@@ -48,8 +45,6 @@ router.get("/dashboard/summary", requirePermission("dashboard.read"), async (req
     delayedActivities,
     totalWorkforce: users.length,
     pendingApprovals,
-    equipmentActive,
-    equipmentTotal: equipment.length,
     openTasks,
     overdueTasksCount,
   });

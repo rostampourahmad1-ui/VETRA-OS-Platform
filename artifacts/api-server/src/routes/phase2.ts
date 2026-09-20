@@ -9,22 +9,6 @@ const router = Router();
 router.use(requireAuth);
 const preferences = new Map<number, Record<string, unknown>>();
 
-router.get('/workspaces', requirePermission("phase2.read"), async (_req, res) => {
-  const rows = await db.select().from(usersTable).where(eq(usersTable.organizationId, tenantId(_req)));
-  const roles = ['CEO', 'Project Manager', 'Site Engineer', 'HR'];
-  res.json(roles.map((role) => ({ role, label: role, description: role === 'CEO' ? 'Portfolio and project overview' : role === 'Project Manager' ? 'Projects, tasks and delivery' : role === 'Site Engineer' ? 'Site activity and daily reports' : 'People, attendance and staffing', available: rows.some((user) => user.role === role) })));
-});
-router.get('/workspaces/:role', requirePermission("phase2.read"), async (req, res) => {
-  const rawRole = Array.isArray(req.params.role) ? req.params.role[0] : req.params.role;
-  const role = decodeURIComponent(rawRole);
-  const organizationId = tenantId(req);
-  const [projects, tasks] = await Promise.all([
-    db.select().from(projectsTable).where(eq(projectsTable.organizationId, organizationId)),
-    db.select().from(tasksTable).where(eq(tasksTable.organizationId, organizationId)),
-  ]);
-  res.json({ role, metrics: { projects: projects.length, activeProjects: projects.filter((p) => p.status === 'active').length, openTasks: tasks.filter((t) => t.status !== 'done').length }, projects: projects.slice(0, 5), recentTasks: tasks.slice(0, 8) });
-});
-
 router.get('/settings/profile', requirePermission("phase2.read"), async (req, res): Promise<void> => {
   const id = req.vetraUser?.id;
   if (!id) { res.status(401).json({ error: 'Authenticated user is missing' }); return; }

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requirePermission } from "../middlewares/permissions";
+import { hasPermission, requirePermission } from "../middlewares/permissions";
 import { tenantId } from "../middlewares/tenant";
 import { getProvider, resolveProviderConfig, RagService } from "../lib/ai";
 import type { AiResponse } from "../lib/ai/types";
@@ -55,11 +55,21 @@ router.post(
 
       const provider = getProvider(config);
 
-      // 2. Build RAG context (always built for provenance, but gated on output)
+      // 2. Build RAG context (always built for provenance, but gated on output).
+      // Access level: the assistant is available to every role with `ai.use`,
+      // but retrieval is narrowed to the caller's project memberships unless
+      // they hold an organization-wide permission.
+      const includeAllProjects = await hasPermission(
+        req.vetraUser!.id,
+        orgId,
+        "organizations.manage",
+      );
       const ragContext = await ragService.buildContext(
         orgId,
+        req.vetraUser!.id,
         projectId,
         query,
+        { includeAllProjects },
       );
 
       // 3. Only include detailed context for local providers or when explicitly allowed

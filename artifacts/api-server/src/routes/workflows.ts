@@ -2,8 +2,6 @@ import { Router } from "express";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import {
   db,
-  nonConformanceReportsTable,
-  qualityEventsTable,
   workflowRunEventsTable,
   workflowRunsTable,
   workflowStepsTable,
@@ -18,7 +16,7 @@ import { audit } from "../lib/audit";
 import { requireAuth } from "../middlewares/requireAuth";
 import { notifyWorkflowDecision } from "../lib/notifications";
 import { hasPermission, requirePermission } from "../middlewares/permissions";
-import { isProjectMember, tenantId } from "../middlewares/tenant";
+import { tenantId } from "../middlewares/tenant";
 
 const router = Router();
 router.use(requireAuth);
@@ -201,26 +199,6 @@ router.post("/workflow-runs/:id/decision", requirePermission("workflows.approve"
     return;
   }
 
-  const [linkedNcr] = run.entityType === "non_conformance_report"
-    ? await db.select().from(nonConformanceReportsTable).where(and(
-      eq(nonConformanceReportsTable.workflowRunId, run.id),
-      eq(nonConformanceReportsTable.organizationId, tenantId(req)),
-      isNull(nonConformanceReportsTable.deletedAt),
-    ))
-    : [undefined];
-  if (run.entityType === "non_conformance_report" && !linkedNcr) {
-    res.status(409).json({ error: "Workflow run is not linked to an active NCR" }); return;
-  }
-
-  // VETRA-SEC-11: Cross-project ownership – the approver must be a member of
-  // the linked entity's project when the entity is project-scoped.
-  const entityProjectId = linkedNcr?.projectId ?? null;
-  if (entityProjectId != null && !(await isProjectMember(req, entityProjectId))) {
-    res.status(403).json({ error: "Forbidden: not a member of the entity's project", projectId: entityProjectId });
-    return;
-  }
-
-  
   // VETRA-SEC-11: Prevent duplicate approval by the same actor.
   // A single actor must not approve the same step more than once.
   const [existingApproval] = await db.select().from(workflowRunEventsTable).where(and(
@@ -298,55 +276,12 @@ router.post("/workflow-runs/:id/decision", requirePermission("workflows.approve"
     actorId: req.vetraUser!.id,
   });
 
-  // Only update the linked entity when the workflow actually transitions
-  if (updated.status !== "pending") {
-  if (run.entityType === "non_conformance_report" && linkedNcr) {
-    const ncrStatus = decision === "approve"
-      ? (isFinalApproval ? "closed" : "awaiting_approval")
-      : "in_progress";
-    const qualityEventType = decision === "approve"
-      ? "workflow_approved"
-      : decision === "reject" ? "workflow_rejected" : "workflow_revision_requested";
-    const [updatedNcr] = await db.update(nonConformanceReportsTable).set({
-      status: ncrStatus,
-      updatedBy: req.vetraUser!.id,
-      updatedAt: new Date(),
-    }).where(and(
-      eq(nonConformanceReportsTable.id, linkedNcr.id),
-      eq(nonConformanceReportsTable.organizationId, tenantId(req)),
-      eq(nonConformanceReportsTable.workflowRunId, run.id),
-      isNull(nonConformanceReportsTable.deletedAt),
-    )).returning();
-    if (!updatedNcr) { res.status(409).json({ error: "Linked NCR changed concurrently; retry the decision" }); return; }
-    await db.insert(qualityEventsTable).values({
-      organizationId: tenantId(req),
-      projectId: updatedNcr.projectId,
-      entityType: "non_conformance_report",
-      entityId: updatedNcr.id,
-      eventType: qualityEventType,
-      previousStatus: linkedNcr.status,
-      nextStatus: updatedNcr.status,
-      reason: comment ?? null,
-      snapshot: { workflowRunId: run.id, workflowStatus: updated.status, currentStep: updated.currentStep },
-      actorId: req.vetraUser!.id,
-    });
-    audit(req, `ncr.${qualityEventType}`, "non_conformance_report", {
-      resourceId: updatedNcr.id,
-      oldValues: { status: linkedNcr.status, workflowRunId: run.id },
-      newValues: { status: updatedNcr.status, workflowRunId: run.id },
-      metadata: comment ? { comment } : undefined,
-    });
-  }
-
-  } // end if (updated.status !== "pending")
-
   // Notify the workflow initiator about the decision
   if (updated.status !== "pending" && run.submittedBy != null && run.submittedBy !== req.vetraUser!.id) {
     const decisionLabel = updated.status === "approved"
       ? "approved"
       : updated.status === "rejected" ? "rejected" : "revision_requested";
-    const entityTitle = run.entityType === "form_submission"
-      ? `فرم #${run.entityId ?? ""}` : `NCR #${run.entityId ?? ""}`;
+    const entityTitle = `${run.entityType} #${run.entityId ?? ""}`;
     notifyWorkflowDecision(run.organizationId, run.submittedBy, entityTitle, decisionLabel, run.id);
   }
 

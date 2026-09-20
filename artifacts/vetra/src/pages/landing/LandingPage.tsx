@@ -29,10 +29,9 @@ export default function LandingPage() {
       {/* Nav */}
       <header className="border-b border-[#1e2840] px-6 h-16 flex items-center justify-between max-w-7xl mx-auto w-full">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded bg-[#f5920d] flex items-center justify-center text-white font-bold text-sm">
-            V
-          </div>
+          <img src="/logo-mark.svg" alt="" className="h-8 w-8" />
           <span dir="ltr" className="font-semibold text-lg tracking-tight text-white">{t('landing.brand')}</span>
+          <img src="/logo-vetra-gold.svg" alt="VETRA" className="h-7 w-auto hidden sm:block" />
           <span className="text-xs font-mono text-[#8fa3b8] border border-[#253152] rounded px-1.5 py-0.5">
             {t('landing.brandSuffix')}
           </span>

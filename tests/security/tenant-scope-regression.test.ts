@@ -202,17 +202,8 @@ vi.mock("../../artifacts/api-server/src/middlewares/tenant", () => ({
     (mocks.rows.get(mocks.tables.projectsTable) ?? []).find((p: any) => p.id === projectId && p.organizationId === req.organizationId) ?? null,
   isProjectMember: async () => true,
 }));
-vi.mock("../../artifacts/api-server/src/lib/notifications", () => ({
-  createNotification: vi.fn(async () => {}),
-  notifyWorkflowDecision: vi.fn(async () => {}),
-  NotificationType: { LOW_STOCK: "LOW_STOCK" },
-}));
 
 import projectsRouter from "../../artifacts/api-server/src/routes/projects";
-import hrRouter from "../../artifacts/api-server/src/routes/hr";
-import procurementExtRouter from "../../artifacts/api-server/src/routes/procurement-ext";
-import stockRouter from "../../artifacts/api-server/src/routes/stock";
-import { createNotification } from "../../artifacts/api-server/src/lib/notifications";
 
 function appWith(routers: any[], organizationId = 1): Express {
   const app = express();
@@ -229,7 +220,6 @@ function appWith(routers: any[], organizationId = 1): Express {
 describe("cross-tenant reference validation", () => {
   beforeEach(() => {
     mocks.reset();
-    vi.mocked(createNotification).mockClear();
   });
 
   it("rejects a project whose managerId belongs to another tenant", async () => {
@@ -240,77 +230,4 @@ describe("cross-tenant reference validation", () => {
     expect(mocks.rows.get(mocks.tables.projectsTable)).toBeUndefined();
   });
 
-  it("rejects updating an employee's projectId to another tenant's project", async () => {
-    mocks.rows.set(mocks.tables.employeesTable, [{ id: 1, organizationId: 1, firstName: "A" }]);
-    mocks.rows.set(mocks.tables.projectsTable, [{ id: 2, name: "Other", organizationId: 2 }]);
-    const app = appWith([hrRouter], 1);
-    const res = await request(app).patch("/employees/1").send({ projectId: 2 });
-    expect(res.status).toBe(404);
-  });
-
-  it("rejects updating an employee's userId to another tenant's user", async () => {
-    mocks.rows.set(mocks.tables.employeesTable, [{ id: 1, organizationId: 1, firstName: "A" }]);
-    mocks.rows.set(mocks.tables.usersTable, [{ id: 22, name: "Other", organizationId: 2 }]);
-    const app = appWith([hrRouter], 1);
-    const res = await request(app).patch("/employees/1").send({ userId: 22 });
-    expect(res.status).toBe(400);
-  });
-
-  it("rejects creating a material linked to another tenant's supplier", async () => {
-    mocks.rows.set(mocks.tables.suppliersTable, [{ id: 5, name: "Other supplier", organizationId: 2 }]);
-    const app = appWith([procurementExtRouter], 1);
-    const res = await request(app).post("/materials").send({ code: "M", name: "M", category: "c", unit: "u", supplierId: 5 });
-    expect(res.status).toBe(400);
-    expect(mocks.rows.get(mocks.tables.materialsTable)).toBeUndefined();
-  });
-
-  it("rejects creating a warehouse linked to another tenant's project", async () => {
-    mocks.rows.set(mocks.tables.projectsTable, [{ id: 9, name: "Other", organizationId: 2 }]);
-    const app = appWith([procurementExtRouter], 1);
-    const res = await request(app).post("/warehouse").send({ name: "W", projectId: 9 });
-    expect(res.status).toBe(404);
-  });
-
-});
-
-describe("low-stock notification tenant scoping", () => {
-  beforeEach(() => {
-    mocks.reset();
-    vi.mocked(createNotification).mockClear();
-  });
-
-  it("does not notify users of another tenant when stock runs low", async () => {
-    mocks.rows.set(mocks.tables.materialsTable, [
-      { id: 1, code: "M", name: "Cement", category: "c", unit: "bag", organizationId: 1, currentStock: "2", minStock: "5" },
-    ]);
-    mocks.rows.set(mocks.tables.warehouseTable, [{ id: 1, name: "WH", organizationId: 1 }]);
-    mocks.rows.set(mocks.tables.permissionsTable, [{ id: 10, key: "stock.read" }]);
-    mocks.rows.set(mocks.tables.rolesTable, [
-      { id: 100, name: "Manager", organizationId: 1 },
-      { id: 200, name: "OtherManager", organizationId: 2 },
-    ]);
-    mocks.rows.set(mocks.tables.userRolesTable, [
-      { userId: 11, roleId: 100 },
-      { userId: 22, roleId: 200 },
-    ]);
-    mocks.rows.set(mocks.tables.rolePermissionsTable, [
-      { roleId: 100, permissionId: 10 },
-      { roleId: 200, permissionId: 10 },
-    ]);
-    mocks.rows.set(mocks.tables.usersTable, [
-      { id: 11, name: "Org1 Admin", organizationId: 1 },
-      { id: 22, name: "Org2 Admin", organizationId: 2 },
-    ]);
-
-    const app = appWith([stockRouter], 1);
-    const res = await request(app).post("/stock/receive").send({ materialId: 1, warehouseId: 1, quantity: 1 });
-    expect(res.status).toBe(201);
-
-    await vi.waitFor(() => {
-      const notifiedIds = vi.mocked(createNotification).mock.calls.map((c: any) => c[0].userId);
-      expect(notifiedIds).toContain(11);
-    });
-    const notifiedIds = vi.mocked(createNotification).mock.calls.map((c: any) => c[0].userId);
-    expect(notifiedIds).not.toContain(22);
-  });
 });

@@ -8,7 +8,6 @@ import {
   Calendar,
   Users,
   ArrowLeft,
-  FileText,
   CheckSquare,
   Settings,
   ChevronLeft,
@@ -145,12 +144,6 @@ export default function ProjectDetail() {
             {t("projects.tab.tasks")}
           </TabsTrigger>
           <TabsTrigger
-            value="documents"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
-          >
-            {t("projects.tab.documents")}
-          </TabsTrigger>
-          <TabsTrigger
             value="team"
             className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
           >
@@ -173,24 +166,6 @@ export default function ProjectDetail() {
                     {stats?.openTasks}{" "}
                     <span className="text-sm font-sans font-normal text-muted-foreground">
                       {t("projects.open")}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="shadow-sm">
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className="h-10 w-10 rounded bg-blue-500/10 flex items-center justify-center text-blue-600">
-                  <FileText className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="text-sm text-muted-foreground">
-                    {t("projects.documents")}
-                  </div>
-                  <div className="text-2xl font-bold font-sans">
-                    {stats?.documentCount}{" "}
-                    <span className="text-sm font-sans font-normal text-muted-foreground">
-                      {t("projects.files")}
                     </span>
                   </div>
                 </div>
@@ -282,11 +257,6 @@ export default function ProjectDetail() {
           </div>
         </TabsContent>
 
-        <TabsContent value="documents" className="pt-6">
-          <div className="flex items-center justify-center h-[300px] border border-dashed rounded-lg bg-card text-muted-foreground">
-            {t("projects.placeholderDocuments")}
-          </div>
-        </TabsContent>
       </Tabs>
     </div>
   );

@@ -9,7 +9,6 @@ const mocks = vi.hoisted(() => {
       "projectsTable",
       "tasksTable",
       "usersTable",
-      "equipmentTable",
       "auditLogsTable",
     ].map((name) => [name, { name }]),
   ) as Record<string, any>;
@@ -109,9 +108,6 @@ describe("Dashboard API", () => {
         { id: 1, organizationId: 1 },
         { id: 2, organizationId: 1 },
       ]);
-      rows.set(tables.equipmentTable, [
-        { id: 1, organizationId: 1, status: "in-use" },
-      ]);
 
       const res = await request(appWith(dashboardRouter)).get("/dashboard/summary");
 
@@ -121,8 +117,6 @@ describe("Dashboard API", () => {
       expect(res.body).toHaveProperty("delayedActivities");
       expect(res.body).toHaveProperty("totalWorkforce");
       expect(res.body).toHaveProperty("pendingApprovals");
-      expect(res.body).toHaveProperty("equipmentActive");
-      expect(res.body).toHaveProperty("equipmentTotal");
       expect(res.body).toHaveProperty("openTasks");
       expect(res.body).toHaveProperty("overdueTasksCount");
     });
@@ -131,7 +125,6 @@ describe("Dashboard API", () => {
       rows.set(tables.projectsTable, []);
       rows.set(tables.tasksTable, []);
       rows.set(tables.usersTable, []);
-      rows.set(tables.equipmentTable, []);
 
       const res = await request(appWith(dashboardRouter)).get("/dashboard/summary");
 
@@ -140,7 +133,6 @@ describe("Dashboard API", () => {
       expect(res.body.overallProgress).toBe(0);
       expect(res.body.totalWorkforce).toBe(0);
       expect(res.body.pendingApprovals).toBe(0);
-      expect(res.body.equipmentActive).toBe(0);
       expect(res.body.openTasks).toBe(0);
     });
 
@@ -151,7 +143,6 @@ describe("Dashboard API", () => {
       ]);
       rows.set(tables.tasksTable, []);
       rows.set(tables.usersTable, []);
-      rows.set(tables.equipmentTable, []);
 
       const res = await request(appWith(dashboardRouter)).get("/dashboard/summary");
 
@@ -167,7 +158,6 @@ describe("Dashboard API", () => {
       ]);
       rows.set(tables.tasksTable, []);
       rows.set(tables.usersTable, []);
-      rows.set(tables.equipmentTable, []);
 
       const res = await request(appWith(dashboardRouter)).get("/dashboard/summary");
 
@@ -182,7 +172,6 @@ describe("Dashboard API", () => {
       ]);
       rows.set(tables.tasksTable, []);
       rows.set(tables.usersTable, []);
-      rows.set(tables.equipmentTable, []);
 
       const res = await request(appWith(dashboardRouter)).get("/dashboard/summary");
 
@@ -198,7 +187,6 @@ describe("Dashboard API", () => {
         { id: 4, organizationId: 1, status: "done", dueDate: "2027-01-01" },
       ]);
       rows.set(tables.usersTable, []);
-      rows.set(tables.equipmentTable, []);
 
       const res = await request(appWith(dashboardRouter)).get("/dashboard/summary");
 

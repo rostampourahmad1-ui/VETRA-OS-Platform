@@ -1,113 +1,120 @@
-import { eq, and, like, or, sql } from "drizzle-orm";
-import { db, dailyReportsTable, documentsTable, projectsTable } from "@workspace/db";
+import { and, eq, inArray } from "drizzle-orm";
+import { db, projectsTable, tasksTable, projectMembersTable } from "@workspace/db";
 import type { RagContext } from "./types";
 
 /**
- * Basic RAG service for VETRA OS.
+ * Basic permission-aware RAG service for VETRA OS.
  *
- * Retrieves relevant project context from the database when a projectId is
- * provided. The context is appended to the system prompt to ground the AI
- * response in real project data.
+ * Retrieval is scoped by the authenticated user's access level:
+ *   - Every snippet is limited to the caller's organization (tenant).
+ *   - Projects are limited to projects the user is a member of, unless the
+ *     caller is explicitly authorized for the whole organization
+ *     (`includeAllProjects`).
+ *   - A client-supplied `projectId` is only honored when it is within the
+ *     user's accessible scope; otherwise no context is returned.
  *
- * Future improvements:
- * - Embedding-based semantic search (pgvector or external)
- * - Configurable chunk size and overlap
- * - Caching of frequent queries
- * - Multi-source scoring and ranking
+ * Authorization decisions (e.g. whether the user may read the whole
+ * organization) are made at the route boundary; this service only narrows the
+ * data it will surface.
  */
+export interface RagScopeOptions {
+  /** When true, the whole organization's projects are considered accessible. */
+  includeAllProjects?: boolean;
+}
+
 export class RagService {
   /**
-   * Build context snippets scoped to an organization and optional project.
+   * Build context snippets scoped to an organization, the user's access level,
+   * and an optional project.
    *
    * @param organizationId - Tenant-scoped organisation id.
+   * @param userId - Authenticated VETRA user id used for membership scoping.
    * @param projectId - Optional project to narrow context.
    * @param _query - User query for future semantic ranking.
+   * @param options - Access-level flags resolved by the caller.
    */
   async buildContext(
     organizationId: number,
+    userId: number,
     projectId?: number,
     _query?: string,
+    options: RagScopeOptions = {},
   ): Promise<RagContext> {
     const snippets: string[] = [];
     const sources: string[] = [];
 
-    // 1. Project info (always included when projectId is given)
-    if (projectId) {
-      const [project] = await db
-        .select()
+    // 1. Resolve the projects this user is allowed to see.
+    let accessibleProjectIds: number[];
+    if (options.includeAllProjects) {
+      const orgProjects = await db
+        .select({ id: projectsTable.id })
         .from(projectsTable)
+        .where(eq(projectsTable.organizationId, organizationId));
+      accessibleProjectIds = orgProjects.map((row) => row.id);
+    } else {
+      const memberships = await db
+        .select({ projectId: projectMembersTable.projectId })
+        .from(projectMembersTable)
         .where(
           and(
-            eq(projectsTable.id, projectId),
-            eq(projectsTable.organizationId, organizationId),
+            eq(projectMembersTable.organizationId, organizationId),
+            eq(projectMembersTable.userId, userId),
           ),
         );
-
-      if (project) {
-        snippets.push(
-          `Project: ${project.name}\nStatus: ${project.status}\nProgress: ${project.progress}%\nClient: ${project.client}\nLocation: ${project.location}\nPhase: ${project.phase ?? "N/A"}`,
-        );
-        sources.push("project");
-      }
+      accessibleProjectIds = memberships.map((row) => row.projectId);
     }
 
-    // 2. Recent daily reports (last 5, any project in the org)
-    const reports = await db
-      .select({
-        date: dailyReportsTable.date,
-        weather: dailyReportsTable.weather,
-        progress: dailyReportsTable.progress,
-        workersOnSite: dailyReportsTable.workersOnSite,
-        issues: dailyReportsTable.issues,
-        notes: dailyReportsTable.notes,
-      })
-      .from(dailyReportsTable)
-      .where(
-        projectId
-          ? and(
-              eq(dailyReportsTable.projectId, projectId),
-              eq(dailyReportsTable.organizationId, organizationId),
-            )
-          : eq(dailyReportsTable.organizationId, organizationId),
-      )
-      .orderBy(sql`${dailyReportsTable.date} DESC`)
-      .limit(5);
+    const targetIds = projectId
+      ? accessibleProjectIds.filter((id) => id === projectId)
+      : accessibleProjectIds.slice(0, 5);
 
-    if (reports.length > 0) {
-      const reportText = reports
+    if (targetIds.length === 0) {
+      return { snippets, sources };
+    }
+
+    // 2. Project info for the accessible projects only.
+    const projects = await db
+      .select()
+      .from(projectsTable)
+      .where(
+        and(
+          eq(projectsTable.organizationId, organizationId),
+          inArray(projectsTable.id, targetIds),
+        ),
+      );
+
+    if (projects.length > 0) {
+      const projectText = projects
         .map(
-          (r) =>
-            `[${r.date}] Weather: ${r.weather}, Progress: ${r.progress}%, Workers: ${r.workersOnSite}${r.issues ? `, Issues: ${r.issues}` : ""}${r.notes ? `, Notes: ${r.notes}` : ""}`,
+          (p) =>
+            `Project: ${p.name}\nStatus: ${p.status}\nProgress: ${p.progress}%\nClient: ${p.client}\nLocation: ${p.location}\nPhase: ${p.phase ?? "N/A"}`,
         )
-        .join("\n");
-      snippets.push(`Recent daily reports:\n${reportText}`);
-      sources.push("daily_reports");
+        .join("\n\n");
+      snippets.push(projectText);
+      sources.push("project");
     }
 
-    // 3. Recent documents (last 5, title + type)
-    const docs = await db
-      .select({
-        name: documentsTable.name,
-        type: documentsTable.type,
-      })
-      .from(documentsTable)
+    // 3. Open task summary for the accessible projects only.
+    const tasks = await db
+      .select()
+      .from(tasksTable)
       .where(
-        projectId
-          ? and(
-              eq(documentsTable.projectId, projectId),
-              eq(documentsTable.organizationId, organizationId),
-            )
-          : eq(documentsTable.organizationId, organizationId),
-      )
-      .orderBy(sql`${documentsTable.createdAt} DESC`)
-      .limit(5);
+        and(
+          eq(tasksTable.organizationId, organizationId),
+          inArray(tasksTable.projectId, targetIds),
+        ),
+      );
 
-    if (docs.length > 0) {
-      const docText = docs
-        .map((d) => `- ${d.name} (${d.type})`)
+    if (tasks.length > 0) {
+      const openTasks = tasks.filter((t) => t.status !== "done");
+      const taskText = openTasks
+        .slice(0, 10)
+        .map((t) => `- [${t.status}] ${t.title}${t.dueDate ? ` (due ${t.dueDate})` : ""}`)
         .join("\n");
-      snippets.push(`Recent documents:\n${docText}`);
-      sources.push("documents");
+      if (taskText) {
+        snippets.push(`Open tasks:\n${taskText}`);
+        sources.push("tasks");
+      }
     }
 
     return { snippets, sources };

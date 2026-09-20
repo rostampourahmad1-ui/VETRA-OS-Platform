@@ -110,38 +110,6 @@ export const evmMetricsTable = pgTable("evm_metrics", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-// ─── Resources & Tasks ───────────────────────────────────────────────────────
-
-export const resourceTypesTable = pgTable("resource_types", {
-  id: serial("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizationsTable.id),
-  name: text("name").notNull(),
-  category: text("category").notNull(), // labor, equipment, material
-  unit: text("unit").notNull(),
-  defaultCostPerUnit: numeric("default_cost_per_unit", { precision: 15, scale: 2 }).notNull().default("0"),
-  description: text("description"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-  deletedAt: timestamp("deleted_at", { withTimezone: true }),
-});
-
-export const resourceAssignmentsTable = pgTable("resource_assignments", {
-  id: serial("id").primaryKey(),
-  activityId: integer("activity_id").notNull().references(() => planningActivitiesTable.id),
-  projectId: integer("project_id").notNull().references(() => projectsTable.id),
-  organizationId: integer("organization_id").notNull().references(() => organizationsTable.id),
-  resourceTypeId: integer("resource_type_id").notNull().references(() => resourceTypesTable.id),
-  quantity: numeric("quantity", { precision: 12, scale: 2 }).notNull().default("1"),
-  costPerUnit: numeric("cost_per_unit", { precision: 15, scale: 2 }).notNull().default("0"),
-  totalCost: numeric("total_cost", { precision: 15, scale: 2 }).notNull().default("0"),
-  startDate: date("start_date", { mode: "string" }),
-  endDate: date("end_date", { mode: "string" }),
-  notes: text("notes"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-  deletedAt: timestamp("deleted_at", { withTimezone: true }),
-});
-
 // ─── Insert Schemas ──────────────────────────────────────────────────────────
 
 export const insertCalendarSchema = createInsertSchema(projectCalendarsTable).omit({ id: true, createdAt: true, updatedAt: true, organizationId: true });
@@ -151,5 +119,3 @@ export const insertBaselineSchema = createInsertSchema(baselinesTable).omit({ id
 export const insertBaselineActivitySchema = createInsertSchema(baselineActivitiesTable).omit({ id: true, createdAt: true, organizationId: true });
 export const insertActualProgressSchema = createInsertSchema(actualProgressTable).omit({ id: true, createdAt: true, updatedAt: true, organizationId: true });
 export const insertEvmMetricSchema = createInsertSchema(evmMetricsTable).omit({ id: true, createdAt: true, organizationId: true });
-export const insertResourceTypeSchema = createInsertSchema(resourceTypesTable).omit({ id: true, createdAt: true, updatedAt: true, organizationId: true });
-export const insertResourceAssignmentSchema = createInsertSchema(resourceAssignmentsTable).omit({ id: true, createdAt: true, updatedAt: true, organizationId: true });

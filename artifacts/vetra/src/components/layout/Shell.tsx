@@ -3,12 +3,10 @@ import { Link, useLocation } from 'wouter';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { get } from '@/lib/phase2-api';
 import {
-  Building2, LayoutDashboard, FolderKanban, ListTodo, FileText,
-  Briefcase, Activity, Users, Package, Truck, X,
+  Building2, LayoutDashboard, FolderKanban, ListTodo, X,
   Settings, ChevronDown, Bell, Search, Menu,
-  Calendar, Wrench, BarChart3, Bot, ClipboardCheck,
-  UserCircle, LogOut,
-  CalendarClock, TrendingUp, Boxes, Warehouse,
+  BarChart3, Bot, LogOut,
+  CalendarClock, TrendingUp,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -45,20 +43,8 @@ function Sidebar() {
     { name: 'داشبورد', href: '/', icon: LayoutDashboard },
     { name: 'پروژه‌ها', href: '/projects', icon: FolderKanban },
     { name: 'وظایف', href: '/tasks', icon: ListTodo },
-    { name: 'اسناد', href: '/documents', icon: FileText },
-    { name: 'کیفیت', href: '/quality', icon: ClipboardCheck },
-    { name: 'قراردادها', href: '/contracts', icon: Briefcase },
-    { name: 'گزارش‌های روزانه', href: '/daily-reports', icon: Activity },
-    { name: 'جلسات', href: '/meetings', icon: Calendar },
-    { name: 'منابع انسانی و تیم', href: '/hr', icon: Users },
-    { name: 'تجهیزات', href: '/equipment', icon: Wrench },
-    { name: 'انبار', href: '/inventory', icon: Package },
-    { name: 'تدارکات', href: '/procurement', icon: Truck },
-    { name: 'انبارخانه', href: '/warehouse', icon: Warehouse },
-    { name: 'فضای کاری', href: '/workspace', icon: LayoutDashboard },
     { name: 'زمان‌بندی', href: '/scheduling', icon: CalendarClock },
     { name: 'پیشرفت', href: '/progress', icon: TrendingUp },
-    { name: 'منابع', href: '/resources', icon: Boxes },
     { name: 'اعلان‌ها', href: '/notifications', icon: Bell },
 
   ];
@@ -78,9 +64,7 @@ function Sidebar() {
     <div className="hidden md:flex flex-col w-64 bg-sidebar border-r border-sidebar-border h-full text-sidebar-foreground">
       <div className="h-16 flex items-center px-6 border-b border-sidebar-border bg-sidebar">
         <div className="flex items-center gap-3 w-full">
-          <div className="h-8 w-8 rounded bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground font-bold">
-            V
-          </div>
+          <img src={`${basePath}/logo-mark.svg`} alt="VETRA" className="h-8 w-8" />
           <div className="flex-1 font-semibold text-lg tracking-tight text-white">
             VETRA
           </div>
@@ -117,7 +101,6 @@ function Sidebar() {
         </div>
         <nav className="space-y-1 px-2">
           {[
-           { href: '/crm', icon: UserCircle, label: 'ارتباط با مشتری' },
              { href: '/reports', icon: BarChart3, label: 'گزارش‌ها' },
              { href: '/ai-assistant', icon: Bot, label: 'دستیار هوشمند' },
              { href: '/settings', icon: Settings, label: 'تنظیمات' },

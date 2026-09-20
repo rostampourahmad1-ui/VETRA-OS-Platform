@@ -41,30 +41,6 @@ export function renderWorkflowRevisionRequestedEmail(entityTitle: string, link: 
   };
 }
 
-export function renderDocumentUploadedEmail(documentName: string, projectName: string, link: string): EmailTemplate {
-  return {
-    subject: `سند جدید: ${documentName}`,
-    text: `سند "${documentName}" در پروژه "${projectName}" آپلود شد.\n\nمشاهده: ${link}`,
-    html: `<p>سند <strong>${documentName}</strong> در پروژه <strong>${projectName}</strong> آپلود شد.</p><p><a href="${link}">مشاهده</a></p>`,
-  };
-}
-
-export function renderPayrollPaidEmail(amount: string, period: string, link: string): EmailTemplate {
-  return {
-    subject: `حقوق پرداخت شد`,
-    text: `حقوق شما برای دوره ${period} به مبلغ ${amount} پرداخت شد.\n\nمشاهده: ${link}`,
-    html: `<p>حقوق شما برای دوره <strong>${period}</strong> به مبلغ <strong>${amount}</strong> پرداخت شد.</p><p><a href="${link}">مشاهده</a></p>`,
-  };
-}
-
-export function renderLowStockEmail(materialName: string, currentStock: string, minStock: string, link: string): EmailTemplate {
-  return {
-    subject: `موجودی کم: ${materialName}`,
-    text: `موجودی ${materialName} به ${currentStock} رسیده (حداقل: ${minStock}).\n\nمشاهده: ${link}`,
-    html: `<p>موجودی <strong>${materialName}</strong> به <strong>${currentStock}</strong> رسیده است (حداقل: ${minStock}).</p><p><a href="${link}">مشاهده</a></p>`,
-  };
-}
-
 export function renderWorkflowEscalatedEmail(entityTitle: string, link: string): EmailTemplate {
   return {
     subject: `تصعید گردش کار: ${entityTitle}`,
