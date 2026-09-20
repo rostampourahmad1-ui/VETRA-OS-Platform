@@ -8,10 +8,10 @@
   },
   "scripts": {
     "preinstall": "node -e \"try { require('fs').unlinkSync('package-lock.json'); } catch(e) {} try { require('fs').unlinkSync('yarn.lock'); } catch(e) {}\"",
-    "build": "pnpm run typecheck && pnpm -r --if-present run build",
+    "build": "corepack pnpm run typecheck && corepack pnpm -r --if-present run build",
     "typecheck:libs": "tsc --build",
-    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
-    "lint": "pnpm -r --if-present run lint",
+    "typecheck": "corepack pnpm run typecheck:libs && corepack pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
+    "lint": "corepack pnpm -r --if-present run lint",
     "test": "vitest run",
     "db:migrate": "node scripts/run-migrations.mjs",
     "validate:final": "node scripts/final-validation.mjs"
