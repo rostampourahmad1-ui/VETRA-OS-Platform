@@ -132,24 +132,17 @@ export const AuditAction = {
   SCHEDULING_EVM_CALCULATED: "scheduling.evm.calculated",
   SCHEDULING_RESOURCE_TYPE_CREATED: "scheduling.resource_type.created",
   SCHEDULING_RESOURCE_ASSIGNED: "scheduling.resource_assigned",
-  // BOQ, QTO, Payment Certificate actions
+  // BOQ and QTO actions
   BOQ_CREATED: "boq.created",
   BOQ_UPDATED: "boq.updated",
   BOQ_DELETED: "boq.deleted",
   QTO_CREATED: "qto.created",
   QTO_UPDATED: "qto.updated",
-  PAYMENT_CERTIFICATE_CREATED: "payment_certificate.created",
-  PAYMENT_CERTIFICATE_UPDATED: "payment_certificate.updated",
-  PAYMENT_CERTIFICATE_APPROVED: "payment_certificate.approved",
   // Planning actions
   PLANNING_WBS_CREATED: "planning.wbs.created",
   PLANNING_ACTIVITY_CREATED: "planning.activity.created",
   PLANNING_PHASE_CREATED: "planning.phase.created",
   PLANNING_MILESTONE_CREATED: "planning.milestone.created",
-  // Cost control actions
-  COST_CONTROL_CATEGORY_CREATED: "cost_control.category.created",
-  COST_CONTROL_BUDGET_CREATED: "cost_control.budget.created",
-  COST_CONTROL_EXPENSE_CREATED: "cost_control.expense.created",
   // Organization actions
   ORGANIZATION_UPDATED: "organization.updated",
 } as const;

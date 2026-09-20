@@ -9,7 +9,7 @@ import { tenantId } from "../middlewares/tenant";
 const router = Router();
 const serialize = (row: any, managerName = "Unknown") => ({
   ...row,
-  progress: Number(row.progress ?? 0), budget: Number(row.budget ?? 0), spent: Number(row.spent ?? 0),
+  progress: Number(row.progress ?? 0),
   managerName, createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt,
 });
 
@@ -34,7 +34,7 @@ router.post("/projects", requirePermission("projects.create"), async (req, res):
   }
   const [row] = await db.insert(projectsTable).values({
     name: d.name, description: d.description, client: d.client, location: d.location,
-    startDate: d.startDate, endDate: d.endDate, budget: d.budget?.toString() ?? "0",
+    startDate: d.startDate, endDate: d.endDate,
     managerId: d.managerId, organizationId: tenantId(req), priority: d.priority ?? "medium",
     phase: d.phase, status: d.status ?? "planning",
   }).returning();
@@ -62,19 +62,19 @@ router.patch("/projects/:id", requirePermission("projects.update"), async (req, 
     const [mgr] = await db.select({ id: usersTable.id }).from(usersTable).where(and(eq(usersTable.id, d.managerId), eq(usersTable.organizationId, tenantId(req))));
     if (!mgr) { res.status(400).json({ error: "Manager must belong to the current organization" }); return; }
   }
-  for (const key of ["progress", "budget", "spent"] as const) if (d[key] !== undefined) updates[key] = d[key]!.toString();
+  if (d.progress !== undefined) updates.progress = d.progress.toString();
   // VETRA-SEC-06: Capture old values for audit before update
-  const [old] = await db.select({ name: projectsTable.name, status: projectsTable.status, phase: projectsTable.phase, budget: projectsTable.budget })
+  const [old] = await db.select({ name: projectsTable.name, status: projectsTable.status, phase: projectsTable.phase })
     .from(projectsTable).where(and(eq(projectsTable.id, id), eq(projectsTable.organizationId, tenantId(req))));
   if (!old) {
     res.status(404).json({ error: "Not found" });
     return;
   }
-  const oldValues = { name: old.name, status: old.status, phase: old.phase, budget: old.budget };
+  const oldValues = { name: old.name, status: old.status, phase: old.phase };
   const [row] = await db.update(projectsTable).set(updates).where(and(eq(projectsTable.id, id), eq(projectsTable.organizationId, tenantId(req)))).returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
   res.json(serialize(row));
-  audit(req, "project.updated", "project", { resourceId: row.id, oldValues, newValues: { name: row.name, status: row.status, phase: row.phase, budget: row.budget } });
+  audit(req, "project.updated", "project", { resourceId: row.id, oldValues, newValues: { name: row.name, status: row.status, phase: row.phase } });
 });
 
 router.delete("/projects/:id", requirePermission("projects.delete"), async (req, res): Promise<void> => {

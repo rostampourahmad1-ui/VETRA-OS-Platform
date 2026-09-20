@@ -19,13 +19,11 @@ const mocks = vi.hoisted(() => {
 
   const tables = {
     usersTable: makeTable("users", ["id", "name", "organizationId", "active"]),
-    projectsTable: makeTable("projects", ["id", "name", "status", "budget", "spent", "organizationId", "managerId", "createdAt"]),
+    projectsTable: makeTable("projects", ["id", "name", "status", "organizationId", "managerId", "createdAt"]),
     employeesTable: makeTable("employees", ["id", "organizationId", "projectId", "userId", "firstName", "deletedAt"]),
     suppliersTable: makeTable("suppliers", ["id", "name", "organizationId"]),
     materialsTable: makeTable("materials", ["id", "code", "name", "category", "unit", "organizationId", "supplierId", "projectId", "currentStock", "minStock", "deletedAt"]),
     warehouseTable: makeTable("warehouse", ["id", "name", "organizationId", "projectId", "deletedAt"]),
-    expenseCategoriesTable: makeTable("expenseCategories", ["id", "name", "organizationId"]),
-    budgetsTable: makeTable("budgets", ["id", "name", "amount", "organizationId", "projectId", "categoryId"]),
     rolesTable: makeTable("roles", ["id", "name", "organizationId"]),
     userRolesTable: makeTable("userRoles", ["userId", "roleId"]),
     rolePermissionsTable: makeTable("rolePermissions", ["roleId", "permissionId"]),
@@ -213,7 +211,6 @@ vi.mock("../../artifacts/api-server/src/lib/notifications", () => ({
 import projectsRouter from "../../artifacts/api-server/src/routes/projects";
 import hrRouter from "../../artifacts/api-server/src/routes/hr";
 import procurementExtRouter from "../../artifacts/api-server/src/routes/procurement-ext";
-import costControlRouter from "../../artifacts/api-server/src/routes/cost-control";
 import stockRouter from "../../artifacts/api-server/src/routes/stock";
 import { createNotification } from "../../artifacts/api-server/src/lib/notifications";
 
@@ -274,13 +271,6 @@ describe("cross-tenant reference validation", () => {
     expect(res.status).toBe(404);
   });
 
-  it("rejects creating a budget linked to another tenant's expense category", async () => {
-    mocks.rows.set(mocks.tables.expenseCategoriesTable, [{ id: 7, name: "Other cat", organizationId: 2 }]);
-    const app = appWith([costControlRouter], 1);
-    const res = await request(app).post("/cost-control/budgets").send({ name: "B", amount: 100, categoryId: 7 });
-    expect(res.status).toBe(400);
-    expect(mocks.rows.get(mocks.tables.budgetsTable)).toBeUndefined();
-  });
 });
 
 describe("low-stock notification tenant scoping", () => {

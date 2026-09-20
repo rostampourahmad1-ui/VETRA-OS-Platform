@@ -362,7 +362,6 @@ describe("VETRA-SEC-07: RBAC — Permission Completeness", () => {
       "phase2.read", "phase2.update",
       "forms.read", "forms.manage", "forms.submit",
       "quality.read", "quality.create", "quality.update", "quality.delete",
-      "cost-control.read", "cost-control.manage",
       "planning.read", "planning.manage",
       "workflows.read", "workflows.manage", "workflows.execute", "workflows.approve",
       "ai.use",

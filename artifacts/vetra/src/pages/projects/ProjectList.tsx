@@ -17,7 +17,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { formatCurrency } from '@/lib/jalali';
 
 export default function ProjectList() {
   const [search, setSearch] = useState('');
@@ -108,17 +107,6 @@ export default function ProjectList() {
                       <span className="font-sans text-xs font-bold">{project.progress}%</span>
                     </div>
                     <Progress value={project.progress} className="h-2" />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 py-3 border-y border-border/50">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-sans tracking-wider text-muted-foreground">{t('projects.budget')}</span>
-                      <span className="font-sans text-sm font-semibold">{formatCurrency(project.budget)}</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-sans tracking-wider text-muted-foreground">{t('projects.spent')}</span>
-                      <span className="font-sans text-sm font-semibold text-destructive">{formatCurrency(project.spent)}</span>
-                    </div>
                   </div>
 
                   <div className="flex justify-between items-center text-xs text-muted-foreground">

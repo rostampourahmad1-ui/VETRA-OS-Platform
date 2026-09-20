@@ -19,7 +19,7 @@
 //
 // MONEY-SAFETY: all monetary values are converted to exact integer cents and
 // computed with BigInt arithmetic. No IEEE-754 float arithmetic is used for
-// financial values; ratios (CPI/SPI/TCPI) are produced by integer rounding.
+  // Monetary values are represented as integer cents; ratios use integer rounding.
 // ---------------------------------------------------------------------------
 
 import type { EVMInput, EVMOutput } from "./types";

@@ -363,31 +363,19 @@ describe("cross-tenant isolation", () => {
   });
 
   it("scopes phase2 workspace and report aggregates", async () => {
-    mocks.rows.set(mocks.tables.projectsTable, [
-      { id: 1, name: "Alpha", status: "active", budget: "100", organizationId: 1 },
-      { id: 2, name: "Beta", status: "active", budget: "900", organizationId: 2 },
-    ]);
-    mocks.rows.set(mocks.tables.tasksTable, [
-      { id: 701, title: "A task", status: "todo", projectId: 1, organizationId: 1 },
-      { id: 702, title: "B task", status: "todo", projectId: 2, organizationId: 2 },
-    ]);
-    mocks.rows.set(mocks.tables.expensesTable, [
-      { id: 801, amount: "25", organizationId: 1, projectId: 1 },
-      { id: 802, amount: "900", organizationId: 2, projectId: 2 },
-    ]);
-
+    mocks.rows.set(mocks.tables.projectsTable, [{ id: 1, name: "Alpha", status: "active", organizationId: 1 }, { id: 2, name: "Beta", status: "active", organizationId: 2 }]);
+    mocks.rows.set(mocks.tables.tasksTable, [{ id: 701, title: "A task", status: "todo", projectId: 1, organizationId: 1 }, { id: 702, title: "B task", status: "todo", projectId: 2, organizationId: 2 }]);
     const app = appWith([phase2Router]);
     const workspace = await request(app).get("/workspaces/CEO");
     expect(workspace.status).toBe(200);
     expect(workspace.body.metrics.projects).toBe(1);
-    expect(workspace.body.metrics.spent).toBe(25);
+    expect(workspace.body.metrics).not.toHaveProperty("spent");
     expect(workspace.body.projects.map((project: any) => project.id)).toEqual([1]);
-
     const report = await request(app).get("/reports/summary");
     expect(report.status).toBe(200);
     expect(report.body.projects.total).toBe(1);
     expect(report.body.tasks.total).toBe(1);
-    expect(report.body.costs.spent).toBe(25);
+    expect(report.body).not.toHaveProperty("costs");
   });
 
   it("does not allow a tenant to download another tenant's document", async () => {

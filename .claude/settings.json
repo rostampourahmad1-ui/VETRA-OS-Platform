@@ -1,4 +1,4 @@
-﻿{
+{
   "permissions": {
     "allowCommands": [
       "pnpm dev",
@@ -15,5 +15,6 @@
       "git push --force",
       "dropdb *"
     ]
-  }
+  },
+  "enabledPlugins": {}
 }

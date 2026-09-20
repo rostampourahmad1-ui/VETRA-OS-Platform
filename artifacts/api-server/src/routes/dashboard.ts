@@ -8,7 +8,6 @@ import {
   tasksTable,
   usersTable,
   equipmentTable,
-  expensesTable,
 } from "@workspace/db";
 import { tenantId } from "../middlewares/tenant";
 
@@ -25,8 +24,6 @@ router.get("/dashboard/summary", requirePermission("dashboard.read"), async (req
   ]);
 
   const activeProjects = projects.filter(p => p.status === "active").length;
-  const totalBudget = projects.reduce((s, p) => s + parseFloat(p.budget as string), 0);
-  const spentBudget = projects.reduce((s, p) => s + parseFloat(p.spent as string), 0);
   const avgProgress = projects.length > 0
     ? projects.reduce((s, p) => s + parseFloat(p.progress as string), 0) / projects.length
     : 0;
@@ -47,8 +44,6 @@ router.get("/dashboard/summary", requirePermission("dashboard.read"), async (req
 
   res.json({
     activeProjects,
-    totalBudget,
-    spentBudget,
     overallProgress,
     delayedActivities,
     totalWorkforce: users.length,
@@ -65,16 +60,13 @@ router.get("/dashboard/project-health", requirePermission("dashboard.read"), asy
   const today = new Date();
 
   const health = projects.map(p => {
-    const budgetUsed = parseFloat(p.spent as string);
-    const budgetTotal = parseFloat(p.budget as string);
-    const budgetRatio = budgetTotal > 0 ? budgetUsed / budgetTotal : 0;
     const progress = parseFloat(p.progress as string);
     const endDate = new Date(p.endDate);
     const daysRemaining = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
     let h = "good";
-    if (p.status === "on-hold" || daysRemaining < 0 || budgetRatio > 0.95) h = "critical";
-    else if (daysRemaining < 30 || budgetRatio > 0.85 || progress < 40) h = "warning";
+    if (p.status === "on-hold" || daysRemaining < 0) h = "critical";
+    else if (daysRemaining < 30 || progress < 40) h = "warning";
 
     return {
       projectId: p.id,
@@ -82,8 +74,6 @@ router.get("/dashboard/project-health", requirePermission("dashboard.read"), asy
       progress,
       status: p.status,
       health: h,
-      budgetUsed,
-      budgetTotal,
       daysRemaining,
     };
   });
@@ -117,43 +107,6 @@ router.get("/dashboard/recent-activity", requirePermission("dashboard.read"), as
       createdAt: i.createdAt.toISOString(),
     }))
   );
-});
-
-/**
- * VETRA-FIN-01: Cash Flow endpoint
- *
- * Returns the last 12 months of real expense data aggregated by calendar month.
- * Income is reported as 0 because no income/revenue tracking exists yet.
- */
-router.get("/dashboard/cash-flow", requirePermission("dashboard.read"), async (req, res): Promise<void> => {
-  const now = new Date();
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-  const organizationId = tenantId(req);
-  const expenses = await db
-    .select({ expenseDate: expensesTable.expenseDate, amount: expensesTable.amount })
-    .from(expensesTable)
-    .where(eq(expensesTable.organizationId, organizationId));
-
-  const data = months.map((month, i) => {
-    const date = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1);
-    const year = date.getFullYear();
-    const monthIdx = date.getMonth();
-    const monthLabel = months[monthIdx];
-    const prefix = `${year}-${String(monthIdx + 1).padStart(2, "0")}`;
-
-    const monthExpense = expenses
-      .filter(e => e.expenseDate && e.expenseDate.startsWith(prefix))
-      .reduce((sum, e) => sum + Number(e.amount ?? 0), 0);
-
-    return {
-      month: monthLabel,
-      income: 0,
-      expense: Math.round(monthExpense * 100) / 100,
-    };
-  });
-
-  res.json(data);
 });
 
 /**

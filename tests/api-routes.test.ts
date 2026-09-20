@@ -3,7 +3,7 @@ import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => {
-  const tables = Object.fromEntries(["projectsTable", "usersTable", "tasksTable", "budgetsTable", "expensesTable", "expenseCategoriesTable"].map((name) => [name, { name }])) as Record<string, any>;
+  const tables = Object.fromEntries(["projectsTable", "usersTable", "tasksTable"].map((name) => [name, { name }])) as Record<string, any>;
   const rows = new Map<any, any[]>();
   const db = { select: vi.fn(() => { let table: any; return { from(value: any) { table = value; return this; }, where() { return Promise.resolve(rows.get(table) ?? []); }, then(resolve: any, reject?: any) { return Promise.resolve(rows.get(table) ?? []).then(resolve, reject); } }; }) };
   return { tables, rows, db };
@@ -17,7 +17,6 @@ vi.mock("../artifacts/api-server/src/middlewares/tenant", () => ({ tenantId: () 
 
 import projectsRouter from "../artifacts/api-server/src/routes/projects";
 import tasksRouter from "../artifacts/api-server/src/routes/tasks";
-import costRouter from "../artifacts/api-server/src/routes/cost-control";
 import usersRouter from "../artifacts/api-server/src/routes/users";
 
 function appWith(router: any) { const app = express(); app.use(express.json()); app.use((req: any, _res, next) => { req.organizationId = 1; req.vetraUser = { id: 7, organizationId: 1, role: "CEO" }; next(); }); app.use(router); return app; }
@@ -41,12 +40,5 @@ describe("tenant-scoped API routes", () => {
     rows.set(tables.usersTable, []);
     const response = await request(appWith(usersRouter)).get("/users/999");
     expect(response.status).toBe(404);
-  });
-  it("cost-control summary only exposes tenant-owned financial rows", async () => {
-    rows.set(tables.budgetsTable, [{ organizationId: 1, amount: "100", projectId: 1 }]);
-    rows.set(tables.expensesTable, [{ organizationId: 1, amount: "25", projectId: 1 }]);
-    rows.set(tables.expenseCategoriesTable, []);
-    const response = await request(appWith(costRouter)).get("/cost-control/summary");
-    expect(response.status).toBe(200); expect(response.body.budgetTotal).toBe(100); expect(response.body.spentTotal).toBe(25);
   });
 });

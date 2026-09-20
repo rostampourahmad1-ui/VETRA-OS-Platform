@@ -124,19 +124,6 @@ function appWith(orgId: number = 1): Express {
     res.json({ id: Number(req.params.itemId) });
   });
 
-  // POST /contracts/:contractId/payment-certificates
-  app.post("/contracts/:contractId/payment-certificates", (req: any, res: Response) => {
-    const contractId = Number(req.params.contractId);
-    const contract = (rows.get(tables.contractsTable) ?? []).find(
-      (c: any) => c.id === contractId && c.organizationId === req.organizationId,
-    );
-    if (!contract) {
-      res.status(404).json({ error: "Not found" });
-      return;
-    }
-    res.status(201).json({ id: 1 });
-  });
-
   // DELETE /contracts/:contractId/boq/:itemId
   app.delete("/contracts/:contractId/boq/:itemId", (req: any, res: Response) => {
     const contractId = Number(req.params.contractId);
@@ -190,17 +177,7 @@ describe("VETRA-SEC-03: Contracts — Cross-Tenant Isolation", () => {
     expect(res.status).toBe(404);
   });
 
-  it("P0-4: Tenant A cannot create payment certificates for Tenant B's contract", async () => {
-    seedTwoTenantContracts();
-    const app = appWith(1);
-    const res = await request(app).post("/contracts/2/payment-certificates").send({
-      title: "Cert 1", certificateNumber: "C001", periodStart: "2026-01-01", periodEnd: "2026-03-31",
-      thisPeriod: 100, deductions: 0, retention: 10,
-    });
-    expect(res.status).toBe(404);
-  });
-
-  it("P0-5: Tenant A cannot delete Tenant B's BOQ item", async () => {
+  it("P0-4: Tenant A cannot delete Tenant B's BOQ item", async () => {
     seedTwoTenantContracts();
     rows.set(tables.boqItemsTable, [{ id: 5, contractId: 2, organizationId: 2, code: "B001", description: "Org B item", unit: "m2", quantity: "10", unitPrice: "100", totalPrice: "1000", level: 0, sortOrder: 1, deletedAt: null }]);
 

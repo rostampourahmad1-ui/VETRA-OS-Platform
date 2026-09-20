@@ -43,27 +43,3 @@ export const qtoItemsTable = pgTable("qto_items", {
 export const insertQtoItemSchema = createInsertSchema(qtoItemsTable).omit({ id: true, createdAt: true, updatedAt: true, organizationId: true });
 export type InsertQtoItem = z.infer<typeof insertQtoItemSchema>;
 export type QtoItem = typeof qtoItemsTable.$inferSelect;
-
-export const paymentCertificatesTable = pgTable("payment_certificates", {
-  id: serial("id").primaryKey(),
-  contractId: integer("contract_id").notNull().references(() => contractsTable.id),
-  organizationId: integer("organization_id").notNull().references(() => organizationsTable.id),
-  title: text("title").notNull(),
-  certificateNumber: text("certificate_number").notNull(),
-  periodStart: date("period_start", { mode: "string" }).notNull(),
-  periodEnd: date("period_end", { mode: "string" }).notNull(),
-  previousCumulative: numeric("previous_cumulative", { precision: 15, scale: 2 }).notNull().default("0"),
-  thisPeriod: numeric("this_period", { precision: 15, scale: 2 }).notNull().default("0"),
-  deductions: numeric("deductions", { precision: 15, scale: 2 }).notNull().default("0"),
-  retention: numeric("retention", { precision: 15, scale: 2 }).notNull().default("0"),
-  netPayable: numeric("net_payable", { precision: 15, scale: 2 }).notNull().default("0"),
-  cumulativeToDate: numeric("cumulative_to_date", { precision: 15, scale: 2 }).notNull().default("0"),
-  status: text("status").notNull().default("draft"),
-  approvedBy: integer("approved_by"),
-  approvedAt: timestamp("approved_at", { withTimezone: true }),
-  notes: text("notes"),
-  createdBy: integer("created_by").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-  deletedAt: timestamp("deleted_at", { withTimezone: true }),
-});

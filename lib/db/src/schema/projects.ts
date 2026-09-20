@@ -10,8 +10,6 @@ export const projectsTable = pgTable("projects", {
   description: text("description"),
   status: text("status").notNull().default("planning"),
   progress: numeric("progress", { precision: 5, scale: 2 }).notNull().default("0"),
-  budget: numeric("budget", { precision: 15, scale: 2 }).notNull().default("0"),
-  spent: numeric("spent", { precision: 15, scale: 2 }).notNull().default("0"),
   client: text("client").notNull(),
   location: text("location").notNull(),
   startDate: date("start_date", { mode: "string" }).notNull(),

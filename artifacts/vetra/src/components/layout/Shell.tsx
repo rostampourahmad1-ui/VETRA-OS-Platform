@@ -6,7 +6,7 @@ import {
   Building2, LayoutDashboard, FolderKanban, ListTodo, FileText,
   Briefcase, Activity, Users, Package, Truck, ClipboardList, X,
   Settings, ChevronDown, Bell, Search, Menu,
-  Calendar, Wrench, BarChart3, Bot, Calculator, ClipboardCheck,
+  Calendar, Wrench, BarChart3, Bot, ClipboardCheck,
   UserCircle, LogOut,
   CalendarClock, TrendingUp, Boxes, Warehouse,
 } from 'lucide-react';
@@ -121,12 +121,6 @@ function Sidebar() {
         </div>
         <nav className="space-y-1 px-2">
           {[
-            { href: '/cost-control', icon: Building2, label: 'Cost Control' },
-            { href: '/invoices', icon: FileText, label: 'Invoices' },
-            { href: '/payment-schedules', icon: Calendar, label: 'Payment Schedule' },
-            { href: '/certificates', icon: ClipboardCheck, label: 'Certificates' },
-            { href: '/financial-reports', icon: BarChart3, label: 'Financial Reports' },
-            { href: '/accounting', icon: Calculator, label: 'Accounting' },
             { href: '/crm', icon: UserCircle, label: 'CRM' },
             { href: '/reports', icon: BarChart3, label: 'Reports' },
             { href: '/ai-assistant', icon: Bot, label: 'AI Assistant' },

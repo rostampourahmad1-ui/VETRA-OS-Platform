@@ -45,7 +45,7 @@ export class RagService {
 
       if (project) {
         snippets.push(
-          `Project: ${project.name}\nStatus: ${project.status}\nProgress: ${project.progress}%\nBudget: ${project.budget}\nSpent: ${project.spent}\nClient: ${project.client}\nLocation: ${project.location}\nPhase: ${project.phase ?? "N/A"}`,
+          `Project: ${project.name}\nStatus: ${project.status}\nProgress: ${project.progress}%\nClient: ${project.client}\nLocation: ${project.location}\nPhase: ${project.phase ?? "N/A"}`,
         );
         sources.push("project");
       }

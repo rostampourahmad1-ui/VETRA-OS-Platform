@@ -1,10 +1,9 @@
 import { t } from '@/lib/i18n';
-import { Building2, Wallet, Activity, Users, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
+import { Building2, Activity, Users, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
 import { useGetDashboardSummary, useGetDashboardProjectHealth } from '@workspace/api-client-react';
 import { Link } from 'wouter';
 import { Card, CardContent } from '@/components/ui/card';
 import { GlassContainer } from '@/components/ui/glass-container';
-import { formatCurrency } from '@/lib/jalali';
 
 export default function Dashboard() {
   const { data: summary, isLoading } = useGetDashboardSummary();
@@ -12,7 +11,6 @@ export default function Dashboard() {
   if (isLoading) return <div className="flex min-h-[60vh] items-center justify-center text-[var(--text-secondary)]">{t('app.loading')}</div>;
   const kpis = [
     { label: t('dashboard.activeProjects'), value: summary?.activeProjects ?? 0, icon: Building2 },
-    { label: t('dashboard.spentBudget'), value: formatCurrency(summary?.spentBudget ?? 0), icon: Wallet },
     { label: t('dashboard.overallProgress'), value: `${summary?.overallProgress ?? 0}%`, icon: Activity },
     { label: t('dashboard.activeWorkforce'), value: summary?.totalWorkforce ?? 0, icon: Users },
   ];

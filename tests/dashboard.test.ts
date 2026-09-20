@@ -11,7 +11,6 @@ const mocks = vi.hoisted(() => {
       "usersTable",
       "equipmentTable",
       "auditLogsTable",
-      "expensesTable",
     ].map((name) => [name, { name }]),
   ) as Record<string, any>;
 
@@ -118,8 +117,6 @@ describe("Dashboard API", () => {
 
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty("activeProjects");
-      expect(res.body).toHaveProperty("totalBudget");
-      expect(res.body).toHaveProperty("spentBudget");
       expect(res.body).toHaveProperty("overallProgress");
       expect(res.body).toHaveProperty("delayedActivities");
       expect(res.body).toHaveProperty("totalWorkforce");
@@ -140,8 +137,6 @@ describe("Dashboard API", () => {
 
       expect(res.status).toBe(200);
       expect(res.body.activeProjects).toBe(0);
-      expect(res.body.totalBudget).toBe(0);
-      expect(res.body.spentBudget).toBe(0);
       expect(res.body.overallProgress).toBe(0);
       expect(res.body.totalWorkforce).toBe(0);
       expect(res.body.pendingApprovals).toBe(0);
@@ -237,8 +232,6 @@ describe("Dashboard API", () => {
       expect(res.body[0]).toHaveProperty("progress");
       expect(res.body[0]).toHaveProperty("status");
       expect(res.body[0]).toHaveProperty("health");
-      expect(res.body[0]).toHaveProperty("budgetUsed");
-      expect(res.body[0]).toHaveProperty("budgetTotal");
       expect(res.body[0]).toHaveProperty("daysRemaining");
     });
 
@@ -281,25 +274,6 @@ describe("Dashboard API", () => {
           budget: "100000",
           spent: "10000",
           progress: "10",
-          endDate: "2099-01-01",
-        },
-      ]);
-
-      const res = await request(appWith(dashboardRouter)).get("/dashboard/project-health");
-
-      expect(res.body[0].health).toBe("critical");
-    });
-
-    it("marks over-budget project as critical", async () => {
-      rows.set(tables.projectsTable, [
-        {
-          id: 1,
-          organizationId: 1,
-          name: "Over Budget",
-          status: "active",
-          budget: "100000",
-          spent: "96000",
-          progress: "50",
           endDate: "2099-01-01",
         },
       ]);
@@ -458,79 +432,4 @@ describe("Dashboard API", () => {
     });
   });
 
-  // ── Cash Flow ──────────────────────────────────────────────────────────────
-  describe("GET /dashboard/cash-flow", () => {
-    it("returns 12 months of data with correct shape", async () => {
-      rows.set(tables.expensesTable, []);
-
-      const res = await request(appWith(dashboardRouter)).get("/dashboard/cash-flow");
-
-      expect(res.status).toBe(200);
-      expect(Array.isArray(res.body)).toBe(true);
-      expect(res.body.length).toBe(12);
-
-      for (const entry of res.body) {
-        expect(entry).toHaveProperty("month");
-        expect(entry).toHaveProperty("income");
-        expect(entry).toHaveProperty("expense");
-        expect(typeof entry.month).toBe("string");
-        expect(typeof entry.income).toBe("number");
-        expect(typeof entry.expense).toBe("number");
-      }
-    });
-
-    it("reports zero income because no revenue tracking exists", async () => {
-      rows.set(tables.expensesTable, [
-        { organizationId: 1, amount: "500", expenseDate: "2026-09-01" },
-      ]);
-
-      const res = await request(appWith(dashboardRouter)).get("/dashboard/cash-flow");
-
-      const allIncome = res.body.every((e: any) => e.income === 0);
-      expect(allIncome).toBe(true);
-    });
-
-    it("reports zero expense for months with no data", async () => {
-      rows.set(tables.expensesTable, []);
-
-      const res = await request(appWith(dashboardRouter)).get("/dashboard/cash-flow");
-
-      for (const entry of res.body) {
-        expect(entry.expense).toBe(0);
-      }
-    });
-
-    it("aggregates expenses by month correctly", async () => {
-      const now = new Date();
-      const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-
-      rows.set(tables.expensesTable, [
-        { organizationId: 1, amount: "100", expenseDate: `${thisMonth}-05` },
-        { organizationId: 1, amount: "200", expenseDate: `${thisMonth}-10` },
-        { organizationId: 1, amount: "50", expenseDate: `${thisMonth}-15` },
-      ]);
-
-      const res = await request(appWith(dashboardRouter)).get("/dashboard/cash-flow");
-
-      const currentMonth = res.body[11];
-      expect(currentMonth.expense).toBe(350);
-    });
-
-    it("produces correct chronological order (oldest to newest)", async () => {
-      rows.set(tables.expensesTable, []);
-
-      const res = await request(appWith(dashboardRouter)).get("/dashboard/cash-flow");
-
-      const monthNames = res.body.map((e: any) => e.month);
-      const validMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-      const firstIdx = validMonths.indexOf(monthNames[0]);
-      expect(firstIdx).toBeGreaterThanOrEqual(0);
-
-      for (let i = 0; i < 12; i++) {
-        const expectedIdx = (firstIdx + i) % 12;
-        expect(monthNames[i]).toBe(validMonths[expectedIdx]);
-      }
-    });
-  });
 });
